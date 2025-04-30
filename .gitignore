@@ -13,6 +13,7 @@ node_modules
 Thumbs.db
 
 # Env
+# Add .env files to gitignore to keep sensitive information out of version control
 .env
 .env.*
 !.env.example

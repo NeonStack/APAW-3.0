@@ -25,20 +25,26 @@
   }
 
   // Fetch water station data on component mount
-  onMount(async () => {
+  onMount(() => {
+    // Use built-in load function or server hooks instead of exposing API fetch in client
+    loadWaterStations();
+  });
+
+  async function loadWaterStations() {
     try {
+      waterStations.update(store => ({ ...store, loading: true, error: null }));
       const response = await fetch('/api/water-stations');
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+        throw new Error(errorData.error || `Error: ${response.status}`);
       }
       const data = await response.json();
       waterStations.set({ loading: false, data: data, error: null });
     } catch (error) {
-      console.error('Failed to load water stations:', error);
-      waterStations.set({ loading: false, data: [], error: error.message });
+      console.error('Failed to load water stations data');
+      waterStations.set({ loading: false, data: [], error: 'Unable to load water station data' });
     }
-  });
+  }
 </script>
 
 <div class="bg-white h-full flex flex-col">

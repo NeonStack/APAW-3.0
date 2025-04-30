@@ -68,6 +68,22 @@
       waterStations.set({ loading: false, data: [], error: error.message });
     }
   }
+
+  // Function to format the datetime display in a compact way
+  function formatDateTime(timeStr) {
+    if (!timeStr) return '';
+ 
+    const parts = timeStr.split(' at ');
+    
+    if (parts.length === 2) {
+      const datePart = parts[0]; // "Month D, YYYY"
+      const timePart = parts[1]; // "h:mm AM/PM"
+      
+      return `${datePart} • ${timePart}`;
+    }
+    
+    return timeStr;
+  }
 </script>
 
 <div class="water-stations-tab h-full flex flex-col">
@@ -119,16 +135,22 @@
           {@const status = getStationStatus(station)}
           {@const change = calculateWaterChange(station)}
           
-          <div class="bg-white border border-gray-200 rounded shadow-sm transition-all">
-            <!-- Station header - Streamlined to one line -->
-            <div class="flex items-center justify-between p-2 border-l-3" style="border-left-color: {status.color};">
-              <div class="flex items-center gap-1.5">
-                <h3 class="font-medium text-gray-800 text-sm">{station.obsnm}</h3>
-                <div class="px-1 py-0.5 rounded-sm text-xs font-medium text-white" style="background-color: {status.color};">
-                  {status.text}
+          <div class="bg-white border border-gray-200 rounded shadow-sm transition-all mb-5">
+            <!-- Station header - Updated to show full date and time -->
+            <div class="flex flex-col p-2 border-l-3" style="border-left-color: {status.color};">
+              <div class="flex items-center justify-between mb-1">
+                <div class="flex items-center gap-1.5">
+                  <h3 class="font-medium text-gray-800 text-sm">{station.obsnm}</h3>
+                  <div class="px-1 py-0.5 rounded-sm text-xs font-medium text-white" style="background-color: {status.color};">
+                    {status.text}
+                  </div>
                 </div>
               </div>
-              <span class="text-xs text-gray-500">{station.timestr.split(' at ')[1]}</span>
+              <!-- Add date and time on its own line with smaller text -->
+              <div class="text-xs text-gray-500">
+                <Icon icon="mdi:clock-outline" class="inline-block mr-0.5 text-xs" /> 
+                {station.timestr}
+              </div>
             </div>
             
             <!-- Water level info - Compact design -->
