@@ -56,18 +56,67 @@
 
     L = await import('leaflet');
 
+    // Function to determine alert level and get appropriate color
+    const getStationAlertInfo = (station) => {
+      // Default to normal if we can't determine status
+      let status = 'normal';
+      let color = '#ffffff'; // White for normal
+      
+      // Parse water level and threshold values as numbers
+      const currentWL = parseFloat(station.wl);
+      const alertWL = parseFloat(station.alertwl);
+      const alarmWL = parseFloat(station.alarmwl);
+      const criticalWL = parseFloat(station.criticalwl);
+      
+      // Only proceed if we have a valid current water level
+      if (!isNaN(currentWL)) {
+        if (!isNaN(criticalWL) && currentWL >= criticalWL) {
+          status = 'critical';
+          color = '#ff0000'; // Red for critical
+        } 
+        else if (!isNaN(alarmWL) && currentWL >= alarmWL) {
+          status = 'alarm';
+          color = '#ff8800'; // Orange for alarm
+        } 
+        else if (!isNaN(alertWL) && currentWL >= alertWL) {
+          status = 'alert';
+          color = '#ffcc00'; // Yellow for alert
+        }
+      }
+      
+      return { status, color };
+    };
+
     // Create a function to generate a div icon with Iconify
-    const createWaterIcon = () => {
+    const createWaterIcon = (alertStatus = 'normal') => {
+      let color;
+      
+      // Set color based on alert status
+      switch(alertStatus) {
+        case 'critical':
+          color = '#ff0000'; // Red
+          break;
+        case 'alarm':
+          color = '#ff8800'; // Orange
+          break;
+        case 'alert':
+          color = '#ffcc00'; // Yellow
+          break;
+        default:
+          color = '#ffffff'; // White for normal
+      }
+      
       // Create a container div and render the Iconify icon into it
       const iconContainer = document.createElement('div');
       iconContainer.className = 'water-station-icon';
+      iconContainer.dataset.status = alertStatus;
       
-      // Enhanced SVG with glow effect and brighter colors
+      // Enhanced SVG with glow effect and color based on alert level
       const svgIcon = `<svg width="30" height="30" viewBox="0 0 24 24">
         <defs>
           <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
             <feGaussianBlur stdDeviation="2" result="blur" />
-            <feFlood flood-color="#ffffff" result="glow" />
+            <feFlood flood-color="${color}" result="glow" />
             <feComposite in="glow" in2="blur" operator="in" result="glowBlur" />
             <feComposite in="SourceGraphic" in2="glowBlur" operator="over" />
           </filter>
@@ -75,8 +124,8 @@
         <circle cx="12" cy="14" r="9" fill="#0055aa" opacity="0.3" />
         <path d="M12 20a6 6 0 0 1-6-6c0-4 6-10.75 6-10.75S18 10 18 14a6 6 0 0 1-6 6Z" 
               fill="#00b3ff" 
-              stroke="#ffffff" 
-              stroke-width="1"
+              stroke="${color}" 
+              stroke-width="1.5"
               filter="url(#glow)" />
       </svg>`;
       
@@ -84,7 +133,7 @@
       
       return L.divIcon({
         html: iconContainer,
-        className: 'water-station-marker',
+        className: `water-station-marker status-${alertStatus}`,
         iconSize: [30, 30],
         iconAnchor: [15, 30],
         popupAnchor: [0, -30]
@@ -179,14 +228,31 @@
               const lon = typeof station.lon === 'string' ? parseFloat(station.lon) : station.lon;
               
               if (!isNaN(lat) && !isNaN(lon)) {
-                const stationIcon = createWaterIcon();
+                // Determine alert status
+                const { status, color } = getStationAlertInfo(station);
+                
+                // Create icon based on alert status
+                const stationIcon = createWaterIcon(status);
+                
+                // Enhanced popup with alert level information
+                let popupContent = `
+                  <b>${station.obsnm || 'Station ' + index}</b><br>
+                  Water Level: ${station.wl || 'N/A'} m`;
+                
+                // Add alert level thresholds if available
+                if (station.alertwl) popupContent += `<br><span class="alert-threshold">Alert: ${station.alertwl} m</span>`;
+                if (station.alarmwl) popupContent += `<br><span class="alarm-threshold">Alarm: ${station.alarmwl} m</span>`;
+                if (station.criticalwl) popupContent += `<br><span class="critical-threshold">Critical: ${station.criticalwl} m</span>`;
+                
+                // Add current status
+                popupContent += `<br><span class="status status-${status}">Status: ${status.toUpperCase()}</span>`;
                 
                 const stationMarker = L.marker([lat, lon], { 
                   icon: stationIcon,
-                  zIndexOffset: 1000 // Ensure water markers appear above other elements
+                  zIndexOffset: status === 'normal' ? 1000 : (status === 'alert' ? 2000 : (status === 'alarm' ? 3000 : 4000))
                 })
                 .addTo(map)
-                .bindPopup(`<b>${station.obsnm || 'Station ' + index}</b><br>Water Level: ${station.wl || 'N/A'} m`);
+                .bindPopup(popupContent);
                 
                 waterStationMarkers.push(stationMarker);
               }
@@ -301,5 +367,75 @@
     100% {
       transform: scale(1);
     }
+  }
+
+  /* Different pulsing animations based on alert status */
+  @keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+  }
+
+  @keyframes fastPulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.15); }
+    100% { transform: scale(1); }
+  }
+
+  /* Status-specific styles */
+  :global(.water-station-icon[data-status="alert"]) {
+    animation: pulse 1.5s infinite;
+  }
+  
+  :global(.water-station-icon[data-status="alarm"]) {
+    animation: fastPulse 1.2s infinite;
+  }
+  
+  :global(.water-station-icon[data-status="critical"]) {
+    animation: fastPulse 0.8s infinite;
+  }
+
+  /* Popup styles */
+  :global(.leaflet-popup-content .alert-threshold) {
+    color: #ffcc00;
+    font-weight: 500;
+  }
+  
+  :global(.leaflet-popup-content .alarm-threshold) {
+    color: #ff8800;
+    font-weight: 500;
+  }
+  
+  :global(.leaflet-popup-content .critical-threshold) {
+    color: #ff0000;
+    font-weight: 500;
+  }
+  
+  :global(.leaflet-popup-content .status) {
+    margin-top: 5px;
+    display: inline-block;
+    padding: 2px 5px;
+    border-radius: 3px;
+    font-weight: 600;
+  }
+  
+  :global(.leaflet-popup-content .status-normal) {
+    background-color: rgba(255, 255, 255, 0.3);
+    color: #0c3143;
+  }
+  
+  :global(.leaflet-popup-content .status-alert) {
+    background-color: rgba(255, 204, 0, 0.2);
+    color: #9b7d00;
+  }
+  
+  :global(.leaflet-popup-content .status-alarm) {
+    background-color: rgba(255, 136, 0, 0.2);
+    color: #964f00;
+  }
+  
+  :global(.leaflet-popup-content .status-critical) {
+    background-color: rgba(255, 0, 0, 0.2);
+    color: #a30000;
   }
 </style>
