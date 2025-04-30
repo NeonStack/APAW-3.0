@@ -1,0 +1,400 @@
+1st District:  
+Manila = 264885
+
+2nd District:  
+Mandaluyong = 768148
+Marikina = 264874
+Pasig = 264876
+Quezon City = 264873
+San Juan = 264882
+
+3rd District:  
+Caloocan = 264875
+Malabon = 761333
+Navotas = 765956
+Valenzuela = 3424474
+
+4th District:  
+Las Piñas = 264877
+Makati = 21-264878_1_al
+Muntinlupa = 264879
+Parañaque = 3424484
+Pasay = 2-264881_1_al
+Pateros = 764136
+Taguig = 759349
+
+fetch link: http://dataservice.accuweather.com/forecasts/v1/daily/5day/{key_id_area}
+
+Query Parameters
+
+Query Parameters:
+apikey
+(required)
+Provided API Key
+
+language	
+en-us
+String indicating the language in which to return the resource
+
+details	
+true
+Boolean value specifies whether or not to include full details in the response.
+
+metric	
+true
+Boolean value specifies whether or not to display metric values.
+
+
+once fetch, it will return something like this which is 5 day forecast (including current day) so forecast is actually 4 days only which is like if today is 24, then it will return 24, 25, 26, 27, 28:
+{
+  "Headline": {
+    "EffectiveDate": "2025-05-04T07:00:00+08:00",
+    "EffectiveEpochDate": 1746313200,
+    "Severity": 2,
+    "Text": "Thunderstorms Sunday",
+    "Category": "thunderstorm",
+    "EndDate": "2025-05-04T19:00:00+08:00",
+    "EndEpochDate": 1746356400,
+    "MobileLink": "http://www.accuweather.com/en/ph/makati-city/21-264878_1_al/daily-weather-forecast/21-264878_1_al?unit=c&lang=en-us",
+    "Link": "http://www.accuweather.com/en/ph/makati-city/21-264878_1_al/daily-weather-forecast/21-264878_1_al?unit=c&lang=en-us"
+  },
+  "DailyForecasts": [
+    {
+      "Date": "2025-04-30T07:00:00+08:00",
+      "EpochDate": 1745967600,
+      "Sun": {
+        "Rise": "2025-04-30T05:34:00+08:00",
+        "EpochRise": 1745962440,
+        "Set": "2025-04-30T18:12:00+08:00",
+        "EpochSet": 1746007920
+      },
+      "Moon": {
+        "Rise": "2025-04-30T07:26:00+08:00",
+        "EpochRise": 1745969160,
+        "Set": "2025-04-30T21:02:00+08:00",
+        "EpochSet": 1746018120,
+        "Phase": "WaxingCrescent",
+        "Age": 2
+      },
+      "Temperature": {
+        "Minimum": {
+          "Value": 26.7,
+          "Unit": "C",
+          "UnitType": 17
+        },
+        "Maximum": {
+          "Value": 34.6,
+          "Unit": "C",
+          "UnitType": 17
+        }
+      },
+      "RealFeelTemperature": {
+        "Minimum": {
+          "Value": 30.6,
+          "Unit": "C",
+          "UnitType": 17,
+          "Phrase": "Very Warm"
+        },
+        "Maximum": {
+          "Value": 39.7,
+          "Unit": "C",
+          "UnitType": 17,
+          "Phrase": "Very Hot"
+        }
+      },
+      "RealFeelTemperatureShade": {
+        "Minimum": {
+          "Value": 30.6,
+          "Unit": "C",
+          "UnitType": 17,
+          "Phrase": "Very Warm"
+        },
+        "Maximum": {
+          "Value": 37.5,
+          "Unit": "C",
+          "UnitType": 17,
+          "Phrase": "Very Hot"
+        }
+      },
+      "HoursOfSun": 3,
+      "DegreeDaySummary": {
+        "Heating": {
+          "Value": 0,
+          "Unit": "C",
+          "UnitType": 17
+        },
+        "Cooling": {
+          "Value": 13,
+          "Unit": "C",
+          "UnitType": 17
+        }
+      },
+      "AirAndPollen": [
+        {
+          "Name": "AirQuality",
+          "Value": 0,
+          "Category": "Good",
+          "CategoryValue": 1,
+          "Type": "Ozone"
+        },
+        {
+          "Name": "Grass",
+          "Value": 0,
+          "Category": "Low",
+          "CategoryValue": 1
+        },
+        {
+          "Name": "Mold",
+          "Value": 0,
+          "Category": "Low",
+          "CategoryValue": 1
+        },
+        {
+          "Name": "Ragweed",
+          "Value": 0,
+          "Category": "Low",
+          "CategoryValue": 1
+        },
+        {
+          "Name": "Tree",
+          "Value": 0,
+          "Category": "Low",
+          "CategoryValue": 1
+        },
+        {
+          "Name": "UVIndex",
+          "Value": 9,
+          "Category": "Very High",
+          "CategoryValue": 4
+        }
+      ],
+      "Day": {
+        "Icon": 16,
+        "IconPhrase": "Mostly cloudy w/ t-storms",
+        "HasPrecipitation": true,
+        "PrecipitationType": "Rain",
+        "PrecipitationIntensity": "Light",
+        "ShortPhrase": "A t-storm around this morning",
+        "LongPhrase": "Cloudy this morning with a thunderstorm around, then intervals of clouds and sunshine this afternoon",
+        "PrecipitationProbability": 40,
+        "ThunderstormProbability": 24,
+        "RainProbability": 40,
+        "SnowProbability": 0,
+        "IceProbability": 0,
+        "Wind": {
+          "Speed": {
+            "Value": 11.1,
+            "Unit": "km/h",
+            "UnitType": 7
+          },
+          "Direction": {
+            "Degrees": 116,
+            "Localized": "ESE",
+            "English": "ESE"
+          }
+        },
+        "WindGust": {
+          "Speed": {
+            "Value": 27.8,
+            "Unit": "km/h",
+            "UnitType": 7
+          },
+          "Direction": {
+            "Degrees": 118,
+            "Localized": "ESE",
+            "English": "ESE"
+          }
+        },
+        "TotalLiquid": {
+          "Value": 1,
+          "Unit": "mm",
+          "UnitType": 3
+        },
+        "Rain": {
+          "Value": 1,
+          "Unit": "mm",
+          "UnitType": 3
+        },
+        "Snow": {
+          "Value": 0,
+          "Unit": "cm",
+          "UnitType": 4
+        },
+        "Ice": {
+          "Value": 0,
+          "Unit": "mm",
+          "UnitType": 3
+        },
+        "HoursOfPrecipitation": 1,
+        "HoursOfRain": 1,
+        "HoursOfSnow": 0,
+        "HoursOfIce": 0,
+        "CloudCover": 76,
+        "Evapotranspiration": {
+          "Value": 3.6,
+          "Unit": "mm",
+          "UnitType": 3
+        },
+        "SolarIrradiance": {
+          "Value": 3920.6,
+          "Unit": "W/m²",
+          "UnitType": 33
+        },
+        "RelativeHumidity": {
+          "Minimum": 52,
+          "Maximum": 76,
+          "Average": 61
+        },
+        "WetBulbTemperature": {
+          "Minimum": {
+            "Value": 24.9,
+            "Unit": "C",
+            "UnitType": 17
+          },
+          "Maximum": {
+            "Value": 26.8,
+            "Unit": "C",
+            "UnitType": 17
+          },
+          "Average": {
+            "Value": 26,
+            "Unit": "C",
+            "UnitType": 17
+          }
+        },
+        "WetBulbGlobeTemperature": {
+          "Minimum": {
+            "Value": 26.2,
+            "Unit": "C",
+            "UnitType": 17
+          },
+          "Maximum": {
+            "Value": 31,
+            "Unit": "C",
+            "UnitType": 17
+          },
+          "Average": {
+            "Value": 29.1,
+            "Unit": "C",
+            "UnitType": 17
+          }
+        }
+      },
+      "Night": {
+        "Icon": 38,
+        "IconPhrase": "Mostly cloudy",
+        "HasPrecipitation": false,
+        "ShortPhrase": "Becoming cloudy",
+        "LongPhrase": "Becoming cloudy",
+        "PrecipitationProbability": 13,
+        "ThunderstormProbability": 3,
+        "RainProbability": 13,
+        "SnowProbability": 0,
+        "IceProbability": 0,
+        "Wind": {
+          "Speed": {
+            "Value": 9.3,
+            "Unit": "km/h",
+            "UnitType": 7
+          },
+          "Direction": {
+            "Degrees": 88,
+            "Localized": "E",
+            "English": "E"
+          }
+        },
+        "WindGust": {
+          "Speed": {
+            "Value": 25.9,
+            "Unit": "km/h",
+            "UnitType": 7
+          },
+          "Direction": {
+            "Degrees": 116,
+            "Localized": "ESE",
+            "English": "ESE"
+          }
+        },
+        "TotalLiquid": {
+          "Value": 0,
+          "Unit": "mm",
+          "UnitType": 3
+        },
+        "Rain": {
+          "Value": 0,
+          "Unit": "mm",
+          "UnitType": 3
+        },
+        "Snow": {
+          "Value": 0,
+          "Unit": "cm",
+          "UnitType": 4
+        },
+        "Ice": {
+          "Value": 0,
+          "Unit": "mm",
+          "UnitType": 3
+        },
+        "HoursOfPrecipitation": 0,
+        "HoursOfRain": 0,
+        "HoursOfSnow": 0,
+        "HoursOfIce": 0,
+        "CloudCover": 67,
+        "Evapotranspiration": {
+          "Value": 0.5,
+          "Unit": "mm",
+          "UnitType": 3
+        },
+        "SolarIrradiance": {
+          "Value": 21.9,
+          "Unit": "W/m²",
+          "UnitType": 33
+        },
+        "RelativeHumidity": {
+          "Minimum": 65,
+          "Maximum": 81,
+          "Average": 77
+        },
+        "WetBulbTemperature": {
+          "Minimum": {
+            "Value": 24.5,
+            "Unit": "C",
+            "UnitType": 17
+          },
+          "Maximum": {
+            "Value": 26.3,
+            "Unit": "C",
+            "UnitType": 17
+          },
+          "Average": {
+            "Value": 25.2,
+            "Unit": "C",
+            "UnitType": 17
+          }
+        },
+        "WetBulbGlobeTemperature": {
+          "Minimum": {
+            "Value": 25.5,
+            "Unit": "C",
+            "UnitType": 17
+          },
+          "Maximum": {
+            "Value": 29.4,
+            "Unit": "C",
+            "UnitType": 17
+          },
+          "Average": {
+            "Value": 27.3,
+            "Unit": "C",
+            "UnitType": 17
+          }
+        }
+      },
+      "Sources": [
+        "AccuWeather"
+      ],
+      "MobileLink": "http://www.accuweather.com/en/ph/makati-city/21-264878_1_al/daily-weather-forecast/21-264878_1_al?day=1&unit=c&lang=en-us",
+      "Link": "http://www.accuweather.com/en/ph/makati-city/21-264878_1_al/daily-weather-forecast/21-264878_1_al?day=1&unit=c&lang=en-us"
+    },...
+    ]
+}

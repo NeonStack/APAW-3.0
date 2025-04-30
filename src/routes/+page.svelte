@@ -65,7 +65,7 @@
 
 				<!-- Improved subheading with better spacing -->
 				<p class="mx-auto mt-10 max-w-3xl text-lg leading-relaxed text-gray-700 md:text-xl">
-					Applying AI and data science techniques to predict potential flood risks based on historical and environmental data.
+					Applying AI and data science techniques to predict potential flood risks based on historical and hydrometeorological data.
 				</p>
 			</div>
 

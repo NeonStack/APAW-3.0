@@ -1,0 +1,110 @@
+-- Table to store daily weather forecasts relevant for flood monitoring
+CREATE TABLE apaw_weather_forecasts (
+    -- Meta columns
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(), -- Unique row identifier
+    city_id TEXT NOT NULL,                         -- AccuWeather location key (e.g., '264885', '21-264878_1_al')
+    city_name TEXT,                                -- Optional: Human-readable city name for easier reference
+    fetched_at TIMESTAMPTZ DEFAULT now() NOT NULL, -- Timestamp when the data was fetched from the API
+    created_at TIMESTAMPTZ DEFAULT now() NOT NULL, -- Timestamp when the record was created in Supabase
+
+    -- Date and Time columns
+    forecast_date DATE NOT NULL,                  -- The specific date of the forecast (extracted from 'Date' or 'EpochDate')
+    epoch_date BIGINT,                            -- The epoch timestamp for the forecast date
+    sunrise_time TIMESTAMPTZ,                     -- Time of sunrise for the forecast date
+    sunset_time TIMESTAMPTZ,                      -- Time of sunset for the forecast date
+    moon_phase TEXT,                              -- Phase of the moon (e.g., 'WaxingCrescent')
+
+    -- Temperature columns (Combined/Averaged Day/Night)
+    min_temp_c REAL,                              -- Daily minimum temperature in Celsius
+    max_temp_c REAL,                              -- Daily maximum temperature in Celsius
+    avg_temp_c REAL,                              -- Calculated: (min_temp_c + max_temp_c) / 2
+    min_realfeel_temp_c REAL,                     -- Daily minimum RealFeel temperature in Celsius
+    max_realfeel_temp_c REAL,                     -- Daily maximum RealFeel temperature in Celsius
+    avg_realfeel_temp_c REAL,                     -- Calculated: Average of Day/Night RealFeel temps or (min+max)/2
+    min_realfeel_temp_shade_c REAL,               -- Daily minimum RealFeel temperature in shade (Celsius)
+    max_realfeel_temp_shade_c REAL,               -- Daily maximum RealFeel temperature in shade (Celsius)
+    avg_realfeel_temp_shade_c REAL,               -- Calculated: Average of Day/Night RealFeel Shade temps or (min+max)/2
+
+    -- Precipitation columns (Combined/Summed Day/Night)
+    total_liquid_mm REAL,                         -- Total liquid precipitation (Rain + Ice) in mm (Sum of Day + Night)
+    total_rain_mm REAL,                           -- Total rain precipitation in mm (Sum of Day + Night)
+    total_ice_mm REAL,                            -- Total ice precipitation in mm (Sum of Day + Night)
+    total_hours_precipitation REAL,               -- Total hours of any precipitation (Sum of Day + Night)
+    total_hours_rain REAL,                        -- Total hours of rain (Sum of Day + Night)
+    total_hours_ice REAL,                         -- Total hours of ice (Sum of Day + Night)
+
+    -- Probability columns (Consider storing both Day/Night or just the max/most relevant)
+    -- Option 1: Store both Day and Night probabilities
+    day_precipitation_probability INTEGER,        -- Probability of precipitation during the day (%)
+    night_precipitation_probability INTEGER,      -- Probability of precipitation during the night (%)
+    day_thunderstorm_probability INTEGER,         -- Probability of thunderstorms during the day (%)
+    night_thunderstorm_probability INTEGER,       -- Probability of thunderstorms during the night (%)
+    day_rain_probability INTEGER,                 -- Probability of rain during the day (%)
+    night_rain_probability INTEGER,               -- Probability of rain during the night (%)
+    day_ice_probability INTEGER,                  -- Probability of ice during the day (%)
+    night_ice_probability INTEGER,                -- Probability of ice during the night (%)
+    -- Option 2: Store max probability for the day (Simpler, but less detail)
+    -- max_precipitation_probability INTEGER,     -- Max of Day/Night precipitation probability (%)
+    -- max_thunderstorm_probability INTEGER,      -- Max of Day/Night thunderstorm probability (%)
+    -- max_rain_probability INTEGER,              -- Max of Day/Night rain probability (%)
+    -- max_ice_probability INTEGER,               -- Max of Day/Night ice probability (%)
+
+    -- Wind columns (Combined/Averaged/Max)
+    avg_wind_speed_kmh REAL,                      -- Average wind speed in km/h (Average of Day + Night)
+    max_wind_gust_kmh REAL,                       -- Maximum wind gust speed in km/h (Max of Day/Night gusts)
+    day_wind_direction_deg INTEGER,               -- Wind direction during the day (degrees)
+    day_wind_direction_loc TEXT,                  -- Wind direction during the day (e.g., 'ESE')
+    night_wind_direction_deg INTEGER,             -- Wind direction during the night (degrees)
+    night_wind_direction_loc TEXT,                -- Wind direction during the night (e.g., 'E')
+
+    -- Humidity and Atmospheric columns (Combined/Overall)
+    min_relative_humidity_percent INTEGER,        -- Minimum relative humidity for the 24hr period (%)
+    max_relative_humidity_percent INTEGER,        -- Maximum relative humidity for the 24hr period (%)
+    avg_relative_humidity_percent REAL,           -- Average relative humidity for the 24hr period (%) (Avg of Day/Night avg)
+    avg_cloud_cover_percent REAL,                 -- Average cloud cover (%) (Average of Day + Night)
+    total_evapotranspiration_mm REAL,             -- Total evapotranspiration in mm (Sum of Day + Night)
+    -- Note: Wet Bulb temps are indicators of heat stress, might be less direct for flooding but included for completeness
+    min_wetbulb_temp_c REAL,                      -- Minimum Wet Bulb Temperature for the 24hr period (C)
+    max_wetbulb_temp_c REAL,                      -- Maximum Wet Bulb Temperature for the 24hr period (C)
+    avg_wetbulb_temp_c REAL,                      -- Average Wet Bulb Temperature for the 24hr period (C) (Avg of Day/Night avg)
+    min_wbgt_c REAL,                              -- Minimum Wet Bulb Globe Temperature for the 24hr period (C)
+    max_wbgt_c REAL,                              -- Maximum Wet Bulb Globe Temperature for the 24hr period (C)
+    avg_wbgt_c REAL,                              -- Average Wet Bulb Globe Temperature for the 24hr period (C) (Avg of Day/Night avg)
+
+
+    -- Descriptive columns (Prioritizing Day, but including Night)
+    day_icon INTEGER,                             -- AccuWeather icon code for the day
+    day_icon_phrase TEXT,                         -- Descriptive phrase for the day icon
+    day_short_phrase TEXT,                        -- Short weather description for the day
+    day_long_phrase TEXT,                         -- Long weather description for the day
+    day_has_precipitation BOOLEAN,                -- Indicator if precipitation occurred during the day
+    day_precipitation_type TEXT,                  -- Type of precipitation during the day (e.g., 'Rain')
+    day_precipitation_intensity TEXT,             -- Intensity of precipitation during the day (e.g., 'Light')
+
+    night_icon INTEGER,                           -- AccuWeather icon code for the night
+    night_icon_phrase TEXT,                       -- Descriptive phrase for the night icon
+    night_short_phrase TEXT,                      -- Short weather description for the night
+    night_long_phrase TEXT,                       -- Long weather description for the night
+    night_has_precipitation BOOLEAN,              -- Indicator if precipitation occurred during the night
+    -- night_precipitation_type TEXT,             -- Usually not provided for night unless HasPrecipitation is true
+    -- night_precipitation_intensity TEXT,        -- Usually not provided for night unless HasPrecipitation is true
+
+    -- Headline columns (Applies to the forecast period, potentially repeated across rows)
+    headline_effective_date TIMESTAMPTZ,          -- When the headline becomes effective
+    headline_end_date TIMESTAMPTZ,                -- When the headline ends
+    headline_severity INTEGER,                    -- Severity code of the headline
+    headline_text TEXT,                           -- Text of the headline warning/summary
+    headline_category TEXT,                       -- Category of the headline (e.g., 'thunderstorm')
+
+    -- Other potentially relevant columns
+    hours_of_sun REAL,                            -- Hours of sunshine for the day
+    link TEXT,                                    -- Link to the detailed forecast on AccuWeather
+
+    -- Constraints
+    CONSTRAINT weather_forecasts_city_date_unique UNIQUE (city_id, forecast_date) -- Ensure only one forecast per city per date
+);
+
+-- Optional: Add indexes for faster querying on frequently used columns
+CREATE INDEX idx_weather_forecasts_city_id ON weather_forecasts(city_id);
+CREATE INDEX idx_weather_forecasts_forecast_date ON weather_forecasts(forecast_date);
+CREATE INDEX idx_weather_forecasts_city_date ON weather_forecasts(city_id, forecast_date);

@@ -25,6 +25,7 @@
 	},
 	"dependencies": {
 		"@iconify/svelte": "^4.2.0",
+		"@supabase/supabase-js": "^2.49.4",
 		"leaflet": "^1.9.4",
 		"moment": "^2.30.1"
 	}

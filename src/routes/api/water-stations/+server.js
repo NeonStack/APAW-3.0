@@ -1,6 +1,5 @@
 import { json } from '@sveltejs/kit';
 import moment from 'moment';
-import { PAGASA_API_URL } from '$env/static/private'; // Import from .env
 
 // Helper function to clean water level string
 function cleanWaterLevel(wl) {
@@ -20,18 +19,11 @@ export async function GET({ request }) {
     return json({ error: 'Unauthorized access' }, { status: 403 });
   }
 
-  // Use environment variable instead of hardcoded URL
-  const apiUrl = PAGASA_API_URL || 'https://pasig-marikina-tullahanffws.pagasa.dost.gov.ph/water/main_list.do';
+  const apiUrl = 'https://pasig-marikina-tullahanffws.pagasa.dost.gov.ph/water/main_list.do';
 
   try {
     // Add custom headers to disguise the origin of the request
-    const response = await fetch(apiUrl, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        'Accept': 'application/json',
-        'Referer': 'https://pagasa.dost.gov.ph/'
-      }
-    });
+    const response = await fetch(apiUrl);
 
     if (!response.ok) {
       console.error(`API error! status: ${response.status}`);
