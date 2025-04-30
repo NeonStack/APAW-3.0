@@ -37,7 +37,7 @@
 			class="absolute -top-32 -left-32 h-64 w-64 rounded-full bg-blue-100 opacity-40 blur-3xl"
 		></div>
 		<div
-			class="absolute top-1/4 -right-32 h-96 w-96 rounded-full bg-[#3ba6d0] opacity-10 blur-3xl"
+			class="absolute top-1/4 -right-32 h-96 w-96 rounded-full bg-primary-light opacity-10 blur-3xl"
 		></div>
 	</div>
 
@@ -48,18 +48,18 @@
 				<!-- Improved heading design with better spacing and visual hierarchy -->
 				<div class="relative inline-block">
 					<h1
-						class="mb-2 text-3xl leading-tight font-bold tracking-tight text-[#0c3143] md:mb-3 md:text-5xl lg:text-6xl"
+						class="mb-2 text-3xl leading-tight font-bold tracking-tight text-primary md:mb-3 md:text-5xl lg:text-6xl"
 					>
 						Advanced Predictive Analysis
 					</h1>
 					<h1
-						class="text-3xl leading-tight font-bold tracking-tight text-[#3ba6d0] md:text-5xl lg:text-6xl"
+						class="text-3xl leading-tight font-bold tracking-tight text-primary-light md:text-5xl lg:text-6xl"
 					>
 						of Water-Related Flood Risk
 					</h1>
 					<!-- Subtle accent line -->
 					<div
-						class="absolute -bottom-6 left-1/2 hidden h-1 w-24 -translate-x-1/2 transform rounded-full bg-[#3ba6d0] opacity-70 md:block"
+						class="absolute -bottom-6 left-1/2 hidden h-1 w-24 -translate-x-1/2 transform rounded-full bg-primary-light opacity-70 md:block"
 					></div>
 				</div>
 
@@ -72,14 +72,14 @@
 			<!-- CTA Buttons with improved spacing -->
 			<div class="mt-8 flex flex-col justify-center gap-5 sm:flex-row">
 				<a
-					href="/predictions"
-					class="w-48 transform rounded-lg bg-[#3ba6d0] px-8 py-3 text-center font-medium text-white shadow-md transition-all duration-300 hover:-translate-y-1 hover:bg-[#2d8fb3] hover:shadow-lg sm:w-auto sm:min-w-[180px]"
+					href="/predict"
+					class="w-48 transform rounded-lg bg-primary-light px-8 py-3 text-center font-medium text-white shadow-md transition-all duration-300 hover:-translate-y-1 hover:bg-[#2d8fb3] hover:shadow-lg sm:w-auto sm:min-w-[180px]"
 				>
 					<i class="fas fa-chart-line mr-2"></i> View Predictions
 				</a>
 				<a
 					href="/about"
-					class="w-48 transform rounded-lg border border-gray-300 bg-white px-8 py-3 text-center font-medium text-[#0c3143] shadow-md transition-all duration-300 hover:-translate-y-1 hover:bg-gray-50 hover:shadow-lg sm:w-auto sm:min-w-[180px]"
+					class="w-48 transform rounded-lg border border-gray-300 bg-white px-8 py-3 text-center font-medium text-primary shadow-md transition-all duration-300 hover:-translate-y-1 hover:bg-gray-50 hover:shadow-lg sm:w-auto sm:min-w-[180px]"
 				>
 					Learn More <i class="fas fa-arrow-right ml-2"></i>
 				</a>
@@ -114,11 +114,11 @@
 </section>
 
 <!-- Features Section -->
-<section class="bg-[#3ba6d0] py-20 text-white">
+<section class="bg-primary-light py-20 text-white">
 	<div class="container mx-auto px-8 md:px-16">
 		<div class="mb-16 text-center">
 			<span
-				class="bg-opacity-30 mb-4 inline-block rounded-full bg-[#0c3143] px-3 py-1 text-sm font-medium text-white"
+				class="bg-opacity-30 mb-4 inline-block rounded-full bg-primary px-3 py-1 text-sm font-medium text-white"
 				>OUR PLATFORM</span
 			>
 			<h2 class="mb-4 text-3xl font-bold text-white md:text-4xl">
@@ -133,10 +133,10 @@
 		<div class="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-4">
 			{#each features as feature}
 				<div
-					class="bg-opacity-40 border-opacity-30 rounded-xl border border-[#0c3143] bg-[#0c3143] p-8 shadow-lg transition duration-300 hover:translate-y-[-5px] hover:shadow-xl"
+					class="bg-opacity-40 border-opacity-30 rounded-xl border border-primary bg-primary p-8 shadow-lg transition duration-300 hover:translate-y-[-5px] hover:shadow-xl"
 				>
 					<div
-						class="bg-opacity-50 mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-[#0c3143] text-3xl text-white"
+						class="bg-opacity-50 mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-3xl text-white"
 					>
 						<Icon icon={feature.icon} />
 					</div>
@@ -152,7 +152,7 @@
 <section class="bg-gray-50 py-24">
 	<div class="container mx-auto px-8 md:px-16">
 		<div
-			class="rounded-2xl bg-gradient-to-r from-[#0c3143] to-[#154a67] p-12 text-center shadow-xl md:p-16"
+			class="rounded-2xl bg-gradient-to-r from-primary to-[#154a67] p-12 text-center shadow-xl md:p-16"
 		>
 			<div class="mx-auto max-w-3xl">
 				<h2 class="mb-6 text-3xl font-bold text-white">Ready to explore APAW's flood prediction?</h2>
@@ -161,8 +161,8 @@
 					from water-related flood risk.
 				</p>
 				<a
-					href="/predictions"
-					class="inline-block rounded-lg bg-[#3ba6d0] px-8 py-3 font-medium text-white shadow-md transition-colors hover:bg-[#2d8fb3]"
+					href="/predict"
+					class="inline-block rounded-lg bg-primary-light px-8 py-3 font-medium text-white shadow-md transition-colors hover:bg-[#2d8fb3]"
 				>
 					Get Started
 				</a>

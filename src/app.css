@@ -1,6 +1,5 @@
 @import 'tailwindcss';
 
-/* Remove @theme block and use @layer base and @layer utilities instead */
 @layer base {
   html {
     scroll-behavior: smooth;
