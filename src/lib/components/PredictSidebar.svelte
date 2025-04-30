@@ -1,12 +1,14 @@
 <script>
-  import { createEventDispatcher } from 'svelte';
+  import { createEventDispatcher, onMount } from 'svelte';
   import { selectedLocation } from '$lib/stores/locationStore.js';
+  import { waterStations } from '$lib/stores/waterStationStore.js';
 
   const dispatch = createEventDispatcher();
-  
+
   let activeTab = 'info';
   let tabs = [
     { id: 'info', name: 'Information' },
+    { id: 'water', name: 'Water Stations' },
     { id: 'weather', name: 'Weather' },
     { id: 'settings', name: 'Settings' }
   ];
@@ -15,6 +17,22 @@
     activeTab = tabId;
     dispatch('tabChange', tabId);
   }
+
+  // Fetch water station data on component mount
+  onMount(async () => {
+    try {
+      const response = await fetch('/api/water-stations');
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      waterStations.set({ loading: false, data: data, error: null });
+    } catch (error) {
+      console.error('Failed to load water stations:', error);
+      waterStations.set({ loading: false, data: [], error: error.message });
+    }
+  });
 </script>
 
 <div class="bg-white h-full flex flex-col">
@@ -74,6 +92,43 @@
             <li class="mb-1">View Settings to customize your experience</li>
           </ul>
         </div>
+      </div>
+    {:else if activeTab === 'water'}
+      <div class="water-stations-tab">
+        <h2 class="text-xl font-semibold text-[#0c3143] mb-3">Water Level Stations</h2>
+
+        {#if $waterStations.loading}
+          <p class="text-gray-500 italic">Loading water station data...</p>
+        {:else if $waterStations.error}
+          <p class="text-red-600">Error loading data: {$waterStations.error}</p>
+        {:else if $waterStations.data.length === 0}
+          <p class="text-gray-500">No water station data available.</p>
+        {:else}
+          <div class="space-y-4">
+            {#each $waterStations.data as station (station.obsnm)}
+              <div class="bg-gray-50 p-3 rounded-md border border-gray-200">
+                <h3 class="font-semibold text-[#0c3143] mb-1">{station.obsnm}</h3>
+                <p class="text-xs text-gray-500 mb-2">Last updated: {station.timestr}</p>
+                <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+                  <div><strong>Level:</strong> {station.wl || 'N/A'} m</div>
+                  <div><strong>Change (10m):</strong> {station.wlchange || '-'} m</div>
+                  {#if station.alertwl}<div><strong>Alert:</strong> {station.alertwl} m</div>{/if}
+                  {#if station.alarmwl}<div><strong>Alarm:</strong> {station.alarmwl} m</div>{/if}
+                  {#if station.criticalwl}<div><strong>Critical:</strong> {station.criticalwl} m</div>{/if}
+                </div>
+                 <details class="text-xs mt-2">
+                    <summary class="cursor-pointer text-gray-600 hover:text-[#0c3143]">Recent Levels</summary>
+                    <ul class="list-disc pl-5 pt-1 text-gray-500">
+                      <li>10 min: {station.wl10m || 'N/A'} m</li>
+                      <li>30 min: {station.wl30m || 'N/A'} m</li>
+                      <li>1 hr: {station.wl1h || 'N/A'} m</li>
+                      <li>2 hr: {station.wl2h || 'N/A'} m</li>
+                    </ul>
+                  </details>
+              </div>
+            {/each}
+          </div>
+        {/if}
       </div>
     {:else if activeTab === 'weather'}
       <div class="weather-tab">

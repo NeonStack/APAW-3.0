@@ -1,13 +1,18 @@
 <script>
-  import { onMount } from 'svelte';
+  import { onMount, onDestroy } from 'svelte';
   import { browser } from '$app/environment';
-  import { selectedLocation } from '$lib/stores/locationStore.js'; // Import the store
+  import { selectedLocation } from '$lib/stores/locationStore.js';
+  import { waterStations } from '$lib/stores/waterStationStore.js';
+  import { get } from 'svelte/store';
+  import Icon from '@iconify/svelte'; // Correct Iconify import
 
   let mapContainer;
   let map;
   let geojsonLayer;
-  let marker = null; // Variable to hold the marker instance
-  let L; // Make L accessible in the script scope
+  let marker = null; // For clicked location
+  let waterStationMarkers = []; // Array for water station markers
+  let L;
+  let waterStationSubscription; // To hold the store subscription
 
   export let height = '100%';
 
@@ -49,12 +54,47 @@
   onMount(async () => {
     if (!browser) return;
 
-    // Dynamically import Leaflet
-    L = await import('leaflet'); // Assign to the script-scoped L
-    
-    // Create map centered on Metro Manila
+    L = await import('leaflet');
+
+    // Create a function to generate a div icon with Iconify
+    const createWaterIcon = () => {
+      // Create a container div and render the Iconify icon into it
+      const iconContainer = document.createElement('div');
+      iconContainer.className = 'water-station-icon';
+      
+      // Enhanced SVG with glow effect and brighter colors
+      const svgIcon = `<svg width="30" height="30" viewBox="0 0 24 24">
+        <defs>
+          <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+            <feGaussianBlur stdDeviation="2" result="blur" />
+            <feFlood flood-color="#ffffff" result="glow" />
+            <feComposite in="glow" in2="blur" operator="in" result="glowBlur" />
+            <feComposite in="SourceGraphic" in2="glowBlur" operator="over" />
+          </filter>
+        </defs>
+        <circle cx="12" cy="14" r="9" fill="#0055aa" opacity="0.3" />
+        <path d="M12 20a6 6 0 0 1-6-6c0-4 6-10.75 6-10.75S18 10 18 14a6 6 0 0 1-6 6Z" 
+              fill="#00b3ff" 
+              stroke="#ffffff" 
+              stroke-width="1"
+              filter="url(#glow)" />
+      </svg>`;
+      
+      iconContainer.innerHTML = svgIcon;
+      
+      return L.divIcon({
+        html: iconContainer,
+        className: 'water-station-marker',
+        iconSize: [30, 30],
+        iconAnchor: [15, 30],
+        popupAnchor: [0, -30]
+      });
+    };
+
+    const waterIcon = createWaterIcon();
+
     map = L.map(mapContainer).setView([14.5995, 120.9842], 11);
-    
+
     // Define base layers
     const standard = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '© OpenStreetMap contributors',
@@ -71,16 +111,14 @@
       maxZoom: 19
     });
 
-    // Add standard OSM as default layer
     standard.addTo(map);
-    
-    // Add layer control
+
     const baseLayers = {
       "Standard": standard,
       "Topographic": topographic,
       "Satellite": satellite
     };
-    
+
     L.control.layers(baseLayers).addTo(map);
 
     // Load and add GeoJSON for Metro Manila
@@ -88,10 +126,10 @@
     if (geojsonData) {
       geojsonLayer = L.geoJSON(geojsonData, {
         style: {
-          color: '#3ba6d0', // primary-light
+          color: 'blue',
           weight: 2,
-          opacity: 0.8,
-          fillOpacity: 0 // Changed from 0.2 to 0 to remove the shading
+          opacity: 0.6,
+          fillOpacity: 0
         }
       }).addTo(map);
       
@@ -124,12 +162,89 @@
         selectedLocation.set({ lat: currentLat, lng: currentLng, elevation: 'N/A', error: elevationResult.error });
       }
     });
-    
+
+    // Subscribe to water station data
+    waterStationSubscription = waterStations.subscribe(value => {
+      if (!map || !L) return;
+
+      // Clear existing water station markers
+      waterStationMarkers.forEach(m => map.removeLayer(m));
+      waterStationMarkers = [];
+
+      if (!value.loading && value.data && value.data.length > 0) {
+        value.data.forEach((station, index) => {
+          if (station.lat && station.lon) {
+            try {
+              const lat = typeof station.lat === 'string' ? parseFloat(station.lat) : station.lat;
+              const lon = typeof station.lon === 'string' ? parseFloat(station.lon) : station.lon;
+              
+              if (!isNaN(lat) && !isNaN(lon)) {
+                const stationIcon = createWaterIcon();
+                
+                const stationMarker = L.marker([lat, lon], { 
+                  icon: stationIcon,
+                  zIndexOffset: 1000 // Ensure water markers appear above other elements
+                })
+                .addTo(map)
+                .bindPopup(`<b>${station.obsnm || 'Station ' + index}</b><br>Water Level: ${station.wl || 'N/A'} m`);
+                
+                waterStationMarkers.push(stationMarker);
+              }
+            } catch (err) {}
+          }
+        });
+        
+        // Fit map to show all markers
+        if (waterStationMarkers.length > 0) {
+          const group = L.featureGroup(waterStationMarkers);
+          
+          setTimeout(() => {
+            map.fitBounds(group.getBounds(), { 
+              padding: [50, 50],
+              maxZoom: 12,
+              animate: true 
+            });
+          }, 100);
+        }
+      }
+    });
+
+    // Initial fetch check (in case data is already loaded by sidebar)
+    const currentStations = get(waterStations);
+    if (!currentStations.loading && currentStations.data && currentStations.data.length > 0) {
+        // Manually trigger plotting if data is already there
+        waterStations.set(currentStations);
+    }
+
     return () => {
-      map.off('click'); // Clean up click listener
+      map.off('click');
+      if (waterStationSubscription) {
+        waterStationSubscription(); // Unsubscribe from store
+      }
+      // Clear markers on component destroy
+      waterStationMarkers.forEach(m => map.removeLayer(m));
+      if (marker) map.removeLayer(marker);
       map.remove();
     };
   });
+
+  // Ensure onDestroy runs even if onMount fails or browser is false
+  onDestroy(() => {
+      if (waterStationSubscription) {
+        waterStationSubscription();
+      }
+      // Potential cleanup if map was partially initialized
+      if (map) {
+          try {
+              waterStationMarkers.forEach(m => map.removeLayer(m));
+              if (marker) map.removeLayer(marker);
+              map.remove();
+          } catch(e) {
+              console.warn("Error during map cleanup:", e);
+          }
+      }
+  });
+
 </script>
 
 <svelte:head>
@@ -149,5 +264,42 @@
   /* Ensure map controls stay below navbar */
   :global(.leaflet-control-container) {
     z-index: 40 !important;
+  }
+
+  /* Style for water station popups (optional) */
+  :global(.leaflet-popup-content) {
+    font-size: 0.8rem;
+  }
+  :global(.leaflet-popup-content b) {
+    color: #0c3143; /* primary-dark */
+  }
+
+  /* Enhanced style for water station icons */
+  :global(.water-station-marker) {
+    background: transparent;
+    border: none;
+  }
+  
+  :global(.water-station-icon) {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    height: 100%;
+    transform-origin: center bottom;
+    animation: pulse 2s infinite;
+  }
+
+  /* Add pulsing animation to make icons more noticeable */
+  @keyframes pulse {
+    0% {
+      transform: scale(1);
+    }
+    50% {
+      transform: scale(1.1);
+    }
+    100% {
+      transform: scale(1);
+    }
   }
 </style>
