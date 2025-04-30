@@ -1,6 +1,37 @@
 @import 'tailwindcss';
 
-@theme {
+/* Remove @theme block and use @layer base and @layer utilities instead */
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+  
+  :root {
+    --color-primary: #0c3143;
+    --color-primary-light: #3ba6d0;
+  }
+}
 
+@theme {
+    --color-primary: #0c3143;
+    --color-primary-light: #3ba6d0;
+}
+
+@layer utilities {
+  .text-primary {
+    color: var(--color-primary);
+  }
+  
+  .text-primary-light {
+    color: var(--color-primary-light);
+  }
+  
+  .bg-primary {
+    background-color: var(--color-primary);
+  }
+  
+  .bg-primary-light {
+    background-color: var(--color-primary-light);
+  }
 }
 
