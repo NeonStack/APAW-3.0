@@ -3,6 +3,7 @@
 @layer base {
   html {
     scroll-behavior: smooth;
+    font-family: "Inter Tight", sans-serif;
   }
   
   :root {
