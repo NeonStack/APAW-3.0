@@ -70,7 +70,8 @@ CREATE TABLE apaw_weather_forecasts (
     min_wbgt_c REAL,                              -- Minimum Wet Bulb Globe Temperature for the 24hr period (C)
     max_wbgt_c REAL,                              -- Maximum Wet Bulb Globe Temperature for the 24hr period (C)
     avg_wbgt_c REAL,                              -- Average Wet Bulb Globe Temperature for the 24hr period (C) (Avg of Day/Night avg)
-
+    avg_soil_moisture_3_9cm_m3m3 REAL,            -- Average soil moisture in m³/m³ for the top 3-9 cm OPEN METEO
+    avg_soil_temp_6cm_c REAL;                     -- Average soil temperature in Celsius for the top 6 cm OPEN METEO
 
     -- Descriptive columns (Prioritizing Day, but including Night)
     day_icon INTEGER,                             -- AccuWeather icon code for the day

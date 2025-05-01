@@ -142,6 +142,11 @@
 		return moment(dateStr).format('YYYY-MM-DD') === today;
 	}
 
+	// Function to determine if a date is in the future
+	function isFutureDate(dateStr) {
+		return moment(dateStr).isAfter(moment().startOf('day'));
+	}
+
 	// Format a date for display
 	function formatDate(dateStr) {
 		return moment(dateStr).format('MMM D');
@@ -150,6 +155,11 @@
 	// Format a date with day of week
 	function formatFullDate(dateStr) {
 		return moment(dateStr).format('dddd, MMMM D');
+	}
+
+	// Format timestamp for display
+	function formatTimestamp(timestamp) {
+		return moment(timestamp).format('MMM D, YYYY [at] h:mm A');
 	}
 
 	// Function to refresh weather data
@@ -265,11 +275,7 @@
 		</div>
 	</div>
 
-	{#if weatherDataValue.lastUpdated}
-		<div class="mb-2 text-xs text-gray-500">
-			Last updated: {moment(weatherDataValue.lastUpdated).format('MMM D, YYYY [at] h:mm A')}
-		</div>
-	{/if}
+	<!-- Removed the general "Last updated" line -->
 
 	<!-- Filters and sorting -->
 	<div class="mb-3 flex flex-wrap gap-2 text-xs">
@@ -327,9 +333,8 @@
 		{:else}
 			<div class="space-y-1 pb-4">
 				{#each filteredCities as city}
-					{@const todayForecast = city.forecasts.find((f) => isToday(f.forecast_date))}
-
-					{#if todayForecast}
+					{#if city.forecasts.find((f) => isToday(f.forecast_date))}
+						{@const todayForecast = city.forecasts.find((f) => isToday(f.forecast_date))}
 						<div class="mb-5 rounded border border-gray-200 bg-white shadow-sm transition-all">
 							<!-- City header - With district information -->
 							<div class="flex flex-col border-l-3 border-l-blue-500 p-2">
@@ -343,10 +348,17 @@
 										</div>
 									</div>
 								</div>
-								<!-- Add date on its own line with smaller text -->
-								<div class="text-xs text-gray-500">
-									<Icon icon="mdi:calendar" class="mr-0.5 inline-block text-xs" />
-									{formatFullDate(todayForecast.forecast_date)}
+								
+								<!-- Date and Fetched timestamp -->
+								<div class="flex flex-col text-xs text-gray-500">
+									<div>
+										<Icon icon="mdi:calendar" class="mr-0.5 inline-block text-xs" />
+										{formatFullDate(todayForecast.forecast_date)}
+									</div>
+									<div>
+										<Icon icon="mdi:clock-outline" class="mr-0.5 inline-block text-xs" />
+										Last updated: {formatTimestamp(todayForecast.fetched_at)}
+									</div>
 								</div>
 							</div>
 
@@ -434,32 +446,39 @@
 								</div>
 							</div>
 
-							<!-- Forecast details - Expanded to show all available data -->
+							<!-- Forecast details - Changed title and only showing future dates -->
 							<details class="border-t border-gray-100 text-sm">
 								<summary
 									class="flex cursor-pointer items-center bg-gray-50 px-2 py-1 text-xs text-gray-600 hover:text-gray-900"
 								>
-									<Icon icon="mdi:calendar-range" class="mr-1 text-xs" /> 4-Day Forecast
+									<Icon icon="mdi:calendar-range" class="mr-1 text-xs" /> Weather Forecasts
 								</summary>
 								<div class="grid grid-cols-4 gap-1 bg-gray-50 p-2 text-xs">
-									{#each city.forecasts.filter((f) => !isToday(f.forecast_date)) as forecast}
-										<div class="flex flex-col items-center rounded border bg-white p-1">
-											<div class="text-gray-500">{formatDate(forecast.forecast_date)}</div>
-											<div class="my-1">
-												<Icon
-													icon={getWeatherIcon(forecast.day_icon)}
-													class="text-blue-500"
-													width="20"
-												/>
+									{#if city.forecasts.filter(f => isFutureDate(f.forecast_date)).length > 0}
+										{@const futureForecastCount = city.forecasts.filter(f => isFutureDate(f.forecast_date)).length}
+										{#each city.forecasts.filter(f => isFutureDate(f.forecast_date)) as forecast}
+											<div class="flex flex-col items-center rounded border bg-white p-1">
+												<div class="text-gray-500">{formatDate(forecast.forecast_date)}</div>
+												<div class="my-1">
+													<Icon
+														icon={getWeatherIcon(forecast.day_icon)}
+														class="text-blue-500"
+														width="20"
+													/>
+												</div>
+												<div class="font-medium">{Math.round(forecast.max_temp_c)}°</div>
+												<div class="font-medium text-blue-600">
+													{formatValue(forecast.total_rain_mm, 'mm')}
+												</div>
+												<div class="text-xs text-gray-500">
+													{forecast.day_precipitation_probability}%</div>
 											</div>
-											<div class="font-medium">{Math.round(forecast.max_temp_c)}°</div>
-											<div class="font-medium text-blue-600">
-												{formatValue(forecast.total_rain_mm, 'mm')}
-											</div>
-											<div class="text-xs text-gray-500">
-												{forecast.day_precipitation_probability}%</div>
+										{/each}
+									{:else}
+										<div class="col-span-4 p-2 text-center text-gray-500">
+											No future forecasts available
 										</div>
-									{/each}
+									{/if}
 								</div>
 							</details>
 

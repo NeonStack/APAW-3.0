@@ -29,13 +29,8 @@
   function formatDistance(distance) {
     if (distance === null || distance === undefined) return 'Unknown';
     
-    if (distance < 1) {
-      // Convert to meters if less than 1km
-      return `${Math.round(distance * 1000)}m`;
-    } else {
-      // Keep in km with 1 decimal place
-      return `${distance.toFixed(1)}km`;
-    }
+    // Always display in meters, round to whole number
+    return `${Math.round(distance)}m`;
   }
 </script>
 
@@ -52,6 +47,12 @@
   {#if $selectedLocation.lat !== null}
     <div class="mt-4 bg-green-50 p-3 rounded-md border border-green-200">
       <h3 class="text-lg text-[#0c3143] font-medium mb-2">Selected Location:</h3>
+      
+      <!-- Location name now shows at the top -->
+      {#if $selectedLocation.locationName}
+        <p class="text-gray-700 font-medium mb-2">{$selectedLocation.locationName}</p>
+      {/if}
+      
       <ul class="text-gray-700 text-sm space-y-1">
         <li><strong>Latitude:</strong> {$selectedLocation.lat}</li>
         <li><strong>Longitude:</strong> {$selectedLocation.lng}</li>
@@ -89,14 +90,15 @@
       {/if}
     </div>
   {:else}
-     <p class="text-gray-500 text-sm mt-4 italic">Click on the map to select a location and view its elevation.</p>
+     <p class="text-gray-500 text-sm mt-4 italic">Click on the map to select a location and view its elevation, or use the search bar to find a specific location.</p>
   {/if}
 
   <div class="mt-4 bg-blue-50 p-3 rounded-md border border-blue-200">
     <h3 class="text-lg text-[#0c3143] font-medium mb-2">How to use:</h3>
     <ul class="list-disc pl-5 text-gray-700 text-sm">
-      <li class="mb-1">Use the map controls to zoom and pan</li>
-      <li class="mb-1">Switch between topographic and satellite views</li>
+      <li class="mb-1">Use the search bar to find specific locations</li>
+      <li class="mb-1">Enter coordinates (e.g., "14.5995, 120.9842") to jump to exact points</li>
+      <li class="mb-1">Click on the map to select a point and view its elevation</li>
       <li class="mb-1">Check the Weather tab for current conditions</li>
       <li class="mb-1">View Settings to customize your experience</li>
     </ul>

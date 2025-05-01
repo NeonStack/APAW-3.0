@@ -1,10 +1,11 @@
 <script>
   import { onMount, onDestroy } from 'svelte';
   import { browser } from '$app/environment';
-  import { selectedLocation } from '$lib/stores/locationStore.js';
+  import { selectedLocation, getLocationName, getCurrentPosition } from '$lib/stores/locationStore.js';
   import { waterStations } from '$lib/stores/waterStationStore.js';
   import { get } from 'svelte/store';
-  import Icon from '@iconify/svelte'; // Correct Iconify import
+  import Icon from '@iconify/svelte';
+  import MapSearchBar from './MapSearchBar.svelte';
 
   let mapContainer;
   let map;
@@ -13,6 +14,7 @@
   let waterStationMarkers = []; // Array for water station markers
   let L;
   let waterStationSubscription; // To hold the store subscription
+  let searchControl;
 
   export let height = '100%';
 
@@ -49,6 +51,71 @@
       // Pass the error message along to be displayed
       return { error: error.message || 'Failed to fetch elevation' };
     }
+  }
+
+  // Function to set a location with all needed details
+  async function setSelectedLocation(lat, lng, locationName = null) {
+    // Remove previous marker if it exists
+    if (marker && map) {
+      map.removeLayer(marker);
+    }
+
+    // Add new marker
+    if (map && L) {
+      marker = L.marker([lat, lng]).addTo(map);
+      
+      // Center map to marker
+      map.panTo([lat, lng]);
+    }
+
+    // Format coordinates
+    const currentLat = parseFloat(lat).toFixed(6);
+    const currentLng = parseFloat(lng).toFixed(6);
+
+    // Fetch elevation via local API
+    const elevationResult = await fetchElevation(currentLat, currentLng);
+
+    // Get location name if not provided
+    if (!locationName) {
+      locationName = await getLocationName(currentLat, currentLng);
+    }
+
+    // Update the store based on the result
+    if (typeof elevationResult === 'number') {
+      selectedLocation.set({ 
+        lat: currentLat, 
+        lng: currentLng, 
+        elevation: elevationResult.toFixed(2), 
+        error: null, 
+        locationName
+      });
+    } else {
+      // Handle error case where fetchElevation returned an object like { error: 'message' }
+      selectedLocation.set({ 
+        lat: currentLat, 
+        lng: currentLng, 
+        elevation: 'N/A', 
+        error: elevationResult.error, 
+        locationName
+      });
+    }
+  }
+
+  async function handleLocateUser() {
+    try {
+      const position = await getCurrentPosition();
+      const locationName = await getLocationName(position.lat, position.lng);
+      setSelectedLocation(position.lat, position.lng, locationName || 'Current Location');
+    } catch (error) {
+      console.error('Error getting current position:', error);
+      alert(`Could not get your location: ${error.message}`);
+    }
+  }
+
+  // Handle a location selection from search
+  function handleSearchLocation(event) {
+    const { lat, lng, name } = event.detail;
+    setSelectedLocation(lat, lng, name);
   }
 
   onMount(async () => {
@@ -142,7 +209,9 @@
 
     const waterIcon = createWaterIcon();
 
-    map = L.map(mapContainer).setView([14.5995, 120.9842], 11);
+    map = L.map(mapContainer, {
+      zoomControl: false // Disable default zoom control to reposition it
+    }).setView([14.5995, 120.9842], 11);
 
     // Define base layers
     const standard = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -170,6 +239,11 @@
 
     L.control.layers(baseLayers).addTo(map);
 
+    // Add zoom control to bottom left
+    L.control.zoom({
+      position: 'bottomleft'
+    }).addTo(map);
+
     // Load and add GeoJSON for Metro Manila
     const geojsonData = await loadGeoJSON();
     if (geojsonData) {
@@ -189,27 +263,7 @@
     // Add map click listener
     map.on('click', async (e) => {
       const { lat, lng } = e.latlng;
-      const currentLat = lat.toFixed(6);
-      const currentLng = lng.toFixed(6);
-
-      // Remove previous marker if it exists
-      if (marker) {
-        map.removeLayer(marker);
-      }
-
-      // Add new marker
-      marker = L.marker([lat, lng]).addTo(map);
-
-      // Fetch elevation via local API
-      const elevationResult = await fetchElevation(currentLat, currentLng);
-
-      // Update the store based on the result
-      if (typeof elevationResult === 'number') {
-        selectedLocation.set({ lat: currentLat, lng: currentLng, elevation: elevationResult.toFixed(2), error: null });
-      } else {
-        // Handle error case where fetchElevation returned an object like { error: 'message' }
-        selectedLocation.set({ lat: currentLat, lng: currentLng, elevation: 'N/A', error: elevationResult.error });
-      }
+      setSelectedLocation(lat, lng);
     });
 
     // Subscribe to water station data
@@ -289,7 +343,7 @@
       }
       // Clear markers on component destroy
       waterStationMarkers.forEach(m => map.removeLayer(m));
-      if (marker) map.removeLayer(marker);
+      if (marker) map.removeLayer(marker); // Fixed: was map.removeLayer(m)
       map.remove();
     };
   });
@@ -319,12 +373,34 @@
 
 <div bind:this={mapContainer} style="height: {height}; width: 100%;" class="map-container z-10">
   <!-- Map will render here -->
+  
+  <!-- Add the search bar component directly in the template -->
+  <div class="search-overlay">
+    <MapSearchBar on:selectLocation={handleSearchLocation} />
+  </div>
 </div>
 
 <style>
   .map-container {
     min-height: 300px;
     position: relative;
+  }
+
+  /* Add styles for the search overlay */
+  .search-overlay {
+    position: absolute;
+    top: 10px;
+    left: 10px; /* Changed from 50px to 10px to move closer to side */
+    z-index: 1000; /* High z-index to stay above map */
+    width: 280px;
+  }
+
+  /* For mobile responsiveness */
+  @media (max-width: 640px) {
+    .search-overlay {
+      width: calc(100% - 20px); /* Updated to match new left position */
+      left: 10px; /* Changed from 40px to 10px */
+    }
   }
 
   /* Ensure map controls stay below navbar */
@@ -437,5 +513,22 @@
   :global(.leaflet-popup-content .status-critical) {
     background-color: rgba(255, 0, 0, 0.2);
     color: #a30000;
+  }
+
+  /* Custom styles for search control */
+  :global(.leaflet-search-control) {
+    background: transparent !important;
+    box-shadow: none !important;
+    margin: 10px 10px 0 10px !important;
+    padding: 0 !important;
+    border: none !important;
+  }
+
+  /* Make search control responsive on small screens */
+  @media (max-width: 640px) {
+    :global(.leaflet-search-control) {
+      width: calc(100% - 80px) !important;
+      margin: 10px 10px 0 10px !important;
+    }
   }
 </style>
