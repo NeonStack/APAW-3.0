@@ -5,3 +5,6 @@ export const waterStations = writable({
   data: [],
   error: null
 });
+
+// Store for nearest water station
+export const nearestWaterStation = writable(null);

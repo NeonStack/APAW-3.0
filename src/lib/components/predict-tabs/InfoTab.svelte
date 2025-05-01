@@ -1,5 +1,42 @@
 <script>
-  import { selectedLocation } from '$lib/stores/locationStore.js';
+  import { selectedLocation, findNearestPoint } from '$lib/stores/locationStore.js';
+  import { waterStations, nearestWaterStation } from '$lib/stores/waterStationStore.js';
+  import { metroManilaCities, nearestWeatherCity } from '$lib/stores/weatherStore.js';
+  import { onMount, afterUpdate } from 'svelte';
+  
+  // Update nearest points whenever selectedLocation changes
+  $: if ($selectedLocation.lat !== null && $selectedLocation.lng !== null) {
+    // Find nearest water station
+    if ($waterStations.data && $waterStations.data.length > 0) {
+      const nearest = findNearestPoint(
+        $selectedLocation.lat, 
+        $selectedLocation.lng, 
+        $waterStations.data
+      );
+      nearestWaterStation.set(nearest);
+    }
+    
+    // Find nearest weather city
+    const nearestCity = findNearestPoint(
+      $selectedLocation.lat,
+      $selectedLocation.lng,
+      metroManilaCities
+    );
+    nearestWeatherCity.set(nearestCity);
+  }
+  
+  // Format distance for display
+  function formatDistance(distance) {
+    if (distance === null || distance === undefined) return 'Unknown';
+    
+    if (distance < 1) {
+      // Convert to meters if less than 1km
+      return `${Math.round(distance * 1000)}m`;
+    } else {
+      // Keep in km with 1 decimal place
+      return `${distance.toFixed(1)}km`;
+    }
+  }
 </script>
 
 <div class="info-tab">
@@ -27,6 +64,29 @@
           {/if}
         </li>
       </ul>
+      
+      <!-- Nearest Weather City -->
+      {#if $nearestWeatherCity}
+        <div class="mt-3 pt-2 border-t border-green-200">
+          <h4 class="font-medium text-[#0c3143] mb-1">Nearest Weather Station:</h4>
+          <p class="text-sm text-gray-700">
+            {$nearestWeatherCity.name} ({formatDistance($nearestWeatherCity.distance)})
+          </p>
+        </div>
+      {/if}
+      
+      <!-- Nearest Water Station -->
+      {#if $nearestWaterStation}
+        <div class="mt-3 pt-2 border-t border-green-200">
+          <h4 class="font-medium text-[#0c3143] mb-1">Nearest Water Level Station:</h4>
+          <p class="text-sm text-gray-700">
+            {$nearestWaterStation.obsnm} ({formatDistance($nearestWaterStation.distance)})
+          </p>
+          {#if $nearestWaterStation.wl}
+            <p class="text-xs text-gray-600 mt-1">Current water level: {$nearestWaterStation.wl}</p>
+          {/if}
+        </div>
+      {/if}
     </div>
   {:else}
      <p class="text-gray-500 text-sm mt-4 italic">Click on the map to select a location and view its elevation.</p>
