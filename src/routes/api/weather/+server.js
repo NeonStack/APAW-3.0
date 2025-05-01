@@ -12,24 +12,82 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 // List of Metro Manila locations with their AccuWeather IDs
 const metroManilaCities = [
-  { name: 'Manila', id: '264885', district: '1st District' },
-  { name: 'Mandaluyong', id: '768148', district: '2nd District' },
-  { name: 'Marikina', id: '264874', district: '2nd District' },
-  { name: 'Pasig', id: '264876', district: '2nd District' },
-  { name: 'Quezon City', id: '264873', district: '2nd District' },
-  { name: 'San Juan', id: '264882', district: '2nd District' },
-  { name: 'Caloocan', id: '264875', district: '3rd District' },
-  { name: 'Malabon', id: '761333', district: '3rd District' },
-  { name: 'Navotas', id: '765956', district: '3rd District' },
-  { name: 'Valenzuela', id: '3424474', district: '3rd District' },
-  { name: 'Las Piñas', id: '264877', district: '4th District' },
-  { name: 'Makati', id: '21-264878_1_al', district: '4th District' },
-  { name: 'Muntinlupa', id: '264879', district: '4th District' },
-  { name: 'Parañaque', id: '3424484', district: '4th District' },
-  { name: 'Pasay', id: '2-264881_1_al', district: '4th District' },
-  { name: 'Pateros', id: '764136', district: '4th District' },
-  { name: 'Taguig', id: '759349', district: '4th District' }
+  { name: 'Manila', id: '264885', district: '1st District', lat: 14.5958, lon: 120.9772 },
+  { name: 'Mandaluyong', id: '768148', district: '2nd District', lat: 14.5798, lon: 121.0326 },
+  { name: 'Marikina', id: '264874', district: '2nd District', lat: 14.6404, lon: 121.1063 },
+  { name: 'Pasig', id: '264876', district: '2nd District', lat: 14.5764, lon: 121.0813 },
+  { name: 'Quezon City', id: '264873', district: '2nd District', lat: 14.6760, lon: 121.0437 },
+  { name: 'San Juan', id: '264882', district: '2nd District', lat: 14.6017, lon: 121.0245 },
+  { name: 'Caloocan', id: '264875', district: '3rd District', lat: 14.7500, lon: 120.9797 },
+  { name: 'Malabon', id: '761333', district: '3rd District', lat: 14.7700, lon: 120.9370 },
+  { name: 'Navotas', id: '765956', district: '3rd District', lat: 14.7470, lon: 120.9170 },
+  { name: 'Valenzuela', id: '3424474', district: '3rd District', lat: 14.7011, lon: 120.9847 },
+  { name: 'Las Piñas', id: '264877', district: '4th District', lat: 14.4497, lon: 120.9833 },
+  { name: 'Makati', id: '21-264878_1_al', district: '4th District', lat: 14.5547, lon: 121.0244 },
+  { name: 'Muntinlupa', id: '264879', district: '4th District', lat: 14.3600, lon: 121.0420 },
+  { name: 'Parañaque', id: '3424484', district: '4th District', lat: 14.4889, lon: 121.0142 },
+  { name: 'Pasay', id: '2-264881_1_al', district: '4th District', lat: 14.5350, lon: 121.0030 },
+  { name: 'Pateros', id: '764136', district: '4th District', lat: 14.5560, lon: 121.0720 },
+  { name: 'Taguig', id: '759349', district: '4th District', lat: 14.5167, lon: 121.0500 }
 ];
+
+// Helper function to fetch soil data from Open-Meteo API
+async function fetchSoilData(latitude, longitude) {
+  try {
+    const apiUrl = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&hourly=soil_temperature_6cm,soil_moisture_3_to_9cm&timezone=Asia%2FSingapore&forecast_days=5`;
+    
+    const response = await fetch(apiUrl);
+    if (!response.ok) {
+      throw new Error(`HTTP error: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error fetching soil data from Open-Meteo:', error);
+    throw error;
+  }
+}
+
+// Helper function to calculate daily averages from hourly data
+function calculateDailyAverages(hourlyData) {
+  const dailyAverages = {};
+  
+  // Group hourly data by date
+  const hoursByDate = {};
+  
+  for (let i = 0; i < hourlyData.hourly.time.length; i++) {
+    const dateTime = hourlyData.hourly.time[i];
+    const date = dateTime.split('T')[0]; // Extract the date part
+    
+    if (!hoursByDate[date]) {
+      hoursByDate[date] = {
+        soilTemp: [],
+        soilMoisture: []
+      };
+    }
+    
+    // Add the hourly values to the respective date's array
+    hoursByDate[date].soilTemp.push(hourlyData.hourly.soil_temperature_6cm[i]);
+    hoursByDate[date].soilMoisture.push(hourlyData.hourly.soil_moisture_3_to_9cm[i]);
+  }
+  
+  // Calculate averages for each date
+  for (const date in hoursByDate) {
+    const soilTempSum = hoursByDate[date].soilTemp.reduce((sum, temp) => sum + temp, 0);
+    const soilMoistureSum = hoursByDate[date].soilMoisture.reduce((sum, moisture) => sum + moisture, 0);
+    
+    const soilTempAvg = soilTempSum / hoursByDate[date].soilTemp.length;
+    const soilMoistureAvg = soilMoistureSum / hoursByDate[date].soilMoisture.length;
+    
+    dailyAverages[date] = {
+      avg_soil_temp_6cm_c: soilTempAvg,
+      avg_soil_moisture_3_9cm_m3m3: soilMoistureAvg
+    };
+  }
+  
+  return dailyAverages;
+}
 
 // Protected GET endpoint - returns weather data from Supabase
 export async function GET({ request }) {
@@ -134,6 +192,16 @@ export async function POST({ request }) {
         
         const weatherData = await response.json();
         
+        // Fetch soil data from Open-Meteo
+        let soilDailyAverages = {};
+        try {
+          const soilData = await fetchSoilData(city.lat, city.lon);
+          soilDailyAverages = calculateDailyAverages(soilData);
+        } catch (soilError) {
+          console.warn(`Failed to fetch soil data for ${city.name}:`, soilError);
+          // Continue without soil data if it fails
+        }
+        
         // Current date for reference
         const today = new Date();
         const todayStr = today.toISOString().split('T')[0];
@@ -142,6 +210,12 @@ export async function POST({ request }) {
         const forecasts = weatherData.DailyForecasts.map(forecast => {
           // Process the data according to database schema
           const forecastDate = moment(forecast.Date).format('YYYY-MM-DD');
+          
+          // Get soil data for this date if available
+          const soilData = soilDailyAverages[forecastDate] || {
+            avg_soil_temp_6cm_c: null,
+            avg_soil_moisture_3_9cm_m3m3: null
+          };
           
           // Calculate average values for combined Day/Night data
           const avgTemp = (forecast.Temperature.Minimum.Value + forecast.Temperature.Maximum.Value) / 2;
@@ -258,6 +332,10 @@ export async function POST({ request }) {
             min_wbgt_c: minWBGT,
             max_wbgt_c: maxWBGT,
             avg_wbgt_c: avgWBGT,
+            
+            // Soil data from Open-Meteo
+            avg_soil_moisture_3_9cm_m3m3: soilData.avg_soil_moisture_3_9cm_m3m3,
+            avg_soil_temp_6cm_c: soilData.avg_soil_temp_6cm_c,
             
             // Descriptive data
             day_icon: forecast.Day.Icon,
