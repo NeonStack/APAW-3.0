@@ -41,7 +41,7 @@
 		></div>
 	</div>
 
-	<div class="relative z-10 container mx-auto px-8 pt-12 pb-20 md:px-16 md:pt-20 md:pb-28">
+	<div class="relative z-10 container mx-auto px-8 pt-12 md:px-16 md:pt-20 md:pb-20">
 		<!-- Content with enhanced layout -->
 		<div class="mx-auto max-w-5xl">
 			<div class="mb-12 text-center">
@@ -70,18 +70,18 @@
 			</div>
 
 			<!-- CTA Buttons with improved spacing -->
-			<div class="mt-8 flex flex-col justify-center gap-5 sm:flex-row">
+			<div class="mt-8 flex flex-col justify-center items-center gap-5 sm:flex-row">
 				<a
 					href="/predict"
 					class="w-48 transform rounded-lg bg-primary-light px-8 py-3 text-center font-medium text-white shadow-md transition-all duration-300 hover:-translate-y-1 hover:bg-[#2d8fb3] hover:shadow-lg sm:w-auto sm:min-w-[180px]"
 				>
-					<i class="fas fa-chart-line mr-2"></i> View Predictions
+					View Predictions
 				</a>
 				<a
 					href="/about"
 					class="w-48 transform rounded-lg border border-gray-300 bg-white px-8 py-3 text-center font-medium text-primary shadow-md transition-all duration-300 hover:-translate-y-1 hover:bg-gray-50 hover:shadow-lg sm:w-auto sm:min-w-[180px]"
 				>
-					Learn More <i class="fas fa-arrow-right ml-2"></i>
+					Learn More
 				</a>
 			</div>
 		</div>
