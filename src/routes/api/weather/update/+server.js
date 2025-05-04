@@ -1,6 +1,7 @@
 import { json } from '@sveltejs/kit';
 import { createClient } from '@supabase/supabase-js';
 import moment from 'moment';
+import 'moment-timezone'; // Ensure timezone support is imported
 
 // Load environment variables
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -109,23 +110,24 @@ export async function POST({ request, url }) {
   const TIMEOUT_THRESHOLD = 50000; // 50 seconds (to be safe)
   
   try {
-    // Get current date and calculate four days ago (needed for cleanup)
-    const today = new Date();
-    const fourDaysAgo = new Date();
-    fourDaysAgo.setDate(today.getDate() - 4);
+    // Use moment with the Philippines timezone
+    const today = moment().tz('Asia/Manila');
+    const fourDaysAgo = moment().tz('Asia/Manila').subtract(4, 'days');
     
     // Format dates for query
-    const todayStr = today.toISOString().split('T')[0];
-    const fourDaysAgoStr = fourDaysAgo.toISOString().split('T')[0];
+    const todayStr = today.format('YYYY-MM-DD');
+    const fourDaysAgoStr = fourDaysAgo.format('YYYY-MM-DD');
     
-    // Log detailed server time information
-    console.log('Server Date/Time Information:', {
-      isoString: today.toISOString(),
-      utcString: today.toUTCString(),
-      localString: today.toString(),
-      timezoneOffset: today.getTimezoneOffset() / 60, // Convert to hours
-      todayFormatted: todayStr,
-      fourDaysAgoFormatted: fourDaysAgoStr
+    // Log detailed timezone information
+    console.log('Timezone Information:', {
+      serverUTC: moment.utc().format(),
+      serverUTCDate: moment.utc().format('YYYY-MM-DD'),
+      philippinesTime: today.format(),
+      philippinesDate: todayStr,
+      philippinesFourDaysAgo: fourDaysAgoStr,
+      momentVersion: moment.version,
+      defaultTimezone: moment.tz.guess(),
+      manuallySetTimezone: 'Asia/Manila'
     });
     
     // Track overall status
@@ -196,13 +198,14 @@ export async function POST({ request, url }) {
           // Continue without soil data if it fails
         }
         
-        // Process forecasts - same as before but preparing for bulk operations
+        // Process forecasts using moment for date handling
         let forecasts = weatherData.DailyForecasts.map(forecast => {
-          // Process the data according to database schema
-          const forecastDate = moment(forecast.Date).format('YYYY-MM-DD');
+          // Use moment to parse and format the forecast date
+          const forecastDate = moment(forecast.Date);
+          const forecastDateStr = forecastDate.format('YYYY-MM-DD');
           
           // Get soil data for this date if available
-          const soilData = soilDailyAverages[forecastDate] || {
+          const soilData = soilDailyAverages[forecastDateStr] || {
             avg_soil_temp_6cm_c: null,
             avg_soil_moisture_3_9cm_m3m3: null
           };
@@ -268,7 +271,7 @@ export async function POST({ request, url }) {
             fetched_at: new Date().toISOString(),
             
             // Date information
-            forecast_date: forecastDate,
+            forecast_date: forecastDateStr,
             epoch_date: forecast.EpochDate,
             sunrise_time: forecast.Sun?.Rise,
             sunset_time: forecast.Sun?.Set,
