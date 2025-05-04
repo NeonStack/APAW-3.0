@@ -118,6 +118,16 @@ export async function POST({ request, url }) {
     const todayStr = today.toISOString().split('T')[0];
     const fourDaysAgoStr = fourDaysAgo.toISOString().split('T')[0];
     
+    // Log detailed server time information
+    console.log('Server Date/Time Information:', {
+      isoString: today.toISOString(),
+      utcString: today.toUTCString(),
+      localString: today.toString(),
+      timezoneOffset: today.getTimezoneOffset() / 60, // Convert to hours
+      todayFormatted: todayStr,
+      fourDaysAgoFormatted: fourDaysAgoStr
+    });
+    
     // Track overall status
     const results = {
       successful: [],
@@ -168,7 +178,9 @@ export async function POST({ request, url }) {
             EndDate: weatherData.Headline.EndDate,
             Text: weatherData.Headline.Text,
             Category: weatherData.Headline.Category,
-            CurrentDateTime: new Date().toISOString()
+            CurrentDateTime: new Date().toISOString(),
+            CurrentDateTimeUTC: new Date().toUTCString(),
+            CurrentDateTimeLocal: new Date().toString()
           });
         } else {
           console.log(`No headline data for ${city.name}`);
