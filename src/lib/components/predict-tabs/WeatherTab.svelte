@@ -196,7 +196,8 @@
 		try {
 			weatherData.update((current) => ({ ...current, loading: true, error: null }));
 
-			const response = await fetch('/api/weather', {
+			// Change to use the new endpoint
+			const response = await fetch('/api/weather/update', {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json'
