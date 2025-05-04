@@ -161,6 +161,19 @@ export async function POST({ request, url }) {
         
         const weatherData = await response.json();
         
+        // Log the headline data, particularly the effective date
+        if (weatherData.Headline) {
+          console.log(`AccuWeather Headline for ${city.name}:`, {
+            EffectiveDate: weatherData.Headline.EffectiveDate,
+            EndDate: weatherData.Headline.EndDate,
+            Text: weatherData.Headline.Text,
+            Category: weatherData.Headline.Category,
+            CurrentDateTime: new Date().toISOString()
+          });
+        } else {
+          console.log(`No headline data for ${city.name}`);
+        }
+        
         // Fetch soil data from Open-Meteo
         let soilDailyAverages = {};
         try {
@@ -395,12 +408,12 @@ export async function POST({ request, url }) {
         // Perform cleanup only if not explicitly skipped
         let deleteCount = 0;
         if (!skipCleanup) {
+          // Fix: Remove the .select('count') that was causing the PostgreSQL error
           const { error: deleteError, count } = await supabase
             .from('apaw_weather_forecasts')
             .delete()
             .eq('city_id', city.id)
-            .lt('forecast_date', fourDaysAgoStr)
-            .select('count');
+            .lt('forecast_date', fourDaysAgoStr);
             
           if (deleteError) {
             console.error(`Error deleting old forecasts for ${city.name}:`, deleteError);
