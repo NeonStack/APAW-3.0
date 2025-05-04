@@ -172,19 +172,27 @@ export async function POST({ request, url }) {
         
         const weatherData = await response.json();
         
-        // Log the headline data, particularly the effective date
+        // Enhanced logging for AccuWeather data
+        console.log(`AccuWeather response for ${city.name}:`, {
+          hasHeadline: !!weatherData.Headline,
+          headlineEffectiveDate: weatherData.Headline?.EffectiveDate || 'N/A',
+          dailyForecastsCount: weatherData.DailyForecasts?.length || 0,
+          firstForecastDate: weatherData.DailyForecasts?.[0]?.Date || 'N/A',
+          currentTime: moment().tz('Asia/Manila').format()
+        });
+        
+        // Log the headline data if available
         if (weatherData.Headline) {
           console.log(`AccuWeather Headline for ${city.name}:`, {
             EffectiveDate: weatherData.Headline.EffectiveDate,
             EndDate: weatherData.Headline.EndDate,
             Text: weatherData.Headline.Text,
-            Category: weatherData.Headline.Category,
-            CurrentDateTime: new Date().toISOString(),
-            CurrentDateTimeUTC: new Date().toUTCString(),
-            CurrentDateTimeLocal: new Date().toString()
+            Category: weatherData.Headline.Category
           });
         } else {
-          console.log(`No headline data for ${city.name}`);
+          console.log(`No headline data for ${city.name} - Full response structure:`, 
+            Object.keys(weatherData)
+          );
         }
         
         // Fetch soil data from Open-Meteo
@@ -422,17 +430,42 @@ export async function POST({ request, url }) {
         // Perform cleanup only if not explicitly skipped
         let deleteCount = 0;
         if (!skipCleanup) {
-          // Fix: Remove the .select('count') that was causing the PostgreSQL error
-          const { error: deleteError, count } = await supabase
-            .from('apaw_weather_forecasts')
-            .delete()
-            .eq('city_id', city.id)
-            .lt('forecast_date', fourDaysAgoStr);
-            
-          if (deleteError) {
-            console.error(`Error deleting old forecasts for ${city.name}:`, deleteError);
-          } else {
-            deleteCount = count || 0;
+          // Log the cleanup parameters
+          console.log(`Cleanup operation for ${city.name}:`, {
+            city_id: city.id,
+            cutoff_date: fourDaysAgoStr,
+            operation: 'DELETE where forecast_date < cutoff_date'
+          });
+          
+          // Improved delete query with better error handling
+          try {
+            const { error: deleteError, count } = await supabase
+              .from('apaw_weather_forecasts')
+              .delete()
+              .eq('city_id', city.id)
+              .lt('forecast_date', fourDaysAgoStr);
+              
+            if (deleteError) {
+              console.error(`Error deleting old forecasts for ${city.name}:`, deleteError);
+            } else {
+              deleteCount = count || 0;
+              console.log(`Successfully deleted ${deleteCount} old records for ${city.name}`);
+              
+              // Double check what's still in the database after deletion
+              const { data: remainingOldData } = await supabase
+                .from('apaw_weather_forecasts')
+                .select('forecast_date')
+                .eq('city_id', city.id)
+                .lt('forecast_date', fourDaysAgoStr);
+                
+              if (remainingOldData && remainingOldData.length > 0) {
+                console.warn(`Warning: Still found ${remainingOldData.length} old records for ${city.name} that should have been deleted:`, 
+                  remainingOldData.map(d => d.forecast_date)
+                );
+              }
+            }
+          } catch (deleteErr) {
+            console.error(`Exception during cleanup for ${city.name}:`, deleteErr);
           }
         }
         
