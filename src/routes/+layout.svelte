@@ -79,7 +79,7 @@
 
 <!-- Conditionally show footer except on predict page -->
 {#if !isPredictPage}
-<footer class="bg-gray-100 py-12 border-t-primary border-t-2">
+<footer class=" py-12 shadow-lg">
 	<div class="container mx-auto px-8 md:px-16">
 		<div class="flex flex-col md:flex-row justify-between items-center mb-10">
 			<div class="mb-6 md:mb-0">
