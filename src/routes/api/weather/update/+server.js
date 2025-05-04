@@ -1,7 +1,6 @@
 import { json } from '@sveltejs/kit';
 import { createClient } from '@supabase/supabase-js';
-import moment from 'moment';
-import 'moment-timezone'; // Ensure timezone support is imported
+import moment from 'moment-timezone'; // Import moment-timezone directly instead of separate imports
 
 // Load environment variables
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
