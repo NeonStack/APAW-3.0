@@ -120,12 +120,12 @@
   });
 </script>
 
-<div bind:this={searchContainer} class="search-bar-container" on:click={stopMapInteraction} on:dblclick={preventDoubleClickZoom}>
-  <div class="search-section">
-    <div class="search-input-wrapper">
+<div bind:this={searchContainer} class="relative w-full z-[1000]" on:click={stopMapInteraction} on:dblclick={preventDoubleClickZoom}>
+  <div class="overflow-visible rounded-lg bg-transparent">
+    <div class="flex items-center gap-2">
       <div class="flex-1 relative">
-        <div class="search-input-container">
-          <Icon icon="mdi:magnify" class="search-icon" width="18" />
+        <div class="flex items-center w-full h-10 px-3 bg-white rounded-lg shadow-md border border-gray-200">
+          <Icon icon="mdi:magnify" class="mr-3" width="18" />
           <input
             type="text"
             bind:value={searchQuery}
@@ -133,7 +133,7 @@
             on:focus={() => showResults = true}
             on:click={stopMapInteraction}
             placeholder="Search location or enter coordinates"
-            class="search-input"
+            class="flex-1 h-full border-none outline-none bg-transparent text-sm text-gray-800"
             disabled={disabled}
           />
           {#if searchQuery}
@@ -142,14 +142,14 @@
                 searchQuery = '';
                 searchResults = [];
               }}
-              class="clear-button"
+              class="p-1 ml-1 text-gray-400 hover:text-gray-500 hover:bg-gray-100 rounded-full flex-shrink-0"
               aria-label="Clear search"
             >
               <Icon icon="mdi:close" width="16" />
             </button>
           {/if}
           {#if isLoading}
-            <span class="loading-indicator">
+            <span class="ml-1 text-blue-500 animate-spin">
               <Icon icon="eos-icons:loading" width="18" />
             </span>
           {/if}
@@ -157,13 +157,13 @@
       </div>
       <button
         on:click|stopPropagation={handleGpsClick}
-        class="gps-button"
+        class="flex justify-center items-center w-10 h-10 bg-white text-blue-500 rounded-lg shadow-md border border-gray-200 flex-shrink-0 transition-all duration-200 hover:bg-gray-50 hover:text-blue-600 active:scale-95"
         aria-label="Get current location"
         title="Get current location"
         type="button"
       >
         {#if isGettingLocation}
-          <div class="loading-spinner"></div>
+          <div class="w-[18px] h-[18px] border-2 border-blue-200 border-t-blue-500 rounded-full animate-spin"></div>
         {:else}
           <Icon icon="mdi:crosshairs-gps" width="18" />
         {/if}
@@ -171,26 +171,26 @@
     </div>
     
     {#if showResults && searchResults.length > 0}
-      <div class="search-results" on:click={stopMapInteraction} on:dblclick={preventDoubleClickZoom}>
+      <div class="absolute w-full max-h-[300px] overflow-y-auto bg-white rounded-lg mt-2 shadow-lg z-[1100]" on:click={stopMapInteraction} on:dblclick={preventDoubleClickZoom}>
         {#each searchResults as result}
           <button
             on:click|stopPropagation={(e) => handleResultClick(result, e)}
-            class="result-item"
+            class="block w-full py-2.5 px-3 text-left border-b border-gray-100 last:border-b-0 hover:bg-gray-50 transition-colors duration-150"
           >
-            <div class="flex items-start">
+            <div class="flex items-center">
               <Icon
                 icon={result.type === 'coordinates' ? 'mdi:crosshairs-gps' : 'mdi:map-marker'}
                 width="16"
-                class="result-icon"
+                class="mr-3"
               />
               <div class="overflow-hidden">
-                <div class="result-name">
+                <div class="text-sm font-medium text-gray-800 whitespace-nowrap overflow-hidden text-ellipsis">
                   {result.display_name.length > 50
                     ? result.display_name.substring(0, 50) + '...'
                     : result.display_name}
                 </div>
                 {#if result.type === 'place'}
-                  <div class="result-coords">
+                  <div class="text-xs text-gray-500 whitespace-nowrap overflow-hidden text-ellipsis">
                     {result.lat}, {result.lng}
                   </div>
                 {/if}
@@ -200,189 +200,16 @@
         {/each}
       </div>
     {:else if showResults && searchQuery.length >= 2 && !isLoading} <!-- Changed from 3 to 2 -->
-      <div class="search-results empty-results" on:click={stopMapInteraction}>
-        <p class="no-results-text">No results found</p>
-        <p class="search-tip">Try adding your city/area name or use coordinates (14.xxxx, 121.xxxx)</p>
+      <div class="absolute w-full bg-white rounded-lg mt-2 shadow-lg p-3 z-[1100]" on:click={stopMapInteraction}>
+        <p class="text-gray-500 text-sm text-center">No results found</p>
+        <p class="text-gray-400 text-xs text-center mt-1">Try adding your city/area name or use coordinates (14.xxxx, 121.xxxx)</p>
       </div>
     {/if}
   </div>
 </div>
 
 <style>
-  .search-bar-container {
-    width: 100%;
-    position: relative;
-    z-index: 1000;
-  }
-
-  .search-section {
-    background-color: transparent;
-    border-radius: 8px;
-    overflow: visible;
-  }
-
-  .search-input-wrapper {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-
-  .search-input-container {
-    display: flex;
-    align-items: center;
-    background-color: white;
-    border-radius: 8px;
-    padding: 0 12px;
-    height: 40px;
-    width: 100%;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-    border: 1px solid #e2e8f0;
-  }
-
-  .search-icon {
-    color: #64748b;
-    margin-right: 8px;
-    flex-shrink: 0;
-  }
-
-  .search-input {
-    flex: 1;
-    border: none;
-    outline: none;
-    background: transparent;
-    height: 100%;
-    font-size: 14px;
-    color: #1e293b;
-  }
-
-  .clear-button {
-    color: #94a3b8;
-    padding: 4px;
-    margin-left: 4px;
-    flex-shrink: 0;
-    border-radius: 50%;
-  }
-  .clear-button:hover {
-    color: #64748b;
-    background-color: #f1f5f9;
-  }
-
-  .loading-indicator {
-    margin-left: 4px;
-    color: #3b82f6;
-    animation: spin 1s linear infinite;
-    flex-shrink: 0;
-  }
-
-  .gps-button {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    width: 40px;
-    height: 40px;
-    background-color: white;
-    color: #3b82f6;
-    border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-    border: 1px solid #e2e8f0;
-    flex-shrink: 0;
-    transition: all 0.2s;
-  }
-  .gps-button:hover {
-    background-color: #f8fafc;
-    color: #2563eb;
-  }
-  .gps-button:active {
-    transform: scale(0.95);
-  }
-
-  .loading-spinner {
-    width: 18px;
-    height: 18px;
-    border: 2px solid rgba(59, 130, 246, 0.25);
-    border-top-color: #3b82f6;
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-  }
-
-  .search-results {
-    position: absolute;
-    width: 100%;
-    max-height: 300px;
-    overflow-y: auto;
-    background-color: white;
-    border-radius: 8px;
-    margin-top: 8px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    z-index: 1100;
-  }
-
-  .result-item {
-    display: block;
-    width: 100%;
-    padding: 10px 12px;
-    text-align: left;
-    border-bottom: 1px solid #f1f5f9;
-    transition: background-color 0.15s;
-  }
-  .result-item:last-child {
-    border-bottom: none;
-  }
-  .result-item:hover {
-    background-color: #f8fafc;
-  }
-
-  .result-icon {
-    color: #3b82f6;
-    margin-top: 2px;
-    margin-right: 8px;
-    flex-shrink: 0;
-  }
-
-  .result-name {
-    font-size: 14px;
-    font-weight: 500;
-    color: #1e293b;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .result-coords {
-    font-size: 12px;
-    color: #64748b;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .empty-results {
-    padding: 12px;
-  }
-
-  .no-results-text {
-    color: #64748b;
-    font-size: 13px;
-    text-align: center;
-  }
-
-  .search-tip {
-    color: #94a3b8;
-    font-size: 12px;
-    text-align: center;
-    margin-top: 4px;
-  }
-
-  @keyframes spin {
-    from {
-      transform: rotate(0deg);
-    }
-    to {
-      transform: rotate(360deg);
-    }
-  }
-
-  /* Make sure the search interface works on mobile */
+  /* Keeping minimal CSS for responsive design */
   @media (max-width: 640px) {
     .search-input-wrapper {
       width: 100%;
