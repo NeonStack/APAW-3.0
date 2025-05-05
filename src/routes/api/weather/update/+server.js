@@ -153,6 +153,9 @@ export async function POST({ request, url }) {
     // Process cities in parallel
     const cityProcessingPromises = citiesToProcess.map(async (city) => {
       try {
+        // Add explicit request logging
+        console.log(`Starting AccuWeather API request for ${city.name}`);
+        
         // Check if we're approaching the timeout limit
         if (Date.now() - startTime > TIMEOUT_THRESHOLD) {
           throw new Error("Approaching timeout limit - operation aborted");
@@ -161,16 +164,72 @@ export async function POST({ request, url }) {
         // Fetch 5-day forecast from AccuWeather
         const apiUrl = `https://dataservice.accuweather.com/forecasts/v1/daily/5day/${city.id}?apikey=${accuWeatherApiKey}&language=en-us&details=true&metric=true`;
         
-        const response = await fetch(apiUrl);
-        if (!response.ok) {
+        console.log(`API URL for ${city.name}: ${apiUrl.replace(accuWeatherApiKey, 'API_KEY_HIDDEN')}`);
+        
+        let response;
+        try {
+          response = await fetch(apiUrl);
+          console.log(`AccuWeather API status for ${city.name}: ${response.status}`);
+        } catch (fetchError) {
+          console.error(`Network error fetching data for ${city.name}:`, fetchError);
+          
+          // Ensure cleanup still happens even on fetch error
+          if (!skipCleanup) {
+            await performDatabaseCleanup(city, fourDaysAgoStr);
+          }
+          
           return {
             status: 'failed',
-            city: city.name, 
-            error: `HTTP error: ${response.status}`
+            city: city.name,
+            error: `Fetch error: ${fetchError.message}`
           };
         }
         
-        const weatherData = await response.json();
+        if (!response.ok) {
+          console.error(`HTTP error from AccuWeather for ${city.name}: ${response.status}`);
+          
+          // Try to get error details if possible
+          let errorDetails = '';
+          try {
+            const errorData = await response.json();
+            errorDetails = JSON.stringify(errorData);
+            console.error(`AccuWeather error response for ${city.name}:`, errorData);
+          } catch (e) {
+            // Couldn't parse error as JSON
+            errorDetails = await response.text();
+            console.error(`AccuWeather error text for ${city.name}:`, errorDetails);
+          }
+          
+          // Ensure cleanup still happens on HTTP error
+          if (!skipCleanup) {
+            await performDatabaseCleanup(city, fourDaysAgoStr);
+          }
+          
+          return {
+            status: 'failed',
+            city: city.name, 
+            error: `HTTP error: ${response.status} - ${errorDetails}`
+          };
+        }
+        
+        let weatherData;
+        try {
+          weatherData = await response.json();
+          console.log(`Successfully parsed AccuWeather data for ${city.name}`);
+        } catch (jsonError) {
+          console.error(`JSON parse error for ${city.name}:`, jsonError);
+          
+          // Ensure cleanup still happens on parse error
+          if (!skipCleanup) {
+            await performDatabaseCleanup(city, fourDaysAgoStr);
+          }
+          
+          return {
+            status: 'failed',
+            city: city.name,
+            error: `JSON parse error: ${jsonError.message}`
+          };
+        }
         
         // Check for AccuWeather API error responses
         if (weatherData.Code && weatherData.Message) {
@@ -463,42 +522,11 @@ export async function POST({ request, url }) {
         // Perform cleanup only if not explicitly skipped
         let deleteCount = 0;
         if (!skipCleanup) {
-          // Log the cleanup parameters
-          console.log(`Cleanup operation for ${city.name}:`, {
-            city_id: city.id,
-            cutoff_date: fourDaysAgoStr,
-            operation: 'DELETE where forecast_date < cutoff_date'
-          });
-          
-          // Improved delete query with better error handling
           try {
-            const { error: deleteError, count } = await supabase
-              .from('apaw_weather_forecasts')
-              .delete()
-              .eq('city_id', city.id)
-              .lt('forecast_date', fourDaysAgoStr);
-              
-            if (deleteError) {
-              console.error(`Error deleting old forecasts for ${city.name}:`, deleteError);
-            } else {
-              deleteCount = count || 0;
-              console.log(`Successfully deleted ${deleteCount} old records for ${city.name}`);
-              
-              // Double check what's still in the database after deletion
-              const { data: remainingOldData } = await supabase
-                .from('apaw_weather_forecasts')
-                .select('forecast_date')
-                .eq('city_id', city.id)
-                .lt('forecast_date', fourDaysAgoStr);
-                
-              if (remainingOldData && remainingOldData.length > 0) {
-                console.warn(`Warning: Still found ${remainingOldData.length} old records for ${city.name} that should have been deleted:`, 
-                  remainingOldData.map(d => d.forecast_date)
-                );
-              }
-            }
-          } catch (deleteErr) {
-            console.error(`Exception during cleanup for ${city.name}:`, deleteErr);
+            const cleanupResult = await performDatabaseCleanup(city, fourDaysAgoStr);
+            deleteCount = cleanupResult.success ? (cleanupResult.count || 0) : 0;
+          } catch (cleanupError) {
+            console.error(`Cleanup error for ${city.name}:`, cleanupError);
           }
         }
         
@@ -512,11 +540,14 @@ export async function POST({ request, url }) {
         };
         
       } catch (cityError) {
-        console.error(`Exception processing city ${city.name}:`, cityError);
+        // Critical error logging
+        console.error(`CRITICAL ERROR processing city ${city.name}:`, cityError);
+        console.error(`Stack trace for ${city.name} error:`, cityError.stack);
         
-        // Even on exception, still perform cleanup
+        // Always attempt cleanup even after errors
         if (!skipCleanup) {
           try {
+            console.log(`Attempting cleanup after error for ${city.name}`);
             await performDatabaseCleanup(city, fourDaysAgoStr);
           } catch (cleanupError) {
             console.error(`Failed to perform cleanup after error for ${city.name}:`, cleanupError);
@@ -571,13 +602,18 @@ export async function POST({ request, url }) {
 
 // Helper function to perform database cleanup for a city
 async function performDatabaseCleanup(city, cutoffDate) {
-  console.log(`Cleanup operation for ${city.name}:`, {
-    city_id: city.id,
-    cutoff_date: cutoffDate,
-    operation: 'DELETE where forecast_date < cutoff_date'
-  });
+  console.log(`DATABASE CLEANUP for ${city.name}: Removing records before ${cutoffDate}`);
   
   try {
+    const { data: beforeCount } = await supabase
+      .from('apaw_weather_forecasts')
+      .select('id', { count: 'exact', head: true })
+      .eq('city_id', city.id)
+      .lt('forecast_date', cutoffDate);
+      
+    console.log(`Found ${beforeCount || 0} records to delete for ${city.name}`);
+    
+    // Perform the deletion
     const { error: deleteError, count } = await supabase
       .from('apaw_weather_forecasts')
       .delete()
@@ -585,14 +621,14 @@ async function performDatabaseCleanup(city, cutoffDate) {
       .lt('forecast_date', cutoffDate);
       
     if (deleteError) {
-      console.error(`Error deleting old forecasts for ${city.name}:`, deleteError);
+      console.error(`DATABASE ERROR deleting forecasts for ${city.name}:`, deleteError);
       return { success: false, error: deleteError };
     } else {
-      console.log(`Successfully deleted ${count || 0} old records for ${city.name}`);
+      console.log(`DATABASE SUCCESS: Deleted ${count || 0} old records for ${city.name}`);
       return { success: true, count: count || 0 };
     }
   } catch (err) {
-    console.error(`Exception during cleanup for ${city.name}:`, err);
+    console.error(`DATABASE EXCEPTION during cleanup for ${city.name}:`, err);
     return { success: false, error: err.message };
   }
 }
