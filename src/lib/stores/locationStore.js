@@ -5,8 +5,20 @@ export const selectedLocation = writable({
   lng: null,
   elevation: null,
   error: null,
-  locationName: null
+  locationName: null,
+  loading: false // Add loading state to track when location data is being fetched
 });
+
+// Create a location loading store for dispatching loading events
+export const locationLoadingStatus = writable({
+  isLoading: false,
+  message: ''
+});
+
+// Function to set loading state with a message
+export function setLocationLoading(isLoading, message = '') {
+  locationLoadingStatus.set({ isLoading, message });
+}
 
 // Add distance calculation functions
 export function deg2rad(deg) {
@@ -16,7 +28,7 @@ export function deg2rad(deg) {
 export function calculateDistance(lat1, lon1, lat2, lon2) {
   const R = 6371; // Radius of the earth in km
   const dLat = deg2rad(lat2 - lat1);
-  const dLon = deg2rad(lon2 - lon1);
+  const dLon = deg2rad(lon2 - lon1); 
   const a =
     Math.sin(dLat / 2) * Math.sin(dLat / 2) +
     Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) *
@@ -122,117 +134,175 @@ export async function searchLocations(query) {
     // Try different search strategies
     let searchResults = [];
     
-    // First attempt: standard search with q parameter
-    const searchUrl1 = new URL('https://nominatim.openstreetmap.org/search');
-    searchUrl1.searchParams.append('format', 'json');
-    searchUrl1.searchParams.append('q', trimmedQuery);
-    searchUrl1.searchParams.append('limit', '10'); // Increased limit
-    searchUrl1.searchParams.append('countrycodes', 'ph');
-    searchUrl1.searchParams.append('viewbox', viewbox);
-    searchUrl1.searchParams.append('bounded', '1');
-    searchUrl1.searchParams.append('addressdetails', '1');
-    searchUrl1.searchParams.append('dedupe', '1'); // Remove duplicates
-    
-    console.log('Search URL 1:', searchUrl1.toString());
-    
-    const response1 = await fetch(searchUrl1.toString(), {
-      headers: {
-        'Accept-Language': 'en-US,en;q=0.9',
-        'User-Agent': 'APAW-FloodMonitoringApp'
+    // Try Photon API first (better search algorithm)
+    try {
+      const photonUrl = new URL('https://photon.komoot.io/api/');
+      photonUrl.searchParams.append('q', trimmedQuery);
+      photonUrl.searchParams.append('limit', '10');
+      photonUrl.searchParams.append('lang', 'en');
+      // Add bounding box for Metro Manila
+      photonUrl.searchParams.append('bbox', '120.9,14.4,121.1,14.8');
+      
+      console.log('Photon search URL:', photonUrl.toString());
+      
+      const photonResponse = await fetch(photonUrl.toString(), {
+        headers: {
+          'User-Agent': 'APAW-FloodMonitoringApp'
+        }
+      });
+      
+      if (photonResponse.ok) {
+        const photonData = await photonResponse.json();
+        console.log('Photon search results:', photonData);
+        
+        if (photonData.features && photonData.features.length > 0) {
+          // Convert Photon format to our app format
+          const photonResults = photonData.features.map(feature => {
+            const properties = feature.properties;
+            const coordinates = feature.geometry.coordinates;
+            
+            // Create a formatted display name from properties
+            let nameParts = [];
+            if (properties.name) nameParts.push(properties.name);
+            if (properties.street) nameParts.push(properties.street);
+            if (properties.district) nameParts.push(properties.district);
+            if (properties.city) nameParts.push(properties.city);
+            if (properties.state) nameParts.push(properties.state);
+            
+            const display_name = nameParts.join(', ') || 'Unknown location';
+            
+            return {
+              lat: coordinates[1].toFixed(6),
+              lng: coordinates[0].toFixed(6),
+              display_name: display_name,
+              type: 'place'
+            };
+          });
+          
+          searchResults = photonResults;
+        }
       }
-    });
-    
-    if (response1.ok) {
-      const data1 = await response1.json();
-      console.log('Search results 1:', data1);
-      searchResults = data1;
+    } catch (error) {
+      console.error('Error with Photon search:', error);
+      // Continue to fallback to Nominatim if Photon fails
     }
     
-    // If no results from first attempt or query has spaces, try second approach
-    // Use structured search with street parameter for multi-word searches
-    if ((searchResults.length === 0 || trimmedQuery.includes(' ')) && !trimmedQuery.startsWith('bagong ')) {
-      const searchUrl2 = new URL('https://nominatim.openstreetmap.org/search');
-      searchUrl2.searchParams.append('format', 'json');
-      searchUrl2.searchParams.append('street', trimmedQuery); // Use street parameter
-      searchUrl2.searchParams.append('city', 'Manila'); // Add city context
-      searchUrl2.searchParams.append('limit', '10');
-      searchUrl2.searchParams.append('countrycodes', 'ph');
-      searchUrl2.searchParams.append('viewbox', viewbox);
-      searchUrl2.searchParams.append('bounded', '1');
-      searchUrl2.searchParams.append('addressdetails', '1');
+    // If Photon didn't return results, fall back to Nominatim
+    if (searchResults.length === 0) {
+      // First attempt: standard search with q parameter
+      const searchUrl1 = new URL('https://nominatim.openstreetmap.org/search');
+      searchUrl1.searchParams.append('format', 'json');
+      searchUrl1.searchParams.append('q', trimmedQuery);
+      searchUrl1.searchParams.append('limit', '10'); // Increased limit
+      searchUrl1.searchParams.append('countrycodes', 'ph');
+      searchUrl1.searchParams.append('viewbox', viewbox);
+      searchUrl1.searchParams.append('bounded', '1');
+      searchUrl1.searchParams.append('addressdetails', '1');
+      searchUrl1.searchParams.append('dedupe', '1'); // Remove duplicates
       
-      console.log('Search URL 2:', searchUrl2.toString());
+      console.log('Search URL 1:', searchUrl1.toString());
       
-      const response2 = await fetch(searchUrl2.toString(), {
+      const response1 = await fetch(searchUrl1.toString(), {
         headers: {
           'Accept-Language': 'en-US,en;q=0.9',
           'User-Agent': 'APAW-FloodMonitoringApp'
         }
       });
       
-      if (response2.ok) {
-        const data2 = await response2.json();
-        console.log('Search results 2:', data2);
-        // Append or replace results
-        if (data2.length > 0) {
-          if (searchResults.length === 0) {
-            searchResults = data2;
-          } else {
-            // Combine results, avoiding duplicates by comparing display_name
-            const existingNames = searchResults.map(r => r.display_name);
-            data2.forEach(item => {
-              if (!existingNames.includes(item.display_name)) {
-                searchResults.push(item);
-              }
-            });
+      if (response1.ok) {
+        const data1 = await response1.json();
+        console.log('Search results 1:', data1);
+        searchResults = data1;
+      }
+      
+      // If no results from first attempt or query has spaces, try second approach
+      // Use structured search with street parameter for multi-word searches
+      if ((searchResults.length === 0 || trimmedQuery.includes(' ')) && !trimmedQuery.startsWith('bagong ')) {
+        const searchUrl2 = new URL('https://nominatim.openstreetmap.org/search');
+        searchUrl2.searchParams.append('format', 'json');
+        searchUrl2.searchParams.append('street', trimmedQuery); // Use street parameter
+        searchUrl2.searchParams.append('city', 'Manila'); // Add city context
+        searchUrl2.searchParams.append('limit', '10');
+        searchUrl2.searchParams.append('countrycodes', 'ph');
+        searchUrl2.searchParams.append('viewbox', viewbox);
+        searchUrl2.searchParams.append('bounded', '1');
+        searchUrl2.searchParams.append('addressdetails', '1');
+        
+        console.log('Search URL 2:', searchUrl2.toString());
+        
+        const response2 = await fetch(searchUrl2.toString(), {
+          headers: {
+            'Accept-Language': 'en-US,en;q=0.9',
+            'User-Agent': 'APAW-FloodMonitoringApp'
+          }
+        });
+        
+        if (response2.ok) {
+          const data2 = await response2.json();
+          console.log('Search results 2:', data2);
+          // Append or replace results
+          if (data2.length > 0) {
+            if (searchResults.length === 0) {
+              searchResults = data2;
+            } else {
+              // Combine results, avoiding duplicates by comparing display_name
+              const existingNames = searchResults.map(r => r.display_name);
+              data2.forEach(item => {
+                if (!existingNames.includes(item.display_name)) {
+                  searchResults.push(item);
+                }
+              });
+            }
           }
         }
       }
-    }
-    
-    // Special handling for "bagong" followed by text (common location prefix in Metro Manila)
-    if (trimmedQuery.toLowerCase().startsWith('bagong ') && searchResults.length === 0) {
-      // Try search specifically for Bagong locations
-      const bagongSearchUrl = new URL('https://nominatim.openstreetmap.org/search');
-      // Search for just "Bagong" and then filter results client-side
-      bagongSearchUrl.searchParams.append('format', 'json');
-      bagongSearchUrl.searchParams.append('q', 'Bagong');
-      bagongSearchUrl.searchParams.append('limit', '20'); // Get more results for filtering
-      bagongSearchUrl.searchParams.append('countrycodes', 'ph');
-      bagongSearchUrl.searchParams.append('viewbox', viewbox);
-      bagongSearchUrl.searchParams.append('bounded', '1');
       
-      console.log('Bagong search URL:', bagongSearchUrl.toString());
-      
-      const bagongResponse = await fetch(bagongSearchUrl.toString(), {
-        headers: {
-          'Accept-Language': 'en-US,en;q=0.9',
-          'User-Agent': 'APAW-FloodMonitoringApp'
-        }
-      });
-      
-      if (bagongResponse.ok) {
-        const bagongData = await bagongResponse.json();
-        console.log('Bagong search results:', bagongData);
+      // Special handling for "bagong" followed by text (common location prefix in Metro Manila)
+      if (trimmedQuery.toLowerCase().startsWith('bagong ') && searchResults.length === 0) {
+        // Try search specifically for Bagong locations
+        const bagongSearchUrl = new URL('https://nominatim.openstreetmap.org/search');
+        // Search for just "Bagong" and then filter results client-side
+        bagongSearchUrl.searchParams.append('format', 'json');
+        bagongSearchUrl.searchParams.append('q', 'Bagong');
+        bagongSearchUrl.searchParams.append('limit', '20'); // Get more results for filtering
+        bagongSearchUrl.searchParams.append('countrycodes', 'ph');
+        bagongSearchUrl.searchParams.append('viewbox', viewbox);
+        bagongSearchUrl.searchParams.append('bounded', '1');
         
-        // Filter results client-side based on the full query
-        const secondWord = trimmedQuery.substring(7).toLowerCase();
-        const filteredResults = bagongData.filter(item => 
-          item.display_name.toLowerCase().includes(secondWord));
+        console.log('Bagong search URL:', bagongSearchUrl.toString());
         
-        if (filteredResults.length > 0) {
-          searchResults = filteredResults;
+        const bagongResponse = await fetch(bagongSearchUrl.toString(), {
+          headers: {
+            'Accept-Language': 'en-US,en;q=0.9',
+            'User-Agent': 'APAW-FloodMonitoringApp'
+          }
+        });
+        
+        if (bagongResponse.ok) {
+          const bagongData = await bagongResponse.json();
+          console.log('Bagong search results:', bagongData);
+          
+          // Filter results client-side based on the full query
+          const secondWord = trimmedQuery.substring(7).toLowerCase();
+          const filteredResults = bagongData.filter(item => 
+            item.display_name.toLowerCase().includes(secondWord));
+          
+          if (filteredResults.length > 0) {
+            searchResults = filteredResults;
+          }
         }
       }
+      
+      // Format the results
+      searchResults = searchResults.map(item => ({
+        lat: item.lat,
+        lng: item.lon,
+        display_name: item.display_name,
+        type: 'place'
+      }));
     }
     
-    // Format the results
-    return searchResults.map(item => ({
-      lat: item.lat,
-      lng: item.lon,
-      display_name: item.display_name,
-      type: 'place'
-    }));
+    return searchResults;
   } catch (error) {
     console.error('Error searching locations:', error);
     return [];
@@ -264,14 +334,18 @@ export function findNearestPoint(lat, lng, points) {
 
 // Function to get current position using the Geolocation API
 export function getCurrentPosition() {
+  setLocationLoading(true, 'Getting your current location...');
+  
   return new Promise((resolve, reject) => {
     if (!navigator.geolocation) {
+      setLocationLoading(false);
       reject(new Error('Geolocation is not supported by your browser'));
       return;
     }
     
     navigator.geolocation.getCurrentPosition(
       position => {
+        setLocationLoading(false);
         resolve({
           lat: position.coords.latitude.toFixed(6),
           lng: position.coords.longitude.toFixed(6),
@@ -279,6 +353,7 @@ export function getCurrentPosition() {
         });
       },
       error => {
+        setLocationLoading(false);
         let errorMessage;
         switch(error.code) {
           case error.PERMISSION_DENIED:

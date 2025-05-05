@@ -1,11 +1,15 @@
 <script>
-  import { onMount, onDestroy } from 'svelte';
+  import { onMount, onDestroy, createEventDispatcher } from 'svelte';
   import { browser } from '$app/environment';
-  import { selectedLocation, getLocationName, getCurrentPosition } from '$lib/stores/locationStore.js';
+  import { selectedLocation, getLocationName, getCurrentPosition, setLocationLoading } from '$lib/stores/locationStore.js';
   import { waterStations } from '$lib/stores/waterStationStore.js';
   import { get } from 'svelte/store';
   import Icon from '@iconify/svelte';
   import MapSearchBar from './MapSearchBar.svelte';
+
+  const dispatch = createEventDispatcher();
+  
+  export let height = '100%';
 
   let mapContainer;
   let map;
@@ -15,8 +19,7 @@
   let L;
   let waterStationSubscription; // To hold the store subscription
   let searchControl;
-
-  export let height = '100%';
+  let isSelectingLocation = false;
 
   async function loadGeoJSON() {
     try {
@@ -55,6 +58,12 @@
 
   // Function to set a location with all needed details
   async function setSelectedLocation(lat, lng, locationName = null) {
+    isSelectingLocation = true;
+    setLocationLoading(true, 'Fetching location data...');
+    
+    // Dispatch event that location selection has started
+    dispatch('locationSelectionStart', { lat, lng });
+    
     // Remove previous marker if it exists
     if (marker && map) {
       map.removeLayer(marker);
@@ -87,7 +96,8 @@
         lng: currentLng, 
         elevation: elevationResult.toFixed(2), 
         error: null, 
-        locationName
+        locationName,
+        loading: false
       });
     } else {
       // Handle error case where fetchElevation returned an object like { error: 'message' }
@@ -96,19 +106,35 @@
         lng: currentLng, 
         elevation: 'N/A', 
         error: elevationResult.error, 
-        locationName
+        locationName,
+        loading: false
       });
     }
+    
+    // Reset loading flag
+    isSelectingLocation = false;
+    setLocationLoading(false);
+    
+    // Dispatch event that location selection is complete
+    dispatch('locationSelectionComplete', { 
+      lat: currentLat, 
+      lng: currentLng, 
+      elevation: typeof elevationResult === 'number' ? elevationResult.toFixed(2) : 'N/A',
+      locationName
+    });
   }
 
   async function handleLocateUser() {
     try {
+      dispatch('locationSelectionStart', { message: 'Getting your location...' });
       const position = await getCurrentPosition();
       const locationName = await getLocationName(position.lat, position.lng);
       setSelectedLocation(position.lat, position.lng, locationName || 'Current Location');
     } catch (error) {
       console.error('Error getting current position:', error);
       alert(`Could not get your location: ${error.message}`);
+      setLocationLoading(false);
+      dispatch('locationSelectionComplete', { error: error.message });
     }
   }
 
@@ -374,9 +400,11 @@
 <div bind:this={mapContainer} style="height: {height}; width: 100%;" class="map-container z-10">
   <!-- Map will render here -->
   
-  <!-- Add the search bar component directly in the template -->
-  <div class="search-overlay">
-    <MapSearchBar on:selectLocation={handleSearchLocation} />
+  <!-- Updated search bar container position -->
+  <div class="search-overlay pointer-events-none">
+    <div class="pointer-events-auto">
+      <MapSearchBar on:selectLocation={handleSearchLocation} disabled={isSelectingLocation} />
+    </div>
   </div>
 </div>
 
@@ -386,20 +414,20 @@
     position: relative;
   }
 
-  /* Add styles for the search overlay */
+  /* Updated styles for the search overlay */
   .search-overlay {
     position: absolute;
     top: 10px;
-    left: 10px; /* Changed from 50px to 10px to move closer to side */
-    z-index: 1000; /* High z-index to stay above map */
-    width: 280px;
+    left: 10px;
+    right: 10px;
+    z-index: 1000;
+    max-width: 420px;
   }
 
   /* For mobile responsiveness */
   @media (max-width: 640px) {
     .search-overlay {
-      width: calc(100% - 20px); /* Updated to match new left position */
-      left: 10px; /* Changed from 40px to 10px */
+      max-width: 100%;
     }
   }
 
