@@ -1,68 +1,94 @@
 <script>
-  import { createEventDispatcher, onMount } from 'svelte';
+  import { createEventDispatcher, onMount, afterUpdate } from 'svelte';
   import { waterStations } from '$lib/stores/waterStationStore.js';
   import { InfoTab, WaterStationsTab, WeatherTab, SettingsTab } from './predict-tabs';
+  import Icon from '@iconify/svelte';
+  import { tweened } from 'svelte/motion';
+  import { cubicOut } from 'svelte/easing';
 
   const dispatch = createEventDispatcher();
 
   let activeTab = 'info';
   let tabs = [
-    { id: 'info', name: 'Information' },
-    { id: 'water', name: 'Water Stations' },
-    { id: 'weather', name: 'Weather' },
-    { id: 'settings', name: 'Settings' }
+    { id: 'info', name: 'Information', icon: 'mdi:information-outline' },
+    { id: 'water', name: 'Water Stations', icon: 'mdi:water' },
+    { id: 'weather', name: 'Weather', icon: 'mdi:weather-partly-cloudy' },
+    { id: 'settings', name: 'Settings', icon: 'mdi:cog-outline' }
   ];
+
+  let tabButtonRefs = {};
+
+  const bgLeft = tweened(0, { duration: 300, easing: cubicOut });
+  const bgWidth = tweened(0, { duration: 300, easing: cubicOut });
 
   function setActiveTab(tabId) {
     activeTab = tabId;
     dispatch('tabChange', tabId);
   }
 
-  // Handle settings changes
+  $: if (typeof window !== 'undefined' && tabButtonRefs[activeTab]) {
+    const activeEl = tabButtonRefs[activeTab];
+    bgLeft.set(activeEl.offsetLeft);
+    bgWidth.set(activeEl.offsetWidth);
+  }
+
   function handleSettingChange(event) {
     const { setting, value } = event.detail;
     dispatch('settingChange', { setting, value });
   }
 
-  // Fetch water station data on component mount
   onMount(async () => {
     try {
       waterStations.update(store => ({ ...store, loading: true, error: null }));
-      
-      // Add a random token to prevent caching and make tracking harder
       const antiCacheToken = Date.now() + Math.random().toString(36).substring(2, 15);
-      
       const response = await fetch(`/api/water-stations?_=${antiCacheToken}`);
       if (!response.ok) {
         throw new Error(`Error fetching data: ${response.status}`);
       }
-      
       const data = await response.json();
       waterStations.set({ loading: false, data: data, error: null });
     } catch (error) {
       console.error('Failed to load data');
       waterStations.set({ loading: false, data: [], error: 'Unable to load water station data' });
     }
+
+     setTimeout(() => {
+       if (tabButtonRefs[activeTab]) {
+         const activeEl = tabButtonRefs[activeTab];
+         bgLeft.set(activeEl.offsetLeft, { duration: 0 });
+         bgWidth.set(activeEl.offsetWidth, { duration: 0 });
+       }
+     }, 0);
   });
 </script>
 
-<div class="bg-white h-full flex flex-col">
-  <!-- Tabs navigation -->
-  <div class="tabs px-2 pt-2">
-    <div class="flex border-b">
-      {#each tabs as tab}
+<div class="bg-white h-full flex flex-col shadow-md">
+  <div class="p-3 border-b border-gray-200 flex justify-between items-center bg-[#0c3143] text-white">
+    <h2 class="font-semibold text-sm tracking-wide">FLOOD PREDICTION PANEL</h2>
+  </div>
+
+  <div class="px-3 pt-3 pb-1">
+    <div class="relative flex flex-wrap gap-1 bg-gray-100 p-1 rounded-lg">
+      <div
+        class="absolute top-1 bottom-1 rounded-md bg-white shadow-sm z-0"
+        style="left: {$bgLeft}px; width: {$bgWidth}px;"
+        aria-hidden="true"
+      ></div>
+
+      {#each tabs as tab, index}
         <button
-          class="py-2 px-4 text-sm font-medium {activeTab === tab.id ? 'text-[#0c3143] border-b-2 border-[#3ba6d0] font-semibold' : 'text-gray-500 hover:text-[#0c3143] hover:border-b-2 hover:border-gray-300'}"
+          bind:this={tabButtonRefs[tab.id]}
+          class="relative z-10 py-1.5 px-3 text-sm font-medium rounded-md flex items-center flex-1 justify-center transition-colors duration-200 ease-out {activeTab === tab.id ? 'text-[#0c3143]' : 'text-gray-600 hover:text-gray-800'}"
           on:click={() => setActiveTab(tab.id)}
         >
-          {tab.name}
+          <Icon icon={tab.icon} class="mr-1.5" width="16" />
+          <span class="truncate">{tab.name}</span>
         </button>
       {/each}
     </div>
   </div>
 
-  <!-- Tab content -->
-  <div class="flex-grow p-4 overflow-y-auto">
+  <div class="flex-grow p-3 overflow-y-auto border-t border-gray-100">
     {#if activeTab === 'info'}
       <InfoTab />
     {:else if activeTab === 'water'}
@@ -74,3 +100,7 @@
     {/if}
   </div>
 </div>
+
+<style>
+  /* Optional global styles or component-specific styles can go here */
+</style>
