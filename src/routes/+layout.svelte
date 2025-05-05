@@ -7,6 +7,23 @@
 	let { children } = $props();
 	let isMenuOpen = $state(false);
 	let isPredictPage = $derived($page.url.pathname === '/predict');
+	
+	// Add state for active route
+	let activeRoute = $state('');
+	// Reference to nav link container
+	let navLinksContainer;
+	// References to each nav link for position calculation
+	let homeLink;
+	let predictLink;
+	let aboutLink;
+	let resourcesLink;
+	
+	// Indicator properties
+	let indicatorStyles = $state({
+		width: '0px',
+		transform: 'translateX(0)',
+		opacity: 0
+	});
 
 	// Add state to capture and manage body overflow
 	let bodyStyle = $state('');
@@ -14,13 +31,53 @@
 	function toggleMenu() {
 		isMenuOpen = !isMenuOpen;
 	}
+	
+	// Update indicator position based on active route
+	function updateIndicator() {
+		if (!navLinksContainer) return;
+		
+		let targetLink;
+		switch (activeRoute) {
+			case '/':
+				targetLink = homeLink;
+				break;
+			case '/predict':
+				targetLink = predictLink;
+				break;
+			case '/about':
+				targetLink = aboutLink;
+				break;
+			case '/resources':
+				targetLink = resourcesLink;
+				break;
+			default:
+				indicatorStyles = { width: '0px', transform: 'translateX(0)', opacity: 0 };
+				return;
+		}
+		
+		if (targetLink) {
+			const containerRect = navLinksContainer.getBoundingClientRect();
+			const linkRect = targetLink.getBoundingClientRect();
+			
+			indicatorStyles = {
+				width: `${linkRect.width}px`,
+				transform: `translateX(${linkRect.left - containerRect.left}px)`,
+				opacity: 1
+			};
+		}
+	}
 
 	onMount(() => {
 		if (isPredictPage) {
 			// Prevent scrolling when on predict page
 			document.body.style.overflow = 'hidden';
 		}
-
+		
+		// Set active route on mount
+		activeRoute = $page.url.pathname;
+		// Initial indicator position
+		setTimeout(updateIndicator, 100); // Delay to ensure DOM is ready
+		
 		return () => {
 			document.body.style.overflow = '';
 		};
@@ -33,6 +90,10 @@
 		} else {
 			document.body.style.overflow = '';
 		}
+		
+		// Update active route and indicator when route changes
+		activeRoute = $page.url.pathname;
+		updateIndicator();
 	});
 </script>
 
@@ -47,27 +108,39 @@
 			</div>
 
 			<!-- Desktop Navigation -->
-			<div class="hidden items-center space-x-10 md:flex">
+			<div class="hidden md:flex items-center space-x-10 relative" bind:this={navLinksContainer}>
 				<a
 					href="/"
-					class="hover:text-primary-light hover:border-primary-light border-b-2 border-transparent pb-1 font-medium text-gray-800 transition-colors"
-					>Home</a
-				>
+					class="pb-1 font-medium text-gray-800"
+					class:text-primary={activeRoute === '/'}
+					bind:this={homeLink}
+				>Home</a>
 				<a
 					href="/predict"
-					class="hover:text-primary-light hover:border-primary-light border-b-2 border-transparent pb-1 font-medium text-gray-800 transition-colors"
-					>Predict</a
-				>
+					class="pb-1 font-medium text-gray-800"
+					class:text-primary={activeRoute === '/predict'}
+					bind:this={predictLink}
+				>Predict</a>
 				<a
 					href="/about"
-					class="hover:text-primary-light hover:border-primary-light border-b-2 border-transparent pb-1 font-medium text-gray-800 transition-colors"
-					>About</a
-				>
+					class="pb-1 font-medium text-gray-800"
+					class:text-primary={activeRoute === '/about'}
+					bind:this={aboutLink}
+				>About</a>
 				<a
 					href="/resources"
-					class="hover:text-primary-light hover:border-primary-light border-b-2 border-transparent pb-1 font-medium text-gray-800 transition-colors"
-					>Resources</a
-				>
+					class="pb-1 font-medium text-gray-800"
+					class:text-primary={activeRoute === '/resources'}
+					bind:this={resourcesLink}
+				>Resources</a>
+				
+				<!-- Sliding indicator -->
+				<div 
+					class="absolute bottom-0 h-1 bg-primary-light rounded-full transition-all duration-300 ease-in-out"
+					style:width={indicatorStyles.width}
+					style:transform={indicatorStyles.transform}
+					style:opacity={indicatorStyles.opacity}
+				></div>
 			</div>
 
 			<!-- Mobile Menu Button -->
@@ -94,21 +167,23 @@
 			<div class="mt-3 border-t border-gray-200 py-4 md:hidden">
 				<div class="flex flex-col space-y-4">
 					<a href="/" class="hover:text-primary-light font-medium text-gray-800 transition-colors"
-						>Home</a
-					>
+						class:text-primary={activeRoute === '/'}
+					>Home</a>
 					<a
 						href="/predict"
-						class="hover:text-primary-light font-medium text-gray-800 transition-colors">Predict</a
-					>
+						class="hover:text-primary-light font-medium text-gray-800 transition-colors"
+						class:text-primary={activeRoute === '/predict'}
+					>Predict</a>
 					<a
 						href="/about"
-						class="hover:text-primary-light font-medium text-gray-800 transition-colors">About</a
-					>
+						class="hover:text-primary-light font-medium text-gray-800 transition-colors"
+						class:text-primary={activeRoute === '/about'}
+					>About</a>
 					<a
 						href="/resources"
 						class="hover:text-primary-light font-medium text-gray-800 transition-colors"
-						>Resources</a
-					>
+						class:text-primary={activeRoute === '/resources'}
+					>Resources</a>
 				</div>
 			</div>
 		{/if}

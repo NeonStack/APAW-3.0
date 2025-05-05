@@ -299,7 +299,7 @@
 </script>
 
 <svelte:head>
-	<title>APAW | Resources</title>
+  <title>APAW | Resources</title>
 </svelte:head>
 
 <div class="min-h-screen bg-gradient-to-b from-gray-50 to-white">

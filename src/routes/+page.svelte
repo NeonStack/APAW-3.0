@@ -37,7 +37,7 @@
 </script>
 
 <svelte:head>
-  <title>APAW - Advanced Predictive Analysis of Water-related Flood Risk</title>
+  <title>APAW | Advanced Predictive Analysis of Water-related Flood Risk</title>
 </svelte:head>
 
 <!-- Premium Contest-Worthy Hero Section -->

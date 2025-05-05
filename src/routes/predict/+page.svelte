@@ -24,6 +24,9 @@
     // Handle tab changes if needed
   }
 </script>
+<svelte:head>
+  <title>APAW | Flood Predictions</title>
+</svelte:head>
 
 <!-- Full height predict page that accounts for navbar -->
 <div class="predict-page w-full">
