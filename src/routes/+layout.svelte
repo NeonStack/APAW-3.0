@@ -1,30 +1,31 @@
 <script>
 	import '../app.css';
 	import { page } from '$app/stores';
-    import { onMount } from 'svelte';
+	import { onMount } from 'svelte';
+	import Icon from '@iconify/svelte';
 
 	let { children } = $props();
 	let isMenuOpen = $state(false);
 	let isPredictPage = $derived($page.url.pathname === '/predict');
-	
+
 	// Add state to capture and manage body overflow
 	let bodyStyle = $state('');
-	
+
 	function toggleMenu() {
 		isMenuOpen = !isMenuOpen;
 	}
-	
+
 	onMount(() => {
 		if (isPredictPage) {
 			// Prevent scrolling when on predict page
 			document.body.style.overflow = 'hidden';
 		}
-		
+
 		return () => {
 			document.body.style.overflow = '';
 		};
 	});
-	
+
 	$effect(() => {
 		// Update body overflow whenever route changes
 		if (isPredictPage) {
@@ -36,37 +37,78 @@
 </script>
 
 <!-- Updated header with better spacing and theme colors -->
-<header class="bg-white shadow-sm sticky top-0 z-50">
-	<div class="container mx-auto px-8 md:px-16 py-4">
+<header class="sticky top-0 z-50 bg-white shadow-sm">
+	<div class="container mx-auto px-8 py-4 md:px-16">
 		<nav class="flex items-center justify-between">
 			<div class="flex items-center">
-				<img src="/APAW TRANSPARENT.png" alt="APAW Logo" class="h-7" />
+				<a href="/">
+					<img src="/APAW TRANSPARENT.png" alt="APAW Logo" class="h-7" />
+				</a>
 			</div>
-			
+
 			<!-- Desktop Navigation -->
-			<div class="hidden md:flex items-center space-x-10">
-				<a href="/" class="text-gray-800 hover:text-primary-light font-medium transition-colors border-b-2 border-transparent hover:border-primary-light pb-1">Home</a>
-				<a href="/predict" class="text-gray-800 hover:text-primary-light font-medium transition-colors border-b-2 border-transparent hover:border-primary-light pb-1">Predict</a>
-				<a href="/about" class="text-gray-800 hover:text-primary-light font-medium transition-colors border-b-2 border-transparent hover:border-primary-light pb-1">About</a>
-				<a href="/resources" class="text-gray-800 hover:text-primary-light font-medium transition-colors border-b-2 border-transparent hover:border-primary-light pb-1">Resources</a>
+			<div class="hidden items-center space-x-10 md:flex">
+				<a
+					href="/"
+					class="hover:text-primary-light hover:border-primary-light border-b-2 border-transparent pb-1 font-medium text-gray-800 transition-colors"
+					>Home</a
+				>
+				<a
+					href="/predict"
+					class="hover:text-primary-light hover:border-primary-light border-b-2 border-transparent pb-1 font-medium text-gray-800 transition-colors"
+					>Predict</a
+				>
+				<a
+					href="/about"
+					class="hover:text-primary-light hover:border-primary-light border-b-2 border-transparent pb-1 font-medium text-gray-800 transition-colors"
+					>About</a
+				>
+				<a
+					href="/resources"
+					class="hover:text-primary-light hover:border-primary-light border-b-2 border-transparent pb-1 font-medium text-gray-800 transition-colors"
+					>Resources</a
+				>
 			</div>
-			
+
 			<!-- Mobile Menu Button -->
-			<button class="md:hidden focus:outline-none" on:click={toggleMenu} aria-label="Toggle menu">
-				<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" class="w-6 h-6">
-					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+			<button class="focus:outline-none md:hidden" on:click={toggleMenu} aria-label="Toggle menu">
+				<svg
+					xmlns="http://www.w3.org/2000/svg"
+					fill="none"
+					viewBox="0 0 24 24"
+					stroke="currentColor"
+					class="h-6 w-6"
+				>
+					<path
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						stroke-width="2"
+						d="M4 6h16M4 12h16M4 18h16"
+					/>
 				</svg>
 			</button>
 		</nav>
-		
+
 		<!-- Mobile Navigation -->
 		{#if isMenuOpen}
-			<div class="md:hidden py-4 mt-3 border-t border-gray-200">
+			<div class="mt-3 border-t border-gray-200 py-4 md:hidden">
 				<div class="flex flex-col space-y-4">
-					<a href="/" class="text-gray-800 hover:text-primary-light font-medium transition-colors">Home</a>
-					<a href="/predict" class="text-gray-800 hover:text-primary-light font-medium transition-colors">Predict</a>
-					<a href="/about" class="text-gray-800 hover:text-primary-light font-medium transition-colors">About</a>
-					<a href="/resources" class="text-gray-800 hover:text-primary-light font-medium transition-colors">Resources</a>
+					<a href="/" class="hover:text-primary-light font-medium text-gray-800 transition-colors"
+						>Home</a
+					>
+					<a
+						href="/predict"
+						class="hover:text-primary-light font-medium text-gray-800 transition-colors">Predict</a
+					>
+					<a
+						href="/about"
+						class="hover:text-primary-light font-medium text-gray-800 transition-colors">About</a
+					>
+					<a
+						href="/resources"
+						class="hover:text-primary-light font-medium text-gray-800 transition-colors"
+						>Resources</a
+					>
 				</div>
 			</div>
 		{/if}
@@ -79,53 +121,133 @@
 
 <!-- Conditionally show footer except on predict page -->
 {#if !isPredictPage}
-<footer class=" py-12 shadow-lg">
-	<div class="container mx-auto px-8 md:px-16">
-		<div class="flex flex-col md:flex-row justify-between items-center mb-10">
-			<div class="mb-6 md:mb-0">
-				<img src="/APAW TRANSPARENT.png" alt="APAW Logo" class="h-12" />
+	<footer class="bg-primary-light relative overflow-hidden pt-16 pb-8 text-white">
+		<!-- Wave decoration at top of footer -->
+		<div class="absolute top-0 right-0 left-0 w-full overflow-hidden leading-0">
+			<svg
+				xmlns="http://www.w3.org/2000/svg"
+				viewBox="0 0 1200 120"
+				preserveAspectRatio="none"
+				class="h-6 w-full fill-white"
+			>
+				<path
+					d="M321.39,56.44c58-10.79,114.16-30.13,172-41.86,82.39-16.72,168.19-17.73,250.45-.39C823.78,31,906.67,72,985.66,92.83c70.05,18.48,146.53,26.09,214.34,3V0H0V27.35A600.21,600.21,0,0,0,321.39,56.44Z"
+				></path>
+			</svg>
+		</div>
+
+		<div class="relative z-10 container mx-auto px-8 md:px-16">
+			<div class="mb-12 grid grid-cols-1 gap-10 md:grid-cols-12">
+				<!-- About/Logo Section - Reduced width -->
+				<div class="md:col-span-5 lg:col-span-5">
+					<!-- Logo with background container to make it visible -->
+					<div class="mb-4 inline-block rounded-lg bg-white p-3 shadow-lg">
+						<img src="/APAW TRANSPARENT.png" alt="APAW Logo" class="h-12" />
+					</div>
+					<p class="mb-5 max-w-md text-blue-100">
+						Applying supervised learning models to analyze integrated hydrometeorological data and
+						predict potential flood occurrences at specific locations.
+					</p>
+					<div class="flex space-x-4">
+						<a
+							href="#"
+							class="text-white transition-colors hover:text-blue-200"
+							aria-label="Twitter"
+						>
+							<Icon icon="mdi:twitter" width="20" height="20" />
+						</a>
+						<a
+							href="#"
+							class="text-white transition-colors hover:text-blue-200"
+							aria-label="Facebook"
+						>
+							<Icon icon="mdi:facebook" width="20" height="20" />
+						</a>
+						<a
+							href="#"
+							class="text-white transition-colors hover:text-blue-200"
+							aria-label="Instagram"
+						>
+							<Icon icon="mdi:instagram" width="20" height="20" />
+						</a>
+					</div>
+				</div>
+
+				<!-- Navigation Section - Adjusted spacing -->
+				<div class="md:col-span-3 md:ml-auto lg:col-span-3">
+					<h3 class="mb-4 text-lg font-bold text-white">Navigation</h3>
+					<ul class="space-y-3">
+						<li>
+							<a
+								href="/"
+								class="flex items-center text-blue-100 transition-colors hover:text-white"
+							>
+								<Icon icon="mdi:home" class="mr-2" width="16" height="16" />
+								Home
+							</a>
+						</li>
+						<li>
+							<a
+								href="/predict"
+								class="flex items-center text-blue-100 transition-colors hover:text-white"
+							>
+								<Icon icon="mdi:chart-line" class="mr-2" width="16" height="16" />
+								Predict
+							</a>
+						</li>
+						<li>
+							<a
+								href="/about"
+								class="flex items-center text-blue-100 transition-colors hover:text-white"
+							>
+								<Icon icon="mdi:information" class="mr-2" width="16" height="16" />
+								About
+							</a>
+						</li>
+						<li>
+							<a
+								href="/resources"
+								class="flex items-center text-blue-100 transition-colors hover:text-white"
+							>
+								<Icon icon="mdi:bookshelf" class="mr-2" width="16" height="16" />
+								Resources
+							</a>
+						</li>
+					</ul>
+				</div>
+
+				<!-- Contact Us Section - Right side -->
+				<div class="md:col-span-4 lg:col-span-4">
+					<h3 class="mb-4 text-lg font-bold text-white">Contact Us</h3>
+					<ul class="space-y-3">
+						<li>
+							<a
+								href="mailto:info@apaw.org"
+								class="flex items-center text-blue-100 transition-colors hover:text-white"
+							>
+								<Icon icon="mdi:email" class="mr-2" width="16" height="16" />
+								info@apaw.org
+							</a>
+						</li>
+						<li>
+							<a
+								href="tel:+639123456789"
+								class="flex items-center text-blue-100 transition-colors hover:text-white"
+							>
+								<Icon icon="mdi:phone" class="mr-2" width="16" height="16" />
+								+63 912 345 6789
+							</a>
+						</li>
+					</ul>
+				</div>
 			</div>
-			<div class="grid grid-cols-2 md:grid-cols-4 gap-8 text-center md:text-left">
-				<div>
-					<h3 class="font-semibold text-gray-800 mb-3">Navigation</h3>
-					<ul class="space-y-2">
-						<li><a href="/" class="text-gray-600 hover:text-primary-light">Home</a></li>
-						<li><a href="/predict" class="text-gray-600 hover:text-primary-light">Predict</a></li>
-						<li><a href="/about" class="text-gray-600 hover:text-primary-light">About</a></li>
-						<li><a href="/resources" class="text-gray-600 hover:text-primary-light">Resources</a></li>
-					</ul>
-				</div>
-				<div>
-					<h3 class="font-semibold text-gray-800 mb-3">Resources</h3>
-					<ul class="space-y-2">
-						<li><a href="#" class="text-gray-600 hover:text-primary-light">Documentation</a></li>
-						<li><a href="#" class="text-gray-600 hover:text-primary-light">API</a></li>
-						<li><a href="#" class="text-gray-600 hover:text-primary-light">Support</a></li>
-					</ul>
-				</div>
-				<div>
-					<h3 class="font-semibold text-gray-800 mb-3">Connect</h3>
-					<ul class="space-y-2">
-						<li><a href="#" class="text-gray-600 hover:text-primary-light">Twitter</a></li>
-						<li><a href="#" class="text-gray-600 hover:text-primary-light">Facebook</a></li>
-						<li><a href="#" class="text-gray-600 hover:text-primary-light">Instagram</a></li>
-					</ul>
-				</div>
-				<div>
-					<h3 class="font-semibold text-gray-800 mb-3">Contact</h3>
-					<ul class="space-y-2">
-						<li><a href="#" class="text-gray-600 hover:text-primary-light">Email</a></li>
-						<li><a href="#" class="text-gray-600 hover:text-primary-light">Phone</a></li>
-						<li><a href="#" class="text-gray-600 hover:text-primary-light">Address</a></li>
-					</ul>
-				</div>
+
+			<!-- Footer Bottom Section - Simplified -->
+			<div class="border-t border-blue-300/20 pt-8 text-center">
+				<p class="text-sm text-blue-100">
+					© {new Date().getFullYear()} APAW. All rights reserved.
+				</p>
 			</div>
 		</div>
-		<div class="border-t border-gray-200 pt-8 text-center">
-			<p class="text-sm text-gray-600">
-				© {new Date().getFullYear()} APAW - Advanced Predictive Analysis of Water-related Flood Risk. All rights reserved.
-			</p>
-		</div>
-	</div>
-</footer>
+	</footer>
 {/if}

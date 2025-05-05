@@ -160,7 +160,7 @@
 </section>
 
 <!-- Core Values Section -->
-<section class="py-28 bg-gray-50">
+<section class="py-28">
     <div class="container mx-auto px-8 md:px-16">
         <div class="mb-8 flex items-center">
             <h2 class="text-primary text-2xl font-bold md:text-3xl">Our Core Values</h2>

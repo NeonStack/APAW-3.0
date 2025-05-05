@@ -1,30 +1,39 @@
 <script>
-  import Map from '$lib/components/Map.svelte';
   import PredictTabs from '$lib/components/PredictTabs.svelte';
   import { onMount } from 'svelte';
+  import Icon from '@iconify/svelte';
   
   const features = [
     {
-      title: 'Real-time Flood Prediction',
-      description: 'Advanced AI algorithms to predict potential flooding with high accuracy.',
+      title: '5-Day Flood Forecast',
+      description: 'Machine learning-based predictions of flood risk up to five days ahead.',
       icon: 'material-symbols:online-prediction'
     },
     {
-      title: 'Interactive Mapping',
-      description: 'Visualize flood risk areas with our intuitive mapping system.',
-      icon: 'material-symbols:map'
+      title: 'Interactive Risk Map',
+      description: 'Select any location within the NCR on the map to view its 5-day flood risk forecast.',
+      icon: 'mdi:map-marker-radius'
     },
     {
-      title: 'Early Warning System',
-      description: 'Get timely notifications about potential flood risks in your area.',
-      icon: 'material-symbols:notifications'
+      title: 'Early Action Support',
+      description: 'Advance forecasts to aid timely decisions and preventive measures.',
+      icon: 'material-symbols:emergency-home'
     },
     {
-      title: 'Data-Driven Insights',
-      description: 'Make informed decisions based on comprehensive water-related data analysis.',
-      icon: 'material-symbols:database'
+      title: 'Insightful Forecasting',
+      description: 'Data-driven predictions using historical patterns and weather data.',
+      icon: 'mdi:chart-areaspline'
     }
   ];
+  
+  // Generate raindrops with random properties
+  const raindrops = Array(100).fill().map(() => ({
+    left: Math.random() * 100,
+    animationDuration: 0.5 + Math.random() * 1.5,
+    delay: Math.random() * 5,
+    opacity: 0.1 + Math.random() * 0.3,
+    size: 1 + Math.random() * 4
+  }));
 </script>
 
 <svelte:head>
@@ -41,6 +50,23 @@
     <div
       class="absolute top-1/4 -right-32 h-96 w-96 rounded-full bg-primary-light opacity-10 blur-3xl"
     ></div>
+  </div>
+  
+  <!-- Rain Effect -->
+  <div class="raindrops-container">
+    {#each raindrops as raindrop}
+      <div 
+        class="raindrop" 
+        style="
+          left: {raindrop.left}%; 
+          animation-duration: {raindrop.animationDuration}s; 
+          animation-delay: {raindrop.delay}s;
+          opacity: {raindrop.opacity};
+          width: {raindrop.size}px;
+          height: {raindrop.size * 10}px;
+        "
+      ></div>
+    {/each}
   </div>
 
   <div class="relative z-10 container mx-auto px-8 pt-12 md:px-16 md:pt-20 md:pb-20">
@@ -67,7 +93,7 @@
 
         <!-- Improved subheading with better spacing -->
         <p class="mx-auto mt-10 max-w-3xl text-lg leading-relaxed text-gray-700 md:text-xl">
-          Applying AI and data science techniques to predict potential flood risks based on historical and hydrometeorological data.
+          Applying supervised learning models to analyze integrated hydrometeorological data and predict potential flood occurrences at specific locations.
         </p>
       </div>
 
@@ -124,11 +150,10 @@
         >OUR PLATFORM</span
       >
       <h2 class="mb-4 text-3xl font-bold text-white md:text-4xl">
-        Innovative Flood Prediction Tools
+        Proactive Flood Preparedness Tools
       </h2>
       <p class="text-opacity-90 mx-auto max-w-3xl text-xl text-white">
-        Our advanced technology helps communities prepare for and respond to water-related
-        emergencies.
+        Leveraging predictive models to generate location-specific flood risk forecasts, enabling communities and individuals to prepare more effectively for potential water-related events.
       </p>
     </div>
 
@@ -151,7 +176,7 @@
 </section>
 
 <!-- Call to Action Section -->
-<section class="bg-gray-50 py-24">
+<section class="py-24">
   <div class="container mx-auto px-8 md:px-16">
     <div
       class="rounded-2xl bg-gradient-to-r from-primary to-[#154a67] p-12 text-center shadow-xl md:p-16"
@@ -172,26 +197,6 @@
     </div>
   </div>
 </section>
-
-<div class="flex flex-col h-screen">
-  <header class="bg-[#0c3143] text-white px-4 py-3 shadow-md z-50">
-    <div class="flex items-center justify-between">
-      <div class="flex items-center">
-        <span class="text-xl font-semibold">APAW</span>
-        <span class="ml-2 text-sm opacity-70">Automated Philippines Advanced Warning</span>
-      </div>
-    </div>
-  </header>
-  
-  <div class="flex-grow grid grid-cols-1 md:grid-cols-3 gap-0">
-    <div class="md:col-span-2 relative">
-      <Map height="100%" />
-    </div>
-    <div class="bg-white overflow-y-auto border-l border-gray-200">
-      <PredictTabs />
-    </div>
-  </div>
-</div>
 
 <style>
   .waves-container {
@@ -252,6 +257,46 @@
     .waves {
       height: 40px;
       min-height: 40px;
+    }
+  }
+
+  /* Rain Effect */
+  .raindrops-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    z-index: 1;
+    pointer-events: none;
+  }
+
+  .raindrop {
+    position: absolute;
+    top: -10vh;
+    background: linear-gradient(to bottom, rgba(59, 166, 208, 0), rgba(59, 166, 208, 0.6));
+    border-radius: 0 0 5px 5px;
+    transform-origin: top center;
+    animation: falling linear infinite;
+  }
+
+  @keyframes falling {
+    0% {
+      transform: translateY(-10px) scaleY(0);
+    }
+    20% {
+      transform: translateY(0) scaleY(1);
+    }
+    100% {
+      transform: translateY(calc(100vh + 20px));
+    }
+  }
+
+  /* Responsive adjustments for the rain effect */
+  @media (max-width: 768px) {
+    .raindrops-container {
+      display: none; /* Hide rain on small screens for better performance */
     }
   }
 </style>

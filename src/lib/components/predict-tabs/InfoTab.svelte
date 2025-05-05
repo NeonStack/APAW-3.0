@@ -464,7 +464,7 @@
             <!-- Key Weather Indicators: Redesigned with better layout -->
             <div class="grid grid-cols-2 gap-2 mb-2">
               {#if hasValidValue(day.features_used.Precip_mm_Today)}
-                <div class="bg-blue-50 rounded p-2 flex items-center text-sm">
+                <div class="bg-white shadow-md rounded p-2 flex items-center text-sm">
                   <Icon icon="mdi:weather-pouring" class="mr-1.5 text-blue-500" width="16" />
                   <div class="flex-1">
                     <div class="flex justify-between">
@@ -475,7 +475,7 @@
                 </div>
               {/if}
               {#if hasValidValue(day.features_used.Precipitation_Hours_Today)}
-                <div class="bg-blue-50 rounded p-2 flex items-center text-sm">
+                <div class="bg-white shadow-md rounded p-2 flex items-center text-sm">
                   <Icon icon="mdi:clock-outline" class="mr-1.5 text-blue-500" width="16" />
                   <div class="flex-1">
                     <div class="flex justify-between">
@@ -486,7 +486,7 @@
                 </div>
               {/if}
               {#if hasValidValue(day.features_used.Total_Precip_Last3Days_mm)}
-                <div class="bg-blue-50 rounded p-2 flex items-center text-sm">
+                <div class="bg-white shadow-md rounded p-2 flex items-center text-sm">
                   <Icon icon="mdi:history" class="mr-1.5 text-blue-500" width="16" />
                   <div class="flex-1">
                     <div class="flex justify-between">
@@ -497,7 +497,7 @@
                 </div>
               {/if}
               {#if hasValidValue(day.features_used.Soil_Moisture_0_to_7cm_m3m3_Today)}
-                <div class="bg-blue-50 rounded p-2 flex items-center text-sm">
+                <div class="bg-white shadow-md rounded p-2 flex items-center text-sm">
                   <Icon icon="mdi:terrain" class="mr-1.5 text-blue-500" width="16" />
                   <div class="flex-1">
                     <div class="flex justify-between">

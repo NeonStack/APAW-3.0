@@ -239,11 +239,20 @@
 		{
 			title: 'Nominatim',
 			description:
-				'Geocoding service (based on OpenStreetMap data) used for location search functionality.',
+				'Geocoding service based on OpenStreetMap data used for location search functionality.',
 			category: 'Development & Deployment Stack',
 			iconType: 'iconify',
 			icon: 'carbon:location',
 			url: 'https://nominatim.org/'
+		},
+		{
+			title: 'Photon',
+			description:
+				'Geocoding API based on OpenStreetMap data used to find locations and return their coordinates for the search functionality.',
+			category: 'Development & Deployment Stack',
+			iconType: 'image',
+			icon: '/logo/photon.png',
+			url: 'https://photon.komoot.io/'
 		},
 		{
 			title: 'GitHub',
