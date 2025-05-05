@@ -3,6 +3,7 @@
 	import { page } from '$app/stores';
 	import { onMount } from 'svelte';
 	import Icon from '@iconify/svelte';
+	import { Toaster } from 'svelte-sonner'
 
 	let { children } = $props();
 	let isMenuOpen = $state(false);
@@ -188,7 +189,10 @@
 			</div>
 		{/if}
 	</div>
+
 </header>
+
+<Toaster richColors  position="top-center" expand={true}/>
 
 <main class={isPredictPage ? 'h-screen overflow-hidden' : ''}>
 	{@render children()}

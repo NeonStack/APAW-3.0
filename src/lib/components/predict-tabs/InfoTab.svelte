@@ -303,7 +303,7 @@
               <div class="flex items-center justify-between">
                 <div class="flex items-center">
                   <Icon icon="mdi:weather-partly-cloudy" class="text-blue-500 mr-1 flex-shrink-0" width="14" />
-                  <span class="text-sm font-medium">Weather Station</span>
+                  <span class="text-sm font-medium">Weather Forecast</span>
                 </div>
                 <span class="text-xs bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded-full">
                   {formatDistance($nearestWeatherCity.distance)}
