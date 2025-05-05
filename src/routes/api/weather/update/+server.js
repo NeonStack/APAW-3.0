@@ -172,6 +172,39 @@ export async function POST({ request, url }) {
         
         const weatherData = await response.json();
         
+        // Check for AccuWeather API error responses
+        if (weatherData.Code && weatherData.Message) {
+          console.error(`AccuWeather API error for ${city.name}:`, weatherData);
+          
+          // Even if AccuWeather fails, still perform cleanup
+          if (!skipCleanup) {
+            await performDatabaseCleanup(city, fourDaysAgoStr);
+          }
+          
+          return {
+            status: 'failed',
+            city: city.name,
+            error: `AccuWeather API error: ${weatherData.Message}`,
+            apiLimitExceeded: weatherData.Message.includes("allowed number of requests has been exceeded")
+          };
+        }
+        
+        // Validate response structure before proceeding
+        if (!weatherData.DailyForecasts || !Array.isArray(weatherData.DailyForecasts) || weatherData.DailyForecasts.length === 0) {
+          console.error(`Invalid AccuWeather data format for ${city.name}:`, weatherData);
+          
+          // Even if data is invalid, still perform cleanup
+          if (!skipCleanup) {
+            await performDatabaseCleanup(city, fourDaysAgoStr);
+          }
+          
+          return {
+            status: 'failed',
+            city: city.name,
+            error: 'Invalid AccuWeather data format - missing DailyForecasts'
+          };
+        }
+        
         // Enhanced logging for AccuWeather data
         console.log(`AccuWeather response for ${city.name}:`, {
           hasHeadline: !!weatherData.Headline,
@@ -479,6 +512,17 @@ export async function POST({ request, url }) {
         };
         
       } catch (cityError) {
+        console.error(`Exception processing city ${city.name}:`, cityError);
+        
+        // Even on exception, still perform cleanup
+        if (!skipCleanup) {
+          try {
+            await performDatabaseCleanup(city, fourDaysAgoStr);
+          } catch (cleanupError) {
+            console.error(`Failed to perform cleanup after error for ${city.name}:`, cleanupError);
+          }
+        }
+        
         return {
           status: 'failed',
           city: city.name,
@@ -522,5 +566,33 @@ export async function POST({ request, url }) {
       message: error.message,
       timeElapsed
     }, { status: 500 });
+  }
+}
+
+// Helper function to perform database cleanup for a city
+async function performDatabaseCleanup(city, cutoffDate) {
+  console.log(`Cleanup operation for ${city.name}:`, {
+    city_id: city.id,
+    cutoff_date: cutoffDate,
+    operation: 'DELETE where forecast_date < cutoff_date'
+  });
+  
+  try {
+    const { error: deleteError, count } = await supabase
+      .from('apaw_weather_forecasts')
+      .delete()
+      .eq('city_id', city.id)
+      .lt('forecast_date', cutoffDate);
+      
+    if (deleteError) {
+      console.error(`Error deleting old forecasts for ${city.name}:`, deleteError);
+      return { success: false, error: deleteError };
+    } else {
+      console.log(`Successfully deleted ${count || 0} old records for ${city.name}`);
+      return { success: true, count: count || 0 };
+    }
+  } catch (err) {
+    console.error(`Exception during cleanup for ${city.name}:`, err);
+    return { success: false, error: err.message };
   }
 }
