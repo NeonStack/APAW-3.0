@@ -26,6 +26,10 @@
 </script>
 <svelte:head>
   <title>APAW | Flood Predictions</title>
+  <meta 
+    name="description" 
+    content="View interactive 5-day flood risk predictions for specific locations within Metro Manila using APAW's advanced prediction model." 
+  />
 </svelte:head>
 
 <!-- Full height predict page that accounts for navbar -->

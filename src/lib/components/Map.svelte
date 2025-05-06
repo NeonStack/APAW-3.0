@@ -1,11 +1,13 @@
 <script>
-	import { onMount, onDestroy, createEventDispatcher } from 'svelte';
+	import { onMount, onDestroy, createEventDispatcher, tick } from 'svelte';
 	import { browser } from '$app/environment';
 	import {
 		selectedLocation,
 		getLocationName,
 		getCurrentPosition,
-		setLocationLoading
+		setLocationLoading,
+		calculateDistance,
+		nearestFacilities
 	} from '$lib/stores/locationStore.js';
 	import { waterStations } from '$lib/stores/waterStationStore.js';
 	import { get } from 'svelte/store';
@@ -28,6 +30,23 @@
 	let isSelectingLocation = false;
 	let strictNcrBounds = null; // For click checking (no padding)
 	let paddedNcrBounds = null;
+	const NEARBY_RADIUS_METERS = 1500;
+
+	let facilityLayers = {}; // Holds the L.layerGroup for each facility type
+	let loadedGeojsonData = {}; // In-memory cache (fallback if localStorage fails/not used)
+
+	const facilityTypes = [
+		{ id: 'fire_station', name: 'Fire Station', icon: 'mdi:fire-station', color: '#FF6347' }, // Tomato Red
+		{
+			id: 'police_station',
+			name: 'Police Station',
+			icon: 'mdi:police-station',
+			color: '#1E90FF'
+		}, // Dodger Blue
+		{ id: 'hospitals', name: 'Hospitals', icon: 'mdi:hospital-building', color: '#32CD32' }, // Lime Green
+		{ id: 'schools', name: 'Schools', icon: 'mdi:school', color: '#FFCC00' } // Gold
+		// Add flood hazard layers here later with a different loading strategy
+	];
 
 	async function loadGeoJSON() {
 		try {
@@ -174,6 +193,283 @@
 			setLocationLoading(false);
 			dispatch('locationSelectionComplete', { error: error.message });
 		}
+	}
+
+	function createFacilityIcon(options) {
+		// Use Iconify HTML within the divIcon
+		const iconHtml = `<div class="facility-marker-wrapper">
+                        <i class="iconify" data-icon="${options.icon}" style="color: ${options.color}; font-size: 18px;"></i>
+                      </div>`;
+		return L.divIcon({
+			html: iconHtml,
+			className: 'facility-marker-icon', // Keep this class for potential global styling
+			iconSize: [24, 24], // Adjust size as needed
+			iconAnchor: [12, 12] // Center anchor
+		});
+	}
+
+	async function loadFacilityData(typeInfo) {
+		const { id, name } = typeInfo;
+		const storageKey = `apaw_geojson_${id}`;
+
+		// Check in-memory cache first
+		if (loadedGeojsonData[id]) {
+			console.log(`Using in-memory cache for ${name}`);
+			return loadedGeojsonData[id]; // Return existing data
+		}
+
+		// Check localStorage (guarded by browser check)
+		if (browser) {
+			try {
+				const cachedDataString = localStorage.getItem(storageKey);
+				if (cachedDataString) {
+					console.log(`Using localStorage cache for ${name}`);
+					const parsedData = JSON.parse(cachedDataString);
+					loadedGeojsonData[id] = parsedData; // Add to in-memory cache
+					return parsedData; // Return cached data
+				}
+			} catch (e) {
+				console.warn(`Error reading or parsing localStorage for ${storageKey}:`, e);
+				try {
+					localStorage.removeItem(storageKey);
+				} catch (removeError) {}
+			}
+		} else {
+			// Should not happen if called correctly, but good practice
+			console.warn(`Attempted to load facility layer ${name} in non-browser context.`);
+			throw new Error('Cannot load data outside browser.');
+		}
+
+		// Fetch from network (This part will be wrapped in toast.promise)
+		console.log(`Fetching ${name} data from network...`);
+		const response = await fetch(`/geojson/${id}.geojson`);
+		if (!response.ok) {
+			throw new Error(`HTTP error! status: ${response.status}`);
+		}
+		const geoJsonString = await response.text();
+
+		// Try to cache in localStorage
+		if (browser) {
+			try {
+				localStorage.setItem(storageKey, geoJsonString);
+				console.log(`Successfully cached ${name} in localStorage.`);
+			} catch (e) {
+				console.warn(`Failed to cache ${name} in localStorage (maybe quota exceeded?):`, e);
+				// Don't throw error here, just warn. Data is still loaded in memory.
+				// toast.info is better handled where the promise is called
+			}
+		}
+
+		// Parse and store in memory
+		const parsedData = JSON.parse(geoJsonString);
+		loadedGeojsonData[id] = parsedData;
+		return parsedData; // Return the newly fetched data
+	}
+
+	function displayNearbyFacilities(typeInfo, centerLat, centerLng, radius) {
+		const { id, name, icon, color } = typeInfo;
+		const fullGeojsonData = loadedGeojsonData[id]; // Get full data from memory
+
+		if (!map || !facilityLayers[id] || !fullGeojsonData || !fullGeojsonData.features) {
+			console.warn(`Cannot display nearby ${name}: Map, layer group, or data missing.`);
+			return;
+		}
+
+		// Ensure the layer group is on the map (it should be if triggered correctly)
+		if (!map.hasLayer(facilityLayers[id])) {
+			// This might happen in race conditions, add the layer group if needed
+			// map.addLayer(facilityLayers[id]); // Or decide if this indicates an error
+			console.warn(`Layer group for ${name} not on map during displayNearbyFacilities call.`);
+			// return; // Optionally return if layer isn't supposed to be active
+		}
+
+		facilityLayers[id].clearLayers(); // Clear previous markers for this type
+
+		let count = 0;
+		fullGeojsonData.features.forEach((feature) => {
+			if (feature.geometry && feature.geometry.type === 'Point') {
+				const coords = feature.geometry.coordinates;
+				const featureLng = coords[0];
+				const featureLat = coords[1];
+
+				const distance = calculateDistance(centerLat, centerLng, featureLat, featureLng);
+
+				if (distance <= radius) {
+					count++;
+					const marker = L.marker([featureLat, featureLng], {
+						icon: createFacilityIcon({ icon, color })
+					});
+
+					// --- Popup Logic (copied from previous addGeoJsonToMap) ---
+					let popupContent = `<b>${name}</b><br>`;
+					const props = feature.properties;
+					const nameProp =
+						props.NAME || props.Name || props.name || props.facility_n || props.school_nam;
+					const addressProp = props.ADDRESS || props.Address || props.address || props.location;
+					if (nameProp) popupContent += `${nameProp}<br>`;
+					else popupContent += `Unnamed ${name}<br>`;
+					if (addressProp) popupContent += `${addressProp}<br>`;
+					marker.bindPopup(popupContent);
+					// --- End Popup Logic ---
+
+					facilityLayers[id].addLayer(marker);
+				}
+			}
+		});
+		console.log(`Displayed ${count} nearby ${name}(s) within ${radius}m.`);
+	}
+
+	function updateDisplayedFacilities() {
+		const location = get(selectedLocation);
+		const allNearbyFacilitiesList = [];
+
+		if (!map || !location || location.lat === null || location.lng === null) {
+			// If no valid location, clear all facility layers
+			facilityTypes.forEach((type) => {
+				if (facilityLayers[type.id]) {
+					facilityLayers[type.id].clearLayers();
+				}
+			});
+			nearestFacilities.set([]);
+			return;
+		}
+
+		const centerLat = location.lat;
+		const centerLng = location.lng;
+
+		console.log(`Updating nearby facilities around ${centerLat}, ${centerLng}`);
+
+		facilityTypes.forEach((typeInfo) => {
+			const layerGroup = facilityLayers[typeInfo.id];
+			if (layerGroup && map.hasLayer(layerGroup)) {
+				// Check if layer is active on map
+				if (loadedGeojsonData[typeInfo.id]) {
+					// Check if data is loaded
+					displayNearbyFacilities(typeInfo, centerLat, centerLng, NEARBY_RADIUS_METERS);
+
+					const fullGeojsonData = loadedGeojsonData[typeInfo.id];
+                    if (!fullGeojsonData || !fullGeojsonData.features) return;
+
+                    layerGroup.clearLayers(); // Clear previous markers for display
+                    let count = 0;
+                    let checkedCount = 0;
+
+                    fullGeojsonData.features.forEach((feature) => {
+                        if (feature.geometry && feature.geometry.type === 'Point') {
+                            checkedCount++;
+                            const coords = feature.geometry.coordinates;
+                            const featureLng = coords[0];
+                            const featureLat = coords[1];
+                            const distance = calculateDistance(centerLat, centerLng, featureLat, featureLng);
+
+                            if (distance <= NEARBY_RADIUS_METERS) {
+                                count++;
+                                // Add marker for display on map
+                                const marker = L.marker([featureLat, featureLng], {
+                                    icon: createFacilityIcon({ icon: typeInfo.icon, color: typeInfo.color })
+                                });
+                                let popupContent = `<b>${typeInfo.name}</b><br>`;
+                                const props = feature.properties;
+                                const nameProp =
+                                    props.NAME || props.Name || props.name || props.facility_n || props.school_nam;
+                                const addressProp =
+                                    props.ADDRESS || props.Address || props.address || props.location;
+                                if (nameProp) popupContent += `${nameProp}<br>`;
+                                else popupContent += `Unnamed ${typeInfo.name}<br>`;
+                                if (addressProp) popupContent += `${addressProp}<br>`;
+                                marker.bindPopup(popupContent);
+                                layerGroup.addLayer(marker);
+
+                                // Add to the list for the InfoTab store
+                                allNearbyFacilitiesList.push({
+                                    id: feature.id || `${typeInfo.id}-${checkedCount}`, // Create a unique enough ID
+                                    name: nameProp || `Unnamed ${typeInfo.name}`,
+                                    type: typeInfo.name,
+                                    distance: distance,
+                                    lat: featureLat,
+                                    lng: featureLng,
+                                    icon: typeInfo.icon, // Include icon and color for potential use in InfoTab
+                                    color: typeInfo.color
+                                });
+                            }
+                        }
+                    });
+                    console.log(`Displayed ${count} nearby ${typeInfo.name}(s) out of ${checkedCount} checked within ${NEARBY_RADIUS_METERS}m.`);
+				} else {
+					// Data not loaded yet, maybe trigger load? Or just wait for user to toggle again.
+					// For now, we just clear it to be safe, user needs to toggle layer if they want data.
+					layerGroup.clearLayers();
+					console.warn(`Data for ${typeInfo.name} not loaded, cannot display nearby.`);
+					// Optionally trigger load here if desired:
+					// handleLayerAdd(typeInfo); // Be careful of infinite loops
+				}
+			} else if (layerGroup) {
+				// Layer is not active, ensure it's clear
+				layerGroup.clearLayers();
+			}
+		});
+		allNearbyFacilitiesList.sort((a, b) => a.distance - b.distance); // Sort by distance
+        const top5Facilities = allNearbyFacilitiesList.slice(0, 5); // Get the top 5
+        nearestFacilities.set(top5Facilities); // Update the store
+        console.log('Updated nearestFacilities store:', top5Facilities);
+	}
+
+	async function handleLayerAdd(typeInfo, showToast = true) {
+		if (!typeInfo) return;
+
+		const loadPromise = loadFacilityData(typeInfo); // Get the promise
+
+		if (showToast) {
+			// Only use toast.promise if showToast is true
+			toast.promise(loadPromise, {
+				loading: `Loading ${typeInfo.name} data...`,
+				success: (data) => {
+					// Success logic remains the same
+					const location = get(selectedLocation);
+					if (location && location.lat !== null && location.lng !== null) {
+						tick().then(() => {
+							if (map.hasLayer(facilityLayers[typeInfo.id])) {
+								displayNearbyFacilities(typeInfo, location.lat, location.lng, NEARBY_RADIUS_METERS);
+							}
+						});
+					}
+					return `${typeInfo.name} data loaded.`;
+				},
+				error: (err) => {
+					// Error logic remains the same
+					console.error(`Error loading ${typeInfo.name}:`, err);
+					return `Failed to load ${typeInfo.name} data: ${err.message}`;
+				}
+			});
+		} else {
+			// If showToast is false, just await the promise and handle errors silently
+			try {
+				await loadPromise; // Wait for data to load (from cache or network)
+				console.log(`${typeInfo.name} data loaded silently.`);
+				// Trigger display if location exists (same as success callback)
+				const location = get(selectedLocation);
+				if (location && location.lat !== null && location.lng !== null) {
+					tick().then(() => {
+						if (map.hasLayer(facilityLayers[typeInfo.id])) {
+							displayNearbyFacilities(typeInfo, location.lat, location.lng, NEARBY_RADIUS_METERS);
+						}
+					});
+				}
+			} catch (err) {
+				// Log error silently for initial load failures
+				console.error(`Silent error loading ${typeInfo.name}:`, err);
+			}
+		}
+
+		// Handle potential localStorage quota warning separately if needed
+		loadPromise
+			.catch((e) => {
+				/* Errors handled by toast.promise */
+			})
+			.finally(() => {
+				// Check if a warning about caching needs to be shown (if fetch succeeded but cache failed)
+				// This logic might be complex to get right, maybe omit for simplicity first.
+			});
 	}
 
 	// Handle a location selection from search
@@ -327,7 +623,62 @@
 			'Esri Street': esriStreet
 		};
 
-		L.control.layers(baseLayers).addTo(map);
+		const overlayLayers = {};
+		facilityTypes.forEach((type) => {
+			facilityLayers[type.id] = L.layerGroup();
+			overlayLayers[
+				`<i class="iconify" data-icon="${type.icon}" style="color: ${type.color};"></i> ${type.name}`
+			] = facilityLayers[type.id];
+		});
+
+		facilityTypes.forEach((typeInfo) => {
+			if (facilityLayers[typeInfo.id]) {
+				map.addLayer(facilityLayers[typeInfo.id]);
+				tick().then(() => {
+					// Pass 'false' to prevent toast on initial load
+					handleLayerAdd(typeInfo, false);
+				});
+			}
+		});
+
+		// 1. Create the control and store it in a variable
+		const layerControl = L.control.layers(baseLayers, overlayLayers, { collapsed: true });
+
+		// 2. Add the control to the map
+		layerControl.addTo(map);
+
+		// 3. Manipulate the DOM to add titles (after adding to map)
+		try {
+			const controlContainer = layerControl.getContainer();
+			if (controlContainer) {
+				const baseLayersDiv = controlContainer.querySelector('.leaflet-control-layers-base');
+				const overlaysDiv = controlContainer.querySelector('.leaflet-control-layers-overlays');
+				const separator = controlContainer.querySelector('.leaflet-control-layers-separator'); // Find the separator if it exists
+
+				// Create and insert "Base Maps" title
+				if (baseLayersDiv) {
+					const baseTitle = L.DomUtil.create('div', 'leaflet-control-layers-title');
+					baseTitle.innerHTML = 'Base Maps';
+					baseLayersDiv.parentNode.insertBefore(baseTitle, baseLayersDiv);
+				}
+
+				// Create and insert "Facilities" title
+				if (overlaysDiv) {
+					const overlayTitle = L.DomUtil.create('div', 'leaflet-control-layers-title');
+					overlayTitle.innerHTML = 'Facilities';
+					// Insert before the overlays div, or before the separator if it exists and comes before overlays
+					const insertBeforeElement =
+						separator &&
+						separator.compareDocumentPosition(overlaysDiv) & Node.DOCUMENT_POSITION_FOLLOWING
+							? separator
+							: overlaysDiv;
+					overlaysDiv.parentNode.insertBefore(overlayTitle, insertBeforeElement);
+				}
+			}
+		} catch (error) {
+			console.error('Error adding titles to layer control:', error);
+		}
+
 		L.control.zoom({ position: 'bottomleft' }).addTo(map);
 
 		if (geojsonData) {
@@ -360,6 +711,24 @@
 				// If click is outside bounds, show an alert and log it
 				console.log('Click is not near NCR bounds.');
 				toast.error('Please select a location near the National Capital Region (NCR).');
+			}
+		});
+
+		map.on('overlayadd', function (e) {
+			const addedLayerName = e.name;
+			const typeInfo = facilityTypes.find((type) => addedLayerName.includes(type.name));
+			if (typeInfo) {
+				// Call the new handler function
+				handleLayerAdd(typeInfo);
+			}
+		});
+
+		map.on('overlayremove', function (e) {
+			const removedLayerName = e.name;
+			const typeInfo = facilityTypes.find((type) => removedLayerName.includes(type.name));
+			if (typeInfo && facilityLayers[typeInfo.id]) {
+				console.log(`Clearing ${typeInfo.name} layer.`);
+				facilityLayers[typeInfo.id].clearLayers(); // Clear markers when layer is unchecked
 			}
 		});
 
@@ -419,6 +788,8 @@
 			if (map) {
 				map.off('click');
 				map.off('zoomend', handleZoomEnd);
+				map.off('overlayadd');
+				map.off('overlayremove');
 			}
 			if (waterStationSubscription) {
 				waterStationSubscription();
@@ -433,12 +804,23 @@
 					if (map) map.removeLayer(marker);
 				} catch (e) {}
 			}
+			Object.values(facilityLayers).forEach((layer) => {
+				try {
+					if (map) map.removeLayer(layer);
+				} catch (e) {}
+			});
 			if (map) {
 				map.remove();
 				map = null;
 			}
 		};
 	});
+
+	$: if (browser && map && L && $selectedLocation) {
+		tick().then(() => {
+			updateDisplayedFacilities();
+		});
+	}
 
 	// Ensure onDestroy runs even if onMount fails or browser is false
 	onDestroy(() => {
@@ -447,7 +829,7 @@
 		}
 		if (map) {
 			try {
-				map.off('zoomend');
+				map.off();
 				waterStationMarkers.forEach((m) => {
 					try {
 						map.removeLayer(m);
@@ -469,6 +851,7 @@
 
 <svelte:head>
 	<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />
+	<script src="https://code.iconify.design/2/2.2.1/iconify.min.js"></script>
 </svelte:head>
 
 <div bind:this={mapContainer} style="height: {height}; width: 100%;" class="map-container z-10">
@@ -644,5 +1027,46 @@
 			width: calc(100% - 80px) !important;
 			margin: 10px 10px 0 10px !important;
 		}
+	}
+
+	:global(.leaflet-control-layers-title) {
+		font-weight: bold;
+		margin-top: 10px; /* Add some space above the title */
+		color: #333; /* Adjust color as needed */
+	}
+
+	:global(.leaflet-control-layers-list label span) {
+		display: inline-flex !important; /* Use flexbox for alignment */
+		align-items: center !important; /* Vertically center icon and text */
+		gap: 5px !important; /* Add space between icon and text */
+	}
+
+	/* Adjust margin for the first title if needed */
+	:global(.leaflet-control-layers-list > .leaflet-control-layers-title:first-child) {
+		margin-top: 0;
+	}
+
+	:global(.facility-marker-icon) {
+		background: rgba(255, 255, 255, 0.7); /* Optional: semi-transparent white background */
+		border-radius: 50%;
+		border: 1px solid rgba(0, 0, 0, 0.3);
+		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+		display: flex; /* Use flexbox to center content */
+		justify-content: center;
+		align-items: center;
+	}
+
+	/* Inner wrapper for alignment if needed */
+	:global(.facility-marker-wrapper) {
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		width: 100%;
+		height: 100%;
+	}
+
+	/* Ensure iconify icons render correctly inside the marker */
+	:global(.facility-marker-icon .iconify) {
+		display: block; /* Or inline-block */
 	}
 </style>

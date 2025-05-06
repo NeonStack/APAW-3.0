@@ -96,6 +96,10 @@
 
 <svelte:head>
     <title>APAW | About Us</title>
+    <meta 
+      name="description" 
+      content="Learn about APAW's mission, vision, core values." 
+    />
 </svelte:head>
 
 <!-- Header section (styled like Resources page) -->

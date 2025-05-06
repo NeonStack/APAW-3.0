@@ -15,6 +15,8 @@ export const locationLoadingStatus = writable({
   message: ''
 });
 
+export const nearestFacilities = writable([]);
+
 // Function to set loading state with a message
 export function setLocationLoading(isLoading, message = '') {
   locationLoadingStatus.set({ isLoading, message });

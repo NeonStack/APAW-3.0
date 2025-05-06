@@ -4,6 +4,7 @@
 	import { onMount } from 'svelte';
 	import Icon from '@iconify/svelte';
 	import { Toaster } from 'svelte-sonner'
+	
 
 	let { children } = $props();
 	let isMenuOpen = $state(false);
@@ -104,7 +105,7 @@
 		<nav class="flex items-center justify-between">
 			<div class="flex items-center">
 				<a href="/">
-					<img src="/APAW TRANSPARENT.png" alt="APAW Logo" class="h-7" />
+					<img src="/APAW_TRANSPARENT.png" alt="APAW Logo" class="h-7" />
 				</a>
 			</div>
 
@@ -221,7 +222,7 @@
 				<div class="md:col-span-5 lg:col-span-5">
 					<!-- Logo with background container to make it visible -->
 					<div class="mb-4 inline-block rounded-lg bg-white p-3 shadow-lg">
-						<img src="/APAW TRANSPARENT.png" alt="APAW Logo" class="h-12" />
+						<img src="/APAW_TRANSPARENT.png" alt="APAW Logo" class="h-12" />
 					</div>
 					<p class="mb-5 max-w-md text-blue-100">
 						Applying supervised learning models to analyze integrated hydrometeorological data and

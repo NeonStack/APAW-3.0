@@ -48,12 +48,12 @@ Boolean value specifies whether or not to display metric values.
 once fetch, it will return something like this which is 5 day forecast (including current day) so forecast is actually 4 days only which is like if today is 24, then it will return 24, 25, 26, 27, 28:
 {
   "Headline": {
-    "EffectiveDate": "2025-05-04T07:00:00+08:00",
+    "EffectiveDate": "2025-04-30T07:00:00+08:00",
     "EffectiveEpochDate": 1746313200,
     "Severity": 2,
     "Text": "Thunderstorms Sunday",
     "Category": "thunderstorm",
-    "EndDate": "2025-05-04T19:00:00+08:00",
+    "EndDate": "2025-04-30T19:00:00+08:00",
     "EndEpochDate": 1746356400,
     "MobileLink": "http://www.accuweather.com/en/ph/makati-city/21-264878_1_al/daily-weather-forecast/21-264878_1_al?unit=c&lang=en-us",
     "Link": "http://www.accuweather.com/en/ph/makati-city/21-264878_1_al/daily-weather-forecast/21-264878_1_al?unit=c&lang=en-us"

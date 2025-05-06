@@ -1,6 +1,6 @@
-import { json } from '@sveltejs/kit';
 import { createClient } from '@supabase/supabase-js';
-import moment from 'moment-timezone'; // Import moment-timezone directly instead of separate imports
+import { json } from '@sveltejs/kit';
+import moment from 'moment-timezone'; // Import moment-timezone directly
 
 // Load environment variables
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -12,623 +12,540 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 // List of Metro Manila locations with their AccuWeather IDs
 const metroManilaCities = [
-  { name: 'Manila', id: '264885', district: '1st District', lat: 14.5958, lon: 120.9772 },
-  { name: 'Mandaluyong', id: '768148', district: '2nd District', lat: 14.5798, lon: 121.0326 },
-  { name: 'Marikina', id: '264874', district: '2nd District', lat: 14.6404, lon: 121.1063 },
-  { name: 'Pasig', id: '264876', district: '2nd District', lat: 14.5764, lon: 121.0813 },
-  { name: 'Quezon City', id: '264873', district: '2nd District', lat: 14.6760, lon: 121.0437 },
-  { name: 'San Juan', id: '264882', district: '2nd District', lat: 14.6017, lon: 121.0245 },
-  { name: 'Caloocan', id: '264875', district: '3rd District', lat: 14.7500, lon: 120.9797 },
-  { name: 'Malabon', id: '761333', district: '3rd District', lat: 14.7700, lon: 120.9370 },
-  { name: 'Navotas', id: '765956', district: '3rd District', lat: 14.7470, lon: 120.9170 },
-  { name: 'Valenzuela', id: '3424474', district: '3rd District', lat: 14.7011, lon: 120.9847 },
-  { name: 'Las Piñas', id: '264877', district: '4th District', lat: 14.4497, lon: 120.9833 },
-  { name: 'Makati', id: '21-264878_1_al', district: '4th District', lat: 14.5547, lon: 121.0244 },
-  { name: 'Muntinlupa', id: '264879', district: '4th District', lat: 14.3600, lon: 121.0420 },
-  { name: 'Parañaque', id: '3424484', district: '4th District', lat: 14.4889, lon: 121.0142 },
-  { name: 'Pasay', id: '2-264881_1_al', district: '4th District', lat: 14.5350, lon: 121.0030 },
-  { name: 'Pateros', id: '764136', district: '4th District', lat: 14.5560, lon: 121.0720 },
-  { name: 'Taguig', id: '759349', district: '4th District', lat: 14.5167, lon: 121.0500 }
+	{ name: 'Manila', id: '264885', district: '1st District', lat: 14.5958, lon: 120.9772 },
+	{ name: 'Mandaluyong', id: '768148', district: '2nd District', lat: 14.5798, lon: 121.0326 },
+	{ name: 'Marikina', id: '264874', district: '2nd District', lat: 14.6404, lon: 121.1063 },
+	{ name: 'Pasig', id: '264876', district: '2nd District', lat: 14.5764, lon: 121.0813 },
+	{ name: 'Quezon City', id: '264873', district: '2nd District', lat: 14.676, lon: 121.0437 },
+	{ name: 'San Juan', id: '264882', district: '2nd District', lat: 14.6017, lon: 121.0245 },
+	{ name: 'Caloocan', id: '264875', district: '3rd District', lat: 14.75, lon: 120.9797 },
+	{ name: 'Malabon', id: '761333', district: '3rd District', lat: 14.77, lon: 120.937 },
+	{ name: 'Navotas', id: '765956', district: '3rd District', lat: 14.747, lon: 120.917 },
+	{ name: 'Valenzuela', id: '3424474', district: '3rd District', lat: 14.7011, lon: 120.9847 },
+	{ name: 'Las Piñas', id: '264877', district: '4th District', lat: 14.4497, lon: 120.9833 },
+	{ name: 'Makati', id: '21-264878_1_al', district: '4th District', lat: 14.5547, lon: 121.0244 },
+	{ name: 'Muntinlupa', id: '264879', district: '4th District', lat: 14.36, lon: 121.042 },
+	{ name: 'Parañaque', id: '3424484', district: '4th District', lat: 14.4889, lon: 121.0142 },
+	{ name: 'Pasay', id: '2-264881_1_al', district: '4th District', lat: 14.535, lon: 121.003 },
+	{ name: 'Pateros', id: '764136', district: '4th District', lat: 14.556, lon: 121.072 },
+	{ name: 'Taguig', id: '759349', district: '4th District', lat: 14.5167, lon: 121.05 }
 ];
 
 // Helper function to fetch soil data from Open-Meteo API
 async function fetchSoilData(latitude, longitude) {
-  try {
-    const apiUrl = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&hourly=soil_temperature_6cm,soil_moisture_3_to_9cm&timezone=Asia%2FSingapore&forecast_days=5`;
-    
-    const response = await fetch(apiUrl);
-    if (!response.ok) {
-      throw new Error(`HTTP error: ${response.status}`);
-    }
-    
-    const data = await response.json();
-    return data;
-  } catch (error) {
-    console.error('Error fetching soil data from Open-Meteo:', error);
-    throw error;
-  }
+	try {
+		const apiUrl = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&hourly=soil_temperature_6cm,soil_moisture_3_to_9cm&timezone=Asia%2FSingapore&forecast_days=5`;
+		console.log(`Fetching soil data for ${latitude}, ${longitude} from ${apiUrl}`); // Log API call
+		const response = await fetch(apiUrl);
+		if (!response.ok) {
+			console.error(
+				`Open-Meteo API error for ${latitude}, ${longitude}: ${response.status} ${response.statusText}`
+			);
+			const errorBody = await response.text();
+			console.error('Open-Meteo Error Body:', errorBody);
+			return null; // Return null instead of throwing to allow partial success
+		}
+		const data = await response.json();
+		console.log(`Successfully fetched soil data for ${latitude}, ${longitude}`);
+		return data;
+	} catch (error) {
+		console.error(`Error fetching soil data from Open-Meteo for ${latitude}, ${longitude}:`, error);
+		return null; // Return null on fetch error
+	}
 }
 
 // Helper function to calculate daily averages from hourly data
 function calculateDailyAverages(hourlyData) {
-  const dailyAverages = {};
-  
-  // Group hourly data by date
-  const hoursByDate = {};
-  
-  for (let i = 0; i < hourlyData.hourly.time.length; i++) {
-    const dateTime = hourlyData.hourly.time[i];
-    const date = dateTime.split('T')[0]; // Extract the date part
-    
-    if (!hoursByDate[date]) {
-      hoursByDate[date] = {
-        soilTemp: [],
-        soilMoisture: []
-      };
-    }
-    
-    // Add the hourly values to the respective date's array
-    hoursByDate[date].soilTemp.push(hourlyData.hourly.soil_temperature_6cm[i]);
-    hoursByDate[date].soilMoisture.push(hourlyData.hourly.soil_moisture_3_to_9cm[i]);
-  }
-  
-  // Calculate averages for each date
-  for (const date in hoursByDate) {
-    const soilTempSum = hoursByDate[date].soilTemp.reduce((sum, temp) => sum + temp, 0);
-    const soilMoistureSum = hoursByDate[date].soilMoisture.reduce((sum, moisture) => sum + moisture, 0);
-    
-    const soilTempAvg = soilTempSum / hoursByDate[date].soilTemp.length;
-    const soilMoistureAvg = soilMoistureSum / hoursByDate[date].soilMoisture.length;
-    
-    dailyAverages[date] = {
-      avg_soil_temp_6cm_c: soilTempAvg,
-      avg_soil_moisture_3_9cm_m3m3: soilMoistureAvg
-    };
-  }
-  
-  return dailyAverages;
+	if (!hourlyData || !hourlyData.hourly || !hourlyData.hourly.time) {
+		console.warn('Cannot calculate daily soil averages: Invalid or missing hourly data.');
+		return {};
+	}
+	const dailyAverages = {};
+	const hoursByDate = {};
+
+	try {
+		for (let i = 0; i < hourlyData.hourly.time.length; i++) {
+			const dateTime = hourlyData.hourly.time[i];
+			// Robust date extraction
+			const dateMatch = dateTime.match(/^(\d{4}-\d{2}-\d{2})/);
+			if (!dateMatch) {
+				console.warn(`Could not parse date from Open-Meteo time: ${dateTime}`);
+				continue;
+			}
+			const date = dateMatch[1];
+
+			if (!hoursByDate[date]) {
+				hoursByDate[date] = { soilTemp: [], soilMoisture: [] };
+			}
+
+			// Add the hourly values, checking for null/undefined
+			const temp = hourlyData.hourly.soil_temperature_6cm?.[i];
+			const moisture = hourlyData.hourly.soil_moisture_3_to_9cm?.[i];
+
+			if (temp !== null && temp !== undefined) {
+				hoursByDate[date].soilTemp.push(temp);
+			}
+			if (moisture !== null && moisture !== undefined) {
+				hoursByDate[date].soilMoisture.push(moisture);
+			}
+		}
+
+		// Calculate averages for each date
+		for (const date in hoursByDate) {
+			const soilTempSum = hoursByDate[date].soilTemp.reduce((sum, temp) => sum + temp, 0);
+			const soilMoistureSum = hoursByDate[date].soilMoisture.reduce(
+				(sum, moisture) => sum + moisture,
+				0
+			);
+
+			// Avoid division by zero if no valid data points were found for a day
+			const soilTempCount = hoursByDate[date].soilTemp.length;
+			const soilMoistureCount = hoursByDate[date].soilMoisture.length;
+
+			const soilTempAvg = soilTempCount > 0 ? soilTempSum / soilTempCount : null;
+			const soilMoistureAvg = soilMoistureCount > 0 ? soilMoistureSum / soilMoistureCount : null;
+
+			dailyAverages[date] = {
+				avg_soil_temp_6cm_c: soilTempAvg,
+				avg_soil_moisture_3_9cm_m3m3: soilMoistureAvg
+			};
+		}
+		// *** ADDED LOGGING ***
+		console.log(
+			`Calculated soil daily averages for dates: ${Object.keys(dailyAverages).join(', ')}`
+		);
+	} catch (error) {
+		console.error('Error calculating daily soil averages:', error);
+		return {}; // Return empty object on error
+	}
+
+	return dailyAverages;
 }
 
 // POST endpoint - fetches weather data from external APIs and updates Supabase
 export async function POST({ request, url }) {
-  // Basic security check - verify request is from our own site
-  const referer = request.headers.get('referer');
-  const host = request.headers.get('host');
-  
-  // Only allow requests from our own website
-  if (!referer || !referer.includes(host)) {
-    console.warn('Potential unauthorized Weather API update attempt');
-    return json({ error: 'Unauthorized access' }, { status: 403 });
-  }
-  
-  // Extract query parameters for optimization
-  const batchSize = parseInt(url.searchParams.get('batchSize') || '0'); // 0 means all cities
-  const batchIndex = parseInt(url.searchParams.get('batchIndex') || '0');
-  const skipCleanup = url.searchParams.get('skipCleanup') === 'true';
-  const startTime = Date.now();
-  const TIMEOUT_THRESHOLD = 50000; // 50 seconds (to be safe)
-  
-  try {
-    // Use moment with the Philippines timezone
-    const today = moment().tz('Asia/Manila');
-    const fourDaysAgo = moment().tz('Asia/Manila').subtract(4, 'days');
-    
-    // Format dates for query
-    const todayStr = today.format('YYYY-MM-DD');
-    const fourDaysAgoStr = fourDaysAgo.format('YYYY-MM-DD');
-    
-    // Log detailed timezone information
-    console.log('Timezone Information:', {
-      serverUTC: moment.utc().format(),
-      serverUTCDate: moment.utc().format('YYYY-MM-DD'),
-      philippinesTime: today.format(),
-      philippinesDate: todayStr,
-      philippinesFourDaysAgo: fourDaysAgoStr,
-      momentVersion: moment.version,
-      defaultTimezone: moment.tz.guess(),
-      manuallySetTimezone: 'Asia/Manila'
-    });
-    
-    // Track overall status
-    const results = {
-      successful: [],
-      failed: [],
-      totalProcessed: 0,
-      totalInserted: 0,
-      totalUpdated: 0,
-      citiesToProcess: [],
-      allCitiesCount: metroManilaCities.length,
-      skipCleanup,
-      timeElapsed: 0
-    };
+	// Basic security check - verify request is from our own site
+	const referer = request.headers.get('referer');
+	const host = request.headers.get('host');
 
-    // Determine which cities to process based on batch parameters
-    let citiesToProcess = [...metroManilaCities];
-    if (batchSize > 0 && batchSize < metroManilaCities.length) {
-      const startIndex = batchIndex * batchSize;
-      citiesToProcess = metroManilaCities.slice(startIndex, startIndex + batchSize);
-    }
-    results.citiesToProcess = citiesToProcess.map(c => c.name);
+	// Only allow requests from our own website
+	if (!referer || !referer.includes(host)) {
+		console.warn('Potential unauthorized Weather API update attempt');
+		return json({ error: 'Unauthorized access' }, { status: 403 });
+	}
 
-    // Process cities in parallel
-    const cityProcessingPromises = citiesToProcess.map(async (city) => {
-      try {
-        // Add explicit request logging
-        console.log(`Starting AccuWeather API request for ${city.name}`);
-        
-        // Check if we're approaching the timeout limit
-        if (Date.now() - startTime > TIMEOUT_THRESHOLD) {
-          throw new Error("Approaching timeout limit - operation aborted");
-        }
-        
-        // Fetch 5-day forecast from AccuWeather
-        const apiUrl = `https://dataservice.accuweather.com/forecasts/v1/daily/5day/${city.id}?apikey=${accuWeatherApiKey}&language=en-us&details=true&metric=true`;
-        
-        console.log(`API URL for ${city.name}: ${apiUrl.replace(accuWeatherApiKey, 'API_KEY_HIDDEN')}`);
-        
-        let response;
-        try {
-          response = await fetch(apiUrl);
-          console.log(`AccuWeather API status for ${city.name}: ${response.status}`);
-        } catch (fetchError) {
-          console.error(`Network error fetching data for ${city.name}:`, fetchError);
-          
-          // Ensure cleanup still happens even on fetch error
-          if (!skipCleanup) {
-            await performDatabaseCleanup(city, fourDaysAgoStr);
-          }
-          
-          return {
-            status: 'failed',
-            city: city.name,
-            error: `Fetch error: ${fetchError.message}`
-          };
-        }
-        
-        if (!response.ok) {
-          console.error(`HTTP error from AccuWeather for ${city.name}: ${response.status}`);
-          
-          // Try to get error details if possible
-          let errorDetails = '';
-          try {
-            const errorData = await response.json();
-            errorDetails = JSON.stringify(errorData);
-            console.error(`AccuWeather error response for ${city.name}:`, errorData);
-          } catch (e) {
-            // Couldn't parse error as JSON
-            errorDetails = await response.text();
-            console.error(`AccuWeather error text for ${city.name}:`, errorDetails);
-          }
-          
-          // Ensure cleanup still happens on HTTP error
-          if (!skipCleanup) {
-            await performDatabaseCleanup(city, fourDaysAgoStr);
-          }
-          
-          return {
-            status: 'failed',
-            city: city.name, 
-            error: `HTTP error: ${response.status} - ${errorDetails}`
-          };
-        }
-        
-        let weatherData;
-        try {
-          weatherData = await response.json();
-          console.log(`Successfully parsed AccuWeather data for ${city.name}`);
-        } catch (jsonError) {
-          console.error(`JSON parse error for ${city.name}:`, jsonError);
-          
-          // Ensure cleanup still happens on parse error
-          if (!skipCleanup) {
-            await performDatabaseCleanup(city, fourDaysAgoStr);
-          }
-          
-          return {
-            status: 'failed',
-            city: city.name,
-            error: `JSON parse error: ${jsonError.message}`
-          };
-        }
-        
-        // Check for AccuWeather API error responses
-        if (weatherData.Code && weatherData.Message) {
-          console.error(`AccuWeather API error for ${city.name}:`, weatherData);
-          
-          // Even if AccuWeather fails, still perform cleanup
-          if (!skipCleanup) {
-            await performDatabaseCleanup(city, fourDaysAgoStr);
-          }
-          
-          return {
-            status: 'failed',
-            city: city.name,
-            error: `AccuWeather API error: ${weatherData.Message}`,
-            apiLimitExceeded: weatherData.Message.includes("allowed number of requests has been exceeded")
-          };
-        }
-        
-        // Validate response structure before proceeding
-        if (!weatherData.DailyForecasts || !Array.isArray(weatherData.DailyForecasts) || weatherData.DailyForecasts.length === 0) {
-          console.error(`Invalid AccuWeather data format for ${city.name}:`, weatherData);
-          
-          // Even if data is invalid, still perform cleanup
-          if (!skipCleanup) {
-            await performDatabaseCleanup(city, fourDaysAgoStr);
-          }
-          
-          return {
-            status: 'failed',
-            city: city.name,
-            error: 'Invalid AccuWeather data format - missing DailyForecasts'
-          };
-        }
-        
-        // Enhanced logging for AccuWeather data
-        console.log(`AccuWeather response for ${city.name}:`, {
-          hasHeadline: !!weatherData.Headline,
-          headlineEffectiveDate: weatherData.Headline?.EffectiveDate || 'N/A',
-          dailyForecastsCount: weatherData.DailyForecasts?.length || 0,
-          firstForecastDate: weatherData.DailyForecasts?.[0]?.Date || 'N/A',
-          currentTime: moment().tz('Asia/Manila').format()
-        });
-        
-        // Log the headline data if available
-        if (weatherData.Headline) {
-          console.log(`AccuWeather Headline for ${city.name}:`, {
-            EffectiveDate: weatherData.Headline.EffectiveDate,
-            EndDate: weatherData.Headline.EndDate,
-            Text: weatherData.Headline.Text,
-            Category: weatherData.Headline.Category
-          });
-        } else {
-          console.log(`No headline data for ${city.name} - Full response structure:`, 
-            Object.keys(weatherData)
-          );
-        }
-        
-        // Fetch soil data from Open-Meteo
-        let soilDailyAverages = {};
-        try {
-          const soilData = await fetchSoilData(city.lat, city.lon);
-          soilDailyAverages = calculateDailyAverages(soilData);
-        } catch (soilError) {
-          console.warn(`Failed to fetch soil data for ${city.name}:`, soilError);
-          // Continue without soil data if it fails
-        }
-        
-        // Process forecasts using moment for date handling
-        let forecasts = weatherData.DailyForecasts.map(forecast => {
-          // Use moment to parse and format the forecast date
-          const forecastDate = moment(forecast.Date);
-          const forecastDateStr = forecastDate.format('YYYY-MM-DD');
-          
-          // Get soil data for this date if available
-          const soilData = soilDailyAverages[forecastDateStr] || {
-            avg_soil_temp_6cm_c: null,
-            avg_soil_moisture_3_9cm_m3m3: null
-          };
-          
-          // All the same processing as before for each forecast
-          // Calculate average values for combined Day/Night data
-          const avgTemp = (forecast.Temperature.Minimum.Value + forecast.Temperature.Maximum.Value) / 2;
-          const avgRealFeelTemp = (forecast.RealFeelTemperature.Minimum.Value + forecast.RealFeelTemperature.Maximum.Value) / 2;
-          const avgRealFeelShadeTemp = (forecast.RealFeelTemperatureShade.Minimum.Value + forecast.RealFeelTemperatureShade.Maximum.Value) / 2;
-          
-          // Calculate total precipitation values
-          const totalLiquid = (forecast.Day.TotalLiquid?.Value || 0) + (forecast.Night.TotalLiquid?.Value || 0);
-          const totalRain = (forecast.Day.Rain?.Value || 0) + (forecast.Night.Rain?.Value || 0);
-          const totalIce = (forecast.Day.Ice?.Value || 0) + (forecast.Night.Ice?.Value || 0);
-          const totalHoursPrecipitation = (forecast.Day.HoursOfPrecipitation || 0) + (forecast.Night.HoursOfPrecipitation || 0);
-          const totalHoursRain = (forecast.Day.HoursOfRain || 0) + (forecast.Night.HoursOfRain || 0);
-          const totalHoursIce = (forecast.Day.HoursOfIce || 0) + (forecast.Night.HoursOfIce || 0);
-          
-          // Calculate wind speed average
-          const avgWindSpeed = ((forecast.Day.Wind?.Speed?.Value || 0) + (forecast.Night.Wind?.Speed?.Value || 0)) / 2;
-          
-          // Get max wind gust between day and night
-          const dayWindGust = forecast.Day.WindGust?.Speed?.Value || 0;
-          const nightWindGust = forecast.Night.WindGust?.Speed?.Value || 0;
-          const maxWindGust = Math.max(dayWindGust, nightWindGust);
-          
-          // Calculate min, max and avg humidity
-          const minHumidity = forecast.Day.RelativeHumidity?.Minimum || forecast.Night.RelativeHumidity?.Minimum || 0;
-          const maxHumidity = forecast.Day.RelativeHumidity?.Maximum || forecast.Night.RelativeHumidity?.Maximum || 0;
-          const avgHumidity = ((forecast.Day.RelativeHumidity?.Average || 0) + (forecast.Night.RelativeHumidity?.Average || 0)) / 2;
-          
-          // Calculate average cloud cover
-          const avgCloudCover = ((forecast.Day.CloudCover || 0) + (forecast.Night.CloudCover || 0)) / 2;
-          
-          // Total evapotranspiration
-          const totalEvapotranspiration = (forecast.Day.Evapotranspiration?.Value || 0) + (forecast.Night.Evapotranspiration?.Value || 0);
+	// Extract query parameters for optimization
+	const batchSize = parseInt(url.searchParams.get('batchSize') || '0'); // 0 means all cities
+	const batchIndex = parseInt(url.searchParams.get('batchIndex') || '0');
+	const skipCleanup = url.searchParams.get('skipCleanup') === 'true';
+	const startTime = Date.now();
+	const TIMEOUT_THRESHOLD = 50000; // 50 seconds (to be safe)
 
-          // Process wetbulb and WBGT data
-          const minWetBulb = forecast.Day.WetBulbTemperature?.Minimum?.Value || forecast.Night.WetBulbTemperature?.Minimum?.Value || 0;
-          const maxWetBulb = forecast.Day.WetBulbTemperature?.Maximum?.Value || forecast.Night.WetBulbTemperature?.Maximum?.Value || 0;
-          const avgWetBulb = ((forecast.Day.WetBulbTemperature?.Average?.Value || 0) + (forecast.Night.WetBulbTemperature?.Average?.Value || 0)) / 2;
-          
-          const minWBGT = forecast.Day.WetBulbGlobeTemperature?.Minimum?.Value || forecast.Night.WetBulbGlobeTemperature?.Minimum?.Value || 0;
-          const maxWBGT = forecast.Day.WetBulbGlobeTemperature?.Maximum?.Value || forecast.Night.WetBulbGlobeTemperature?.Maximum?.Value || 0;
-          const avgWBGT = ((forecast.Day.WetBulbGlobeTemperature?.Average?.Value || 0) + (forecast.Night.WetBulbGlobeTemperature?.Average?.Value || 0)) / 2;
-          
-          // Headline data (if available)
-          let headlineData = {};
-          if (weatherData.Headline) {
-            headlineData = {
-              headline_effective_date: weatherData.Headline.EffectiveDate,
-              headline_end_date: weatherData.Headline.EndDate,
-              headline_severity: weatherData.Headline.Severity,
-              headline_text: weatherData.Headline.Text,
-              headline_category: weatherData.Headline.Category
-            };
-          }
-          
-          return {
-            // City metadata
-            city_id: city.id,
-            city_name: city.name,
-            fetched_at: new Date().toISOString(),
-            
-            // Date information
-            forecast_date: forecastDateStr,
-            epoch_date: forecast.EpochDate,
-            sunrise_time: forecast.Sun?.Rise,
-            sunset_time: forecast.Sun?.Set,
-            moon_phase: forecast.Moon?.Phase,
-            
-            // Temperature data
-            min_temp_c: forecast.Temperature.Minimum.Value,
-            max_temp_c: forecast.Temperature.Maximum.Value,
-            avg_temp_c: avgTemp,
-            min_realfeel_temp_c: forecast.RealFeelTemperature.Minimum.Value,
-            max_realfeel_temp_c: forecast.RealFeelTemperature.Maximum.Value,
-            avg_realfeel_temp_c: avgRealFeelTemp,
-            min_realfeel_temp_shade_c: forecast.RealFeelTemperatureShade.Minimum.Value,
-            max_realfeel_temp_shade_c: forecast.RealFeelTemperatureShade.Maximum.Value,
-            avg_realfeel_temp_shade_c: avgRealFeelShadeTemp,
-            
-            // Precipitation data
-            total_liquid_mm: totalLiquid,
-            total_rain_mm: totalRain,
-            total_ice_mm: totalIce,
-            total_hours_precipitation: totalHoursPrecipitation,
-            total_hours_rain: totalHoursRain,
-            total_hours_ice: totalHoursIce,
-            
-            // Probability columns
-            day_precipitation_probability: forecast.Day.PrecipitationProbability,
-            night_precipitation_probability: forecast.Night.PrecipitationProbability,
-            day_thunderstorm_probability: forecast.Day.ThunderstormProbability,
-            night_thunderstorm_probability: forecast.Night.ThunderstormProbability,
-            day_rain_probability: forecast.Day.RainProbability,
-            night_rain_probability: forecast.Night.RainProbability,
-            day_ice_probability: forecast.Day.IceProbability,
-            night_ice_probability: forecast.Night.IceProbability,
-            
-            // Wind data
-            avg_wind_speed_kmh: avgWindSpeed,
-            max_wind_gust_kmh: maxWindGust,
-            day_wind_direction_deg: forecast.Day.Wind?.Direction?.Degrees,
-            day_wind_direction_loc: forecast.Day.Wind?.Direction?.Localized,
-            night_wind_direction_deg: forecast.Night.Wind?.Direction?.Degrees,
-            night_wind_direction_loc: forecast.Night.Wind?.Direction?.Localized,
-            
-            // Humidity and atmosphere
-            min_relative_humidity_percent: minHumidity,
-            max_relative_humidity_percent: maxHumidity,
-            avg_relative_humidity_percent: avgHumidity,
-            avg_cloud_cover_percent: avgCloudCover,
-            total_evapotranspiration_mm: totalEvapotranspiration,
-            min_wetbulb_temp_c: minWetBulb,
-            max_wetbulb_temp_c: maxWetBulb,
-            avg_wetbulb_temp_c: avgWetBulb,
-            min_wbgt_c: minWBGT,
-            max_wbgt_c: maxWBGT,
-            avg_wbgt_c: avgWBGT,
-            
-            // Soil data from Open-Meteo
-            avg_soil_moisture_3_9cm_m3m3: soilData.avg_soil_moisture_3_9cm_m3m3,
-            avg_soil_temp_6cm_c: soilData.avg_soil_temp_6cm_c,
-            
-            // Descriptive data
-            day_icon: forecast.Day.Icon,
-            day_icon_phrase: forecast.Day.IconPhrase,
-            day_short_phrase: forecast.Day.ShortPhrase,
-            day_long_phrase: forecast.Day.LongPhrase,
-            day_has_precipitation: forecast.Day.HasPrecipitation,
-            day_precipitation_type: forecast.Day.PrecipitationType,
-            day_precipitation_intensity: forecast.Day.PrecipitationIntensity,
-            night_icon: forecast.Night.Icon,
-            night_icon_phrase: forecast.Night.IconPhrase,
-            night_short_phrase: forecast.Night.ShortPhrase,
-            night_long_phrase: forecast.Night.LongPhrase,
-            night_has_precipitation: forecast.Night.HasPrecipitation,
-            
-            // Additional data
-            hours_of_sun: forecast.HoursOfSun,
-            link: forecast.Link,
-            
-            // Headlines
-            ...headlineData
-          };
-        });
-        
-        // OPTIMIZATION: Get all existing forecasts for this city in one query
-        const { data: existingForecasts, error: checkError } = await supabase
-          .from('apaw_weather_forecasts')
-          .select('id, forecast_date')
-          .eq('city_id', city.id)
-          .gte('forecast_date', fourDaysAgoStr);
-          
-        if (checkError) {
-          return {
-            status: 'failed',
-            city: city.name,
-            error: 'Database check error'
-          };
-        }
-        
-        // Create lookup table for faster matching
-        const existingForecastMap = {};
-        existingForecasts.forEach(ef => {
-          existingForecastMap[ef.forecast_date] = ef.id;
-        });
-        
-        // Separate forecasts into those to update and those to insert
-        const forecastsToUpdate = [];
-        const forecastsToInsert = [];
-        
-        forecasts.forEach(forecast => {
-          if (existingForecastMap[forecast.forecast_date]) {
-            forecastsToUpdate.push({
-              ...forecast,
-              id: existingForecastMap[forecast.forecast_date]
-            });
-          } else {
-            forecastsToInsert.push(forecast);
-          }
-        });
-        
-        // Perform bulk operations
-        let updateCount = 0;
-        let insertCount = 0;
-        
-        // Update existing forecasts
-        if (forecastsToUpdate.length > 0) {
-          const { error: updateError, count } = await supabase
-            .from('apaw_weather_forecasts')
-            .upsert(forecastsToUpdate);
-            
-          if (updateError) {
-            console.error(`Error updating forecasts for ${city.name}:`, updateError);
-          } else {
-            updateCount = count || forecastsToUpdate.length;
-          }
-        }
-        
-        // Insert new forecasts
-        if (forecastsToInsert.length > 0) {
-          const { error: insertError, count } = await supabase
-            .from('apaw_weather_forecasts')
-            .insert(forecastsToInsert);
-            
-          if (insertError) {
-            console.error(`Error inserting forecasts for ${city.name}:`, insertError);
-          } else {
-            insertCount = count || forecastsToInsert.length;
-          }
-        }
-        
-        // Perform cleanup only if not explicitly skipped
-        let deleteCount = 0;
-        if (!skipCleanup) {
-          try {
-            const cleanupResult = await performDatabaseCleanup(city, fourDaysAgoStr);
-            deleteCount = cleanupResult.success ? (cleanupResult.count || 0) : 0;
-          } catch (cleanupError) {
-            console.error(`Cleanup error for ${city.name}:`, cleanupError);
-          }
-        }
-        
-        return {
-          status: 'success',
-          city: city.name,
-          processed: forecastsToUpdate.length + forecastsToInsert.length,
-          updated: updateCount,
-          inserted: insertCount,
-          deleted: deleteCount
-        };
-        
-      } catch (cityError) {
-        // Critical error logging
-        console.error(`CRITICAL ERROR processing city ${city.name}:`, cityError);
-        console.error(`Stack trace for ${city.name} error:`, cityError.stack);
-        
-        // Always attempt cleanup even after errors
-        if (!skipCleanup) {
-          try {
-            console.log(`Attempting cleanup after error for ${city.name}`);
-            await performDatabaseCleanup(city, fourDaysAgoStr);
-          } catch (cleanupError) {
-            console.error(`Failed to perform cleanup after error for ${city.name}:`, cleanupError);
-          }
-        }
-        
-        return {
-          status: 'failed',
-          city: city.name,
-          error: cityError.message
-        };
-      }
-    });
-    
-    // Wait for all cities to be processed
-    const cityResults = await Promise.all(cityProcessingPromises);
-    
-    // Process results
-    cityResults.forEach(result => {
-      if (result.status === 'success') {
-        results.successful.push(result.city);
-        results.totalProcessed += result.processed;
-        results.totalUpdated += result.updated;
-        results.totalInserted += result.inserted;
-      } else {
-        results.failed.push({
-          city: result.city,
-          error: result.error
-        });
-      }
-    });
-    
-    results.timeElapsed = Date.now() - startTime;
-    
-    return json({
-      success: true,
-      message: 'Weather data processing completed',
-      results
-    });
-    
-  } catch (error) {
-    const timeElapsed = Date.now() - startTime;
-    console.error('Error in weather data fetch:', error);
-    return json({
-      success: false,
-      error: 'Failed to fetch and process weather data',
-      message: error.message,
-      timeElapsed
-    }, { status: 500 });
-  }
+	try {
+		// Use moment with the Philippines timezone
+		const today = moment().tz('Asia/Manila');
+		const fourDaysAgo = moment().tz('Asia/Manila').subtract(4, 'days');
+
+		// Format dates for query
+		const todayStr = today.format('YYYY-MM-DD');
+		const fourDaysAgoStr = fourDaysAgo.format('YYYY-MM-DD');
+
+		// Log detailed timezone information
+		console.log('Timezone Information:', {
+			serverUTC: moment.utc().format(),
+			serverUTCDate: moment.utc().format('YYYY-MM-DD'),
+			philippinesTime: today.format(),
+			philippinesDate: todayStr,
+			philippinesFourDaysAgo: fourDaysAgoStr,
+			momentVersion: moment.version,
+			defaultTimezone: moment.tz.guess(),
+			manuallySetTimezone: 'Asia/Manila'
+		});
+
+		// Track overall status
+		const results = {
+			successful: [],
+			failed: [],
+			totalProcessed: 0,
+			totalInserted: 0,
+			totalUpdated: 0,
+			citiesToProcess: [],
+			allCitiesCount: metroManilaCities.length,
+			skipCleanup,
+			timeElapsed: 0
+		};
+
+		// Determine which cities to process based on batch parameters
+		let citiesToProcess = [...metroManilaCities];
+		if (batchSize > 0 && batchSize < metroManilaCities.length) {
+			const start = batchIndex * batchSize;
+			const end = start + batchSize;
+			citiesToProcess = metroManilaCities.slice(start, end);
+			console.log(
+				`Processing batch ${batchIndex + 1}: Cities ${start + 1} to ${Math.min(end, metroManilaCities.length)}`
+			);
+		} else {
+			console.log('Processing all cities.');
+		}
+		results.citiesToProcess = citiesToProcess.map((c) => c.name);
+
+		// Process cities in parallel
+		const cityProcessingPromises = citiesToProcess.map(async (city) => {
+			const cityStartTime = Date.now();
+			let cityInsertedCount = 0;
+			let cityUpdatedCount = 0;
+
+			// Check timeout before processing each city
+			if (Date.now() - startTime > TIMEOUT_THRESHOLD) {
+				console.warn(`TIMEOUT reached before processing ${city.name}. Skipping.`);
+				results.failed.push({ city: city.name, error: 'Timeout before processing' });
+				return;
+			}
+
+			try {
+				console.log(`--- Processing ${city.name} (ID: ${city.id}) ---`);
+
+				// 1. Fetch AccuWeather Data
+				const accuWeatherUrl = `http://dataservice.accuweather.com/forecasts/v1/daily/5day/${city.id}?apikey=${accuWeatherApiKey}&language=en-us&details=true&metric=true`;
+				const weatherResponse = await fetch(accuWeatherUrl);
+				if (!weatherResponse.ok) {
+					throw new Error(
+						`AccuWeather API error: ${weatherResponse.status} ${weatherResponse.statusText}`
+					);
+				}
+				const weatherData = await weatherResponse.json();
+
+				// *** ADDED LOGGING ***
+				if (weatherData && weatherData.DailyForecasts) {
+					const forecastDates = weatherData.DailyForecasts.map((f) =>
+						moment(f.Date).tz('Asia/Manila').format('YYYY-MM-DD')
+					);
+					console.log(
+						`AccuWeather for ${city.name}: Received ${weatherData.DailyForecasts.length} forecasts for dates: ${forecastDates.join(', ')}`
+					);
+				} else {
+					console.warn(`AccuWeather for ${city.name}: No DailyForecasts array found in response.`);
+					results.failed.push({
+						city: city.name,
+						error: 'Missing DailyForecasts from AccuWeather'
+					});
+					return; // Skip this city if no forecasts
+				}
+
+				// 2. Fetch Soil Data
+				const soilRawData = await fetchSoilData(city.lat, city.lon);
+				const soilDailyAverages = calculateDailyAverages(soilRawData); // Now handles potential null data
+
+				// 3. Process Forecasts and Prepare for DB
+				const forecastsToInsert = [];
+				const forecastsToUpdate = [];
+				const forecastDatesToCheck = [];
+
+				// *** ADDED LOGGING ***
+				console.log(
+					`Processing ${weatherData.DailyForecasts.length} daily forecasts for ${city.name}...`
+				);
+
+				let forecasts = weatherData.DailyForecasts.map((forecast) => {
+					try {
+						const forecastDate = moment(forecast.Date).tz('Asia/Manila');
+						const forecastDateStr = forecastDate.format('YYYY-MM-DD');
+						// *** ADDED LOGGING ***
+						console.log(` -> [${city.name}] Processing forecast for date: ${forecastDateStr}`);
+
+						forecastDatesToCheck.push(forecastDateStr); // Add date for DB check
+
+						const soilDataForDay = soilDailyAverages[forecastDateStr] || {}; // Use empty object if no soil data for the day
+
+						// Helper to safely access nested properties
+						const get = (obj, path, defaultValue = null) =>
+							path
+								.split('.')
+								.reduce(
+									(o, k) => (o && o[k] !== undefined && o[k] !== null ? o[k] : defaultValue),
+									obj
+								);
+
+						// Map AccuWeather data to Supabase columns
+						return {
+							city_id: city.id,
+							city_name: city.name,
+							forecast_date: forecastDateStr,
+							epoch_date: get(forecast, 'EpochDate'),
+							sunrise_time: get(forecast, 'Sun.Rise')
+								? moment(get(forecast, 'Sun.Rise')).toISOString()
+								: null,
+							sunset_time: get(forecast, 'Sun.Set')
+								? moment(get(forecast, 'Sun.Set')).toISOString()
+								: null,
+							moon_phase: get(forecast, 'Moon.Phase'),
+
+							// Temperatures
+							min_temp_c: get(forecast, 'Temperature.Minimum.Value'),
+							max_temp_c: get(forecast, 'Temperature.Maximum.Value'),
+							avg_temp_c:
+								(get(forecast, 'Temperature.Minimum.Value') +
+									get(forecast, 'Temperature.Maximum.Value')) /
+								2,
+							min_realfeel_temp_c: get(forecast, 'RealFeelTemperature.Minimum.Value'),
+							max_realfeel_temp_c: get(forecast, 'RealFeelTemperature.Maximum.Value'),
+							avg_realfeel_temp_c:
+								(get(forecast, 'RealFeelTemperature.Minimum.Value') +
+									get(forecast, 'RealFeelTemperature.Maximum.Value')) /
+								2, // Simplified avg
+							min_realfeel_temp_shade_c: get(forecast, 'RealFeelTemperatureShade.Minimum.Value'),
+							max_realfeel_temp_shade_c: get(forecast, 'RealFeelTemperatureShade.Maximum.Value'),
+							avg_realfeel_temp_shade_c:
+								(get(forecast, 'RealFeelTemperatureShade.Minimum.Value') +
+									get(forecast, 'RealFeelTemperatureShade.Maximum.Value')) /
+								2, // Simplified avg
+
+							// Precipitation (Sum Day/Night)
+							total_liquid_mm:
+								(get(forecast, 'Day.TotalLiquid.Value', 0) ?? 0) +
+								(get(forecast, 'Night.TotalLiquid.Value', 0) ?? 0),
+							total_rain_mm:
+								(get(forecast, 'Day.Rain.Value', 0) ?? 0) +
+								(get(forecast, 'Night.Rain.Value', 0) ?? 0),
+							total_ice_mm:
+								(get(forecast, 'Day.Ice.Value', 0) ?? 0) +
+								(get(forecast, 'Night.Ice.Value', 0) ?? 0),
+							total_hours_precipitation:
+								(get(forecast, 'Day.HoursOfPrecipitation', 0) ?? 0) +
+								(get(forecast, 'Night.HoursOfPrecipitation', 0) ?? 0),
+							total_hours_rain:
+								(get(forecast, 'Day.HoursOfRain', 0) ?? 0) +
+								(get(forecast, 'Night.HoursOfRain', 0) ?? 0),
+							total_hours_ice:
+								(get(forecast, 'Day.HoursOfIce', 0) ?? 0) +
+								(get(forecast, 'Night.HoursOfIce', 0) ?? 0),
+
+							// Probabilities (Day/Night separate)
+							day_precipitation_probability: get(forecast, 'Day.PrecipitationProbability'),
+							night_precipitation_probability: get(forecast, 'Night.PrecipitationProbability'),
+							day_thunderstorm_probability: get(forecast, 'Day.ThunderstormProbability'),
+							night_thunderstorm_probability: get(forecast, 'Night.ThunderstormProbability'),
+							day_rain_probability: get(forecast, 'Day.RainProbability'),
+							night_rain_probability: get(forecast, 'Night.RainProbability'),
+							day_ice_probability: get(forecast, 'Day.IceProbability'),
+							night_ice_probability: get(forecast, 'Night.IceProbability'),
+
+							// Wind (Average Speed, Max Gust, Day/Night Direction)
+							avg_wind_speed_kmh:
+								((get(forecast, 'Day.Wind.Speed.Value', 0) ?? 0) +
+									(get(forecast, 'Night.Wind.Speed.Value', 0) ?? 0)) /
+								2,
+							max_wind_gust_kmh: Math.max(
+								get(forecast, 'Day.WindGust.Speed.Value', 0) ?? 0,
+								get(forecast, 'Night.WindGust.Speed.Value', 0) ?? 0
+							),
+							day_wind_direction_deg: get(forecast, 'Day.Wind.Direction.Degrees'),
+							day_wind_direction_loc: get(forecast, 'Day.Wind.Direction.Localized'),
+							night_wind_direction_deg: get(forecast, 'Night.Wind.Direction.Degrees'),
+							night_wind_direction_loc: get(forecast, 'Night.Wind.Direction.Localized'),
+
+							// Humidity & Atmospheric (Min/Max/Avg RH, Avg Cloud, Total Evapo, Min/Max/Avg WetBulb)
+							min_relative_humidity_percent: Math.min(
+								get(forecast, 'Day.RelativeHumidity.Minimum', 101) ?? 101,
+								get(forecast, 'Night.RelativeHumidity.Minimum', 101) ?? 101
+							),
+							max_relative_humidity_percent: Math.max(
+								get(forecast, 'Day.RelativeHumidity.Maximum', -1) ?? -1,
+								get(forecast, 'Night.RelativeHumidity.Maximum', -1) ?? -1
+							),
+							avg_relative_humidity_percent:
+								((get(forecast, 'Day.RelativeHumidity.Average', 0) ?? 0) +
+									(get(forecast, 'Night.RelativeHumidity.Average', 0) ?? 0)) /
+								2,
+							avg_cloud_cover_percent:
+								((get(forecast, 'Day.CloudCover', 0) ?? 0) +
+									(get(forecast, 'Night.CloudCover', 0) ?? 0)) /
+								2,
+							total_evapotranspiration_mm:
+								(get(forecast, 'Day.Evapotranspiration.Value', 0) ?? 0) +
+								(get(forecast, 'Night.Evapotranspiration.Value', 0) ?? 0),
+							min_wetbulb_temp_c: Math.min(
+								get(forecast, 'Day.WetBulbTemperature.Minimum.Value', 999) ?? 999,
+								get(forecast, 'Night.WetBulbTemperature.Minimum.Value', 999) ?? 999
+							),
+							max_wetbulb_temp_c: Math.max(
+								get(forecast, 'Day.WetBulbTemperature.Maximum.Value', -999) ?? -999,
+								get(forecast, 'Night.WetBulbTemperature.Maximum.Value', -999) ?? -999
+							),
+							avg_wetbulb_temp_c:
+								((get(forecast, 'Day.WetBulbTemperature.Average.Value', 0) ?? 0) +
+									(get(forecast, 'Night.WetBulbTemperature.Average.Value', 0) ?? 0)) /
+								2,
+
+							// Soil Data (from Open-Meteo)
+							avg_soil_temp_6cm_c: soilDataForDay.avg_soil_temp_6cm_c,
+							avg_soil_moisture_3_9cm_m3m3: soilDataForDay.avg_soil_moisture_3_9cm_m3m3,
+
+							// Meta
+							fetched_at: new Date().toISOString() // Record when this specific processing happened
+						};
+					} catch (mapError) {
+						// *** ADDED LOGGING ***
+						const errorDate =
+							forecast && forecast.Date
+								? moment(forecast.Date).tz('Asia/Manila').format('YYYY-MM-DD')
+								: 'unknown date';
+						console.error(
+							`Error mapping forecast data for ${city.name} on ${errorDate}:`,
+							mapError
+						);
+						return null; // Return null if mapping fails for a specific day
+					}
+				}).filter((f) => f !== null); // Filter out any nulls caused by mapping errors
+
+				// *** ADDED LOGGING ***
+				console.log(`Successfully mapped ${forecasts.length} forecasts for ${city.name}.`);
+				if (forecasts.length !== weatherData.DailyForecasts.length) {
+					console.warn(
+						`[${city.name}] Mismatch: Received ${weatherData.DailyForecasts.length} forecasts, but only mapped ${forecasts.length}. Check mapping errors above.`
+					);
+				}
+
+				// 4. Check Existing Records in Supabase
+				// *** ADDED LOGGING ***
+				console.log(
+					`Checking Supabase for existing records for ${city.name} on dates: ${forecastDatesToCheck.join(', ')}`
+				);
+				const { data: existingForecasts, error: selectError } = await supabase
+					.from('apaw_weather_forecasts')
+					.select('id, forecast_date') // Select id and date
+					.eq('city_id', city.id)
+					.in('forecast_date', forecastDatesToCheck);
+
+				if (selectError) {
+					console.error(`Supabase select error for ${city.name}:`, selectError);
+					throw new Error(`Supabase select error: ${selectError.message}`);
+				}
+
+				const existingDates = new Map(existingForecasts.map((f) => [f.forecast_date, f.id]));
+				// *** ADDED LOGGING ***
+				console.log(
+					`Found ${existingDates.size} existing records for ${city.name} for the checked dates.`
+				);
+
+				// 5. Segregate forecasts for insert or update
+				forecasts.forEach((forecast) => {
+					const existingId = existingDates.get(forecast.forecast_date);
+					if (existingId) {
+						// *** ADDED LOGGING ***
+						console.log(
+							` -> [${city.name}] Preparing UPDATE for date: ${forecast.forecast_date} (ID: ${existingId})`
+						);
+						forecastsToUpdate.push({ ...forecast, id: existingId }); // Add existing ID for update
+					} else {
+						// *** ADDED LOGGING ***
+						console.log(` -> [${city.name}] Preparing INSERT for date: ${forecast.forecast_date}`);
+						forecastsToInsert.push(forecast);
+					}
+				});
+
+				// 6. Perform Database Operations (Update/Insert)
+				if (forecastsToUpdate.length > 0) {
+					// *** ADDED LOGGING ***
+					console.log(
+						`Attempting to UPSERT ${forecastsToUpdate.length} records for ${city.name}...`
+					);
+					const { error: upsertError } = await supabase
+						.from('apaw_weather_forecasts')
+						.upsert(forecastsToUpdate, { onConflict: 'city_id, forecast_date' }); // Use upsert for simplicity, matching on city_id and date
+
+					if (upsertError) {
+						console.error(`Supabase upsert error for ${city.name}:`, upsertError);
+						// Decide if this should be a fatal error for the city or just logged
+						// throw new Error(`Supabase upsert error: ${upsertError.message}`);
+					} else {
+						cityUpdatedCount = forecastsToUpdate.length;
+						console.log(`Successfully UPSERTED ${cityUpdatedCount} records for ${city.name}.`);
+					}
+				}
+
+				if (forecastsToInsert.length > 0) {
+					// *** ADDED LOGGING ***
+					console.log(
+						`Attempting to INSERT ${forecastsToInsert.length} records for ${city.name}...`
+					);
+					const { error: insertError } = await supabase
+						.from('apaw_weather_forecasts')
+						.insert(forecastsToInsert);
+
+					if (insertError) {
+						console.error(`Supabase insert error for ${city.name}:`, insertError);
+						// Decide if this should be a fatal error for the city or just logged
+						// throw new Error(`Supabase insert error: ${insertError.message}`);
+					} else {
+						cityInsertedCount = forecastsToInsert.length;
+						console.log(`Successfully INSERTED ${cityInsertedCount} records for ${city.name}.`);
+					}
+				}
+
+				// 7. Perform Cleanup (Optional)
+				if (!skipCleanup) {
+					await performDatabaseCleanup(city, fourDaysAgoStr);
+				} else {
+					console.log(`Skipping database cleanup for ${city.name}.`);
+				}
+
+				// Record success for this city
+				results.successful.push(city.name);
+				results.totalInserted += cityInsertedCount;
+				results.totalUpdated += cityUpdatedCount; // Assuming upsert counts as update
+				results.totalProcessed++;
+				console.log(`--- Finished processing ${city.name} in ${Date.now() - cityStartTime}ms ---`);
+			} catch (cityError) {
+				console.error(`!!! Error processing ${city.name}:`, cityError);
+				results.failed.push({ city: city.name, error: cityError.message });
+			}
+		});
+
+		// Wait for all city processing to complete
+		await Promise.all(cityProcessingPromises);
+
+		// Final results
+		results.timeElapsed = (Date.now() - startTime) / 1000; // In seconds
+		console.log('--- Weather Update Summary ---');
+		console.log(`Total time: ${results.timeElapsed}s`);
+		console.log(`Processed: ${results.totalProcessed} cities`);
+		console.log(`Successful: ${results.successful.join(', ') || 'None'}`);
+		console.log(
+			`Failed: ${results.failed.map((f) => `${f.city} (${f.error})`).join(', ') || 'None'}`
+		);
+		console.log(`Total Records Inserted: ${results.totalInserted}`);
+		console.log(`Total Records Updated/Upserted: ${results.totalUpdated}`);
+		console.log('-----------------------------');
+
+		return json(results);
+	} catch (error) {
+		console.error('!!! Unhandled error in POST /api/weather/update:', error);
+		return json({ error: 'Internal Server Error', details: error.message }, { status: 500 });
+	}
 }
 
 // Helper function to perform database cleanup for a city
 async function performDatabaseCleanup(city, cutoffDate) {
-  console.log(`DATABASE CLEANUP for ${city.name}: Removing records before ${cutoffDate}`);
-  
-  try {
-    const { data: beforeCount } = await supabase
-      .from('apaw_weather_forecasts')
-      .select('id', { count: 'exact', head: true })
-      .eq('city_id', city.id)
-      .lt('forecast_date', cutoffDate);
-      
-    console.log(`Found ${beforeCount || 0} records to delete for ${city.name}`);
-    
-    // Perform the deletion
-    const { error: deleteError, count } = await supabase
-      .from('apaw_weather_forecasts')
-      .delete()
-      .eq('city_id', city.id)
-      .lt('forecast_date', cutoffDate);
-      
-    if (deleteError) {
-      console.error(`DATABASE ERROR deleting forecasts for ${city.name}:`, deleteError);
-      return { success: false, error: deleteError };
-    } else {
-      console.log(`DATABASE SUCCESS: Deleted ${count || 0} old records for ${city.name}`);
-      return { success: true, count: count || 0 };
-    }
-  } catch (err) {
-    console.error(`DATABASE EXCEPTION during cleanup for ${city.name}:`, err);
-    return { success: false, error: err.message };
-  }
+	console.log(
+		`DATABASE CLEANUP for ${city.name}: Removing records with forecast_date < ${cutoffDate}`
+	);
+	try {
+		const { data, error } = await supabase
+			.from('apaw_weather_forecasts')
+			.delete()
+			.eq('city_id', city.id)
+			.lt('forecast_date', cutoffDate); // Less than the cutoff date
+
+		if (error) {
+			console.error(`Database cleanup error for ${city.name}:`, error);
+		} else {
+			// Supabase delete doesn't directly return count in v2, data might be empty array or contain deleted records depending on RETURNING
+			// We can infer count if needed by selecting before deleting, but for now, just log success.
+			console.log(`Database cleanup successful for ${city.name} (records before ${cutoffDate}).`);
+		}
+	} catch (err) {
+		// Catch potential network or other errors during cleanup
+		console.error(`Exception during database cleanup for ${city.name}:`, err);
+	}
 }

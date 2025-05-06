@@ -51,7 +51,7 @@
 		{
 			title: 'NumPy',
 			description:
-				'Fundamental package for numerical computing in Python, used for array operations.', 
+				'Fundamental package for numerical computing in Python, used for array operations.',
 			category: 'Core Algorithms & Libraries',
 			iconType: 'iconify',
 			icon: 'devicon:numpy',
@@ -91,7 +91,7 @@
 				'Python library used for efficiently saving and loading trained Scikit-learn models and pipelines.',
 			category: 'Core Algorithms & Libraries',
 			iconType: 'image',
-			icon: '/logo/joblib.svg', 
+			icon: '/logo/joblib.svg',
 			url: 'https://joblib.readthedocs.io/'
 		},
 		{
@@ -133,7 +133,7 @@
 		},
 		{
 			title: 'AccuWeather API',
-			description: 'Provided supplementary weather forecast data used in the prediction backend.', 
+			description: 'Provided supplementary weather forecast data used in the prediction backend.',
 			category: 'Data Sources',
 			iconType: 'iconify',
 			icon: 'simple-icons:accuweather',
@@ -166,11 +166,11 @@
 			url: ''
 		},
 
-		// Development & Deployment Stack 
+		// Development & Deployment Stack
 		{
 			title: 'Python',
 			description:
-				'Primary programming language used for backend API, data processing, and model development.', 
+				'Primary programming language used for backend API, data processing, and model development.',
 			category: 'Development & Deployment Stack',
 			iconType: 'iconify',
 			icon: 'devicon:python',
@@ -256,13 +256,13 @@
 		},
 		{
 			title: 'GitHub',
-			description: 'Platform used for version control and source code management.', 
+			description: 'Platform used for version control and source code management.',
 			category: 'Development & Deployment Stack',
 			iconType: 'iconify',
 			icon: 'devicon:github',
 			url: 'https://github.com/'
 		},
-		// Other Tools 
+		// Other Tools
 		{
 			title: 'Awesome Table',
 			description:
@@ -299,9 +299,12 @@
 </script>
 
 <svelte:head>
-  <title>APAW | Resources</title>
+	<title>APAW | Resources</title>
+	<meta
+		name="description"
+		content="Discover the data sources, algorithms, libraries, and tools used to build the APAW flood prediction platform."
+	/>
 </svelte:head>
-
 <div class="min-h-screen bg-gradient-to-b from-gray-50 to-white">
 	<!-- Header section -->
 	<div class="bg-primary relative mb-12 overflow-hidden px-4 py-12 text-white">
