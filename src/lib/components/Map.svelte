@@ -146,6 +146,35 @@
 			});
 	}
 
+	function createRecenterControl() {
+		// Create a custom control for re-centering on marker
+		const RecenterControl = L.Control.extend({
+			options: {
+				position: 'bottomleft'
+			},
+			
+			onAdd: function() {
+				const container = L.DomUtil.create('div', 'leaflet-bar leaflet-control leaflet-control-recenter');
+				container.innerHTML = `
+					<a href="#" title="Re-center map on selected location" class="recenter-button">
+						<i class="iconify" data-icon="carbon:map-center"></i>
+					</a>
+				`;
+				
+				L.DomEvent.on(container, 'click', function(e) {
+					L.DomEvent.preventDefault(e);
+					if (marker && map) {
+						map.panTo(marker.getLatLng());
+					}
+				});
+				
+				return container;
+			}
+		});
+		
+		return new RecenterControl();
+	}
+
 	onMount(async () => {
 		if (!browser) return;
 
@@ -166,12 +195,6 @@
 			console.warn('Failed to load GeoJSON, using fallback bounds for NCR.');
 		}
 
-		const handleZoomEnd = () => {
-			if (marker && map) {
-				map.panTo(marker.getLatLng());
-			}
-		};
-
 		map = L.map(mapContainer, {
 			zoomControl: false,
 			center: paddedNcrBounds.getCenter(),
@@ -180,8 +203,6 @@
 			minZoom: 10,
 			maxBoundsViscosity: 0.9
 		});
-
-		map.on('zoomend', handleZoomEnd);
 
 		// Set up base layers
 		const standard = L.tileLayer(baseMaps.standard, {
@@ -230,6 +251,11 @@
 		layerControl = setupLayerControl(L, map, baseLayers, facilityLayers, floodHazardLayers);
 
 		L.control.zoom({ position: 'bottomleft' }).addTo(map);
+		
+		// Add the custom re-center control after the zoom control
+		if (L) {
+			createRecenterControl().addTo(map);
+		}
 
 		if (geojsonData) {
 			geojsonLayer = L.geoJSON(geojsonData, {
@@ -370,7 +396,6 @@
 		return () => {
 			if (map) {
 				map.off('click');
-				map.off('zoomend', handleZoomEnd);
 				map.off('overlayadd');
 				map.off('overlayremove');
 			}
@@ -628,5 +653,25 @@
 
 	:global(.facility-marker-icon .iconify) {
 		display: block;
+	}
+
+	:global(.leaflet-control-recenter a) {
+		background-color: white;
+		width: 30px;
+		height: 30px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		color: #333;
+		font-size: 16px;
+		cursor: pointer;
+	}
+
+	:global(.leaflet-control-recenter a:hover) {
+		background-color: #f4f4f4;
+	}
+
+	:global(.leaflet-control-recenter) {
+		margin-left: 10px !important;
 	}
 </style>
