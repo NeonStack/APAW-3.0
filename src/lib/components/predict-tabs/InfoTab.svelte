@@ -19,6 +19,7 @@
 	let selectedModel = 'rf'; // Default model (Random Forest)
 	let locationLoadingState = false;
 	let locationLoadingMessage = '';
+	let expandedFacilities = {}; // Track expanded state of facilities
 
 	// Subscribe to location loading status
 	locationLoadingStatus.subscribe((status) => {
@@ -104,6 +105,11 @@
 		expandedPredictions[date] = !expandedPredictions[date];
 	}
 
+	// Toggle expanded state for facility details
+	function toggleFacilityDetails(facilityId) {
+		expandedFacilities[facilityId] = !expandedFacilities[facilityId];
+	}
+
 	// Format distance for display
 	function formatDistance(distance) {
 		if (distance === null || distance === undefined) return 'Unknown';
@@ -133,6 +139,119 @@
 	function getPredictionCardStyle(prediction) {
 		if (prediction === 'FLOODED') return 'bg-red-50 border-red-200';
 		return 'bg-green-50 border-green-200';
+	}
+
+	// Format property value for display (convert fire_station -> Fire Station)
+	function formatPropertyValue(value) {
+		if (!value || typeof value !== 'string') return value;
+		
+		return value
+			.split('_')
+			.map(word => word.charAt(0).toUpperCase() + word.slice(1))
+			.join(' ');
+	}
+
+	// Extract readable property info from facility properties
+	function getFormattedAddress(properties) {
+		if (!properties) return null;
+		
+		// Collect address components
+		const addressParts = [];
+		
+		// Street and house number
+		if (properties['addr:housenumber'] && properties['addr:street']) {
+			addressParts.push(`${properties['addr:housenumber']} ${properties['addr:street']}`);
+		} else if (properties['addr:street']) {
+			addressParts.push(properties['addr:street']);
+		}
+		
+		// City/municipality
+		if (properties['addr:city']) {
+			addressParts.push(properties['addr:city']);
+		}
+		
+		// Province
+		if (properties['addr:province']) {
+			addressParts.push(properties['addr:province']);
+		}
+		
+		// Postcode
+		if (properties['addr:postcode']) {
+			addressParts.push(properties['addr:postcode']);
+		}
+		
+		return addressParts.length > 0 ? addressParts.join(', ') : null;
+	}
+
+	// Extract building info from properties with better formatting
+	function getBuildingInfo(properties) {
+		if (!properties) return [];
+		
+		const buildingInfo = [];
+		const skipKeys = ['building:part', 'building:type']; // Skip these building keys
+		
+		// Extract building keys like building:levels, building:material, etc.
+		Object.keys(properties).forEach(key => {
+			if (key.startsWith('building:') && !skipKeys.includes(key)) {
+				// Extract the part after building:
+				const label = key.replace('building:', '');
+				// Capitalize first letter and replace underscores
+				const formattedLabel = label
+					.split('_')
+					.map(word => word.charAt(0).toUpperCase() + word.slice(1))
+					.join(' ');
+				
+				// Format the value if it's a string
+				const value = typeof properties[key] === 'string' 
+					? formatPropertyValue(properties[key]) 
+					: properties[key];
+				
+				buildingInfo.push({
+					label: formattedLabel,
+					value: value
+				});
+			}
+		});
+				
+		return buildingInfo;
+	}
+
+	// Get additional properties worth displaying with better formatting
+	function getAdditionalProperties(properties) {
+		if (!properties) return [];
+		
+		const additionalProps = [];
+		const interestingProps = [
+			'amenity', 'emergency', 'evacuation_center', 'leisure', 'operator', 'capacity'
+		];
+		
+		interestingProps.forEach(prop => {
+			if (properties[prop] && properties[prop] !== 'yes') {
+				// Format the label
+				let label = prop;
+				if (prop.includes(':')) {
+					label = prop.split(':')[1];
+					}
+				
+				// Properly format the label with spaces and capitalization
+				label = label
+					.split('_')
+					.map(word => word.charAt(0).toUpperCase() + word.slice(1))
+					.join(' ');
+				
+				// Format the value if it's a string
+				const value = typeof properties[prop] === 'string' 
+					? formatPropertyValue(properties[prop]) 
+					: properties[prop];
+				
+				additionalProps.push({
+					label,
+					value
+				});
+			}
+		});
+		
+		return additionalProps;
 	}
 
 	// Get feature display name for better readability
@@ -258,142 +377,6 @@
 		Flood Prediction Tool
 	</h2>
 
-	<!-- Location Information Card: Redesigned layout -->
-	<div class="mb-2 rounded-lg border border-gray-200 bg-white p-3 shadow-sm">
-		<h3 class="mb-2 flex items-center text-sm font-medium text-[#0c3143]">
-			<Icon icon="mdi:map-marker" class="mr-1.5" width="16" />
-			Location Information
-		</h3>
-
-		{#if locationLoadingState}
-			<!-- Loading indicator for location -->
-			<div class="flex items-center justify-center py-2">
-				<Icon icon="eos-icons:loading" class="mr-2 animate-spin text-blue-500" width="18" />
-				<p class="text-sm text-blue-700">{locationLoadingMessage || 'Loading location data...'}</p>
-			</div>
-		{:else if !$selectedLocation.lat}
-			<!-- No location selected -->
-			<div class="flex items-center rounded-md border border-yellow-200 bg-yellow-50 p-2">
-				<Icon icon="mdi:gesture-tap" class="mr-2 flex-shrink-0 text-yellow-600" width="16" />
-				<p class="text-sm text-gray-700">
-					Click on the map to select a location or use the search bar.
-				</p>
-			</div>
-		{:else}
-			<!-- Location details with improved layout -->
-			<div class="space-y-2">
-				<!-- Location name with icon -->
-				{#if $selectedLocation.locationName}
-					<div class="flex items-start">
-						<Icon icon="mdi:map-marker" class="mt-0.5 mr-1 flex-shrink-0 text-red-500" width="14" />
-						<p class="text-sm font-medium text-gray-700">{$selectedLocation.locationName}</p>
-					</div>
-				{/if}
-
-				<!-- Location coordinates and elevation in a compact row -->
-				<div class="flex flex-wrap gap-2">
-					<div class="flex items-center rounded-md bg-gray-50 px-2 py-1 text-sm">
-						<span class="font-medium text-gray-500">Lat:</span>
-						<span class="ml-1">{$selectedLocation.lat}</span>
-					</div>
-
-					<div class="flex items-center rounded-md bg-gray-50 px-2 py-1 text-sm">
-						<span class="font-medium text-gray-500">Lng:</span>
-						<span class="ml-1">{$selectedLocation.lng}</span>
-					</div>
-
-					<div class="flex items-center rounded-md bg-gray-50 px-2 py-1 text-sm">
-						<span class="font-medium text-gray-500">Elevation:</span>
-						{#if $selectedLocation.error}
-							<span class="ml-1 text-red-600">Error</span>
-						{:else}
-							<span class="ml-1">{$selectedLocation.elevation} m</span>
-						{/if}
-					</div>
-				</div>
-
-				<!-- Reference data in cards with clear spacing -->
-				<div class="flex flex-wrap gap-2">
-					{#if $nearestWeatherCity}
-						<div
-							class="min-w-[150px] flex-1 rounded-md border border-blue-100 bg-blue-50 px-2 py-1"
-						>
-							<div class="flex items-center justify-between">
-								<div class="flex items-center">
-									<Icon
-										icon="mdi:weather-partly-cloudy"
-										class="mr-1 flex-shrink-0 text-blue-500"
-										width="14"
-									/>
-									<span class="text-sm font-medium">Weather Forecast</span>
-								</div>
-								<span class="rounded-full bg-blue-100 px-1.5 py-0.5 text-xs text-blue-800">
-									{formatDistance($nearestWeatherCity.distance)}
-								</span>
-							</div>
-							<div class="mt-0.5 ml-5 text-sm text-blue-800">
-								{$nearestWeatherCity.name}
-							</div>
-						</div>
-					{/if}
-
-					{#if $nearestWaterStation}
-						<div
-							class="min-w-[150px] flex-1 rounded-md border border-blue-100 bg-blue-50 px-2 py-1"
-						>
-							<div class="flex items-center justify-between">
-								<div class="flex items-center">
-									<Icon icon="mdi:water" class="mr-1 flex-shrink-0 text-blue-500" width="14" />
-									<span class="text-sm font-medium">Water Station</span>
-								</div>
-								<span class="rounded-full bg-blue-100 px-1.5 py-0.5 text-xs text-blue-800">
-									{formatDistance($nearestWaterStation.distance)}
-								</span>
-							</div>
-							<div class="mt-0.5 ml-5 text-sm text-blue-800">
-								{$nearestWaterStation.obsnm}
-								{#if $nearestWaterStation.wl}
-									<span class="ml-1 text-xs">(Level: {$nearestWaterStation.wl} m)</span>
-								{/if}
-							</div>
-						</div>
-					{/if}
-				</div>
-			</div>
-			<div class="bg-base-200 rounded-lg p-3 shadow">
-				<h3 class="text-primary-focus mb-2 flex items-center text-base font-semibold">
-					<Icon icon="mdi:near-me" class="mr-1.5" width="16" />
-					5 Nearest Facilities
-				</h3>
-				{#if $nearestFacilities.length > 0}
-					<ul class="list-none space-y-1.5 pl-0">
-						{#each $nearestFacilities as facility}
-							<li class="flex items-center">
-								<Icon
-									icon={facility.icon || 'mdi:map-marker'}
-									style="color: {facility.color || '#777'};"
-									class="mr-2 flex-shrink-0"
-									width="18"
-								/>
-								<div class="flex-1">
-									<span class="font-medium">{facility.name}</span>
-									<span class="text-xs text-gray-600"> ({facility.type})</span>
-								</div>
-								<span class="ml-2 rounded-full bg-gray-200 px-1.5 py-0.5 text-xs text-gray-700">
-									{formatDistance(facility.distance)}
-								</span>
-							</li>
-						{/each}
-					</ul>
-				{:else}
-					<p class="text-sm text-gray-500">
-						No nearby facilities found within the search radius for active layers.
-					</p>
-				{/if}
-			</div>
-		{/if}
-	</div>
-
 	<!-- Prediction Controls: Compact design -->
 	<div
 		class="mb-2 rounded-lg border border-blue-200 bg-gradient-to-r from-blue-50 to-blue-100 p-3 shadow-sm"
@@ -423,8 +406,9 @@
 			</div>
 
 			<div class="flex w-full flex-col md:w-auto">
-				<label class="mb-1 text-sm font-medium whitespace-nowrap text-gray-700"> Action </label>
+				<label class="mb-1 text-sm font-medium whitespace-nowrap text-gray-700" for="predict-button"> Action </label>
 				<button
+					id="predict-button"
 					on:click={predictFlood}
 					disabled={isPredicting || !$selectedLocation.lat || locationLoadingState}
 					class="flex flex-1 items-center justify-center rounded-md bg-[#0c3143] px-4 py-1.5 text-sm text-white shadow-sm transition duration-150 hover:bg-[#1a4a5a] focus:ring-2 focus:ring-[#0c3143] focus:ring-offset-2 focus:outline-none disabled:opacity-50"
@@ -691,6 +675,223 @@
 		</div>
 	{/if}
 
+	<!-- Location Information Card: Redesigned layout -->
+	<div class="mb-2 rounded-lg border border-gray-200 bg-white p-3 shadow-sm">
+		<h3 class="mb-2 flex items-center text-sm font-medium text-[#0c3143]">
+			<Icon icon="mdi:map-marker" class="mr-1.5" width="16" />
+			Location Information
+		</h3>
+
+		{#if locationLoadingState}
+			<!-- Loading indicator for location -->
+			<div class="flex items-center justify-center py-2">
+				<Icon icon="eos-icons:loading" class="mr-2 animate-spin text-blue-500" width="18" />
+				<p class="text-sm text-blue-700">{locationLoadingMessage || 'Loading location data...'}</p>
+			</div>
+		{:else if !$selectedLocation.lat}
+			<!-- No location selected -->
+			<div class="flex items-center rounded-md border border-yellow-200 bg-yellow-50 p-2">
+				<Icon icon="mdi:gesture-tap" class="mr-2 flex-shrink-0 text-yellow-600" width="16" />
+				<p class="text-sm text-gray-700">
+					Click on the map to select a location or use the search bar.
+				</p>
+			</div>
+		{:else}
+			<!-- Location details with improved layout -->
+			<div class="space-y-2">
+				<!-- Location name with icon -->
+				{#if $selectedLocation.locationName}
+					<div class="flex items-start">
+						<Icon icon="mdi:map-marker" class="mt-0.5 mr-1 flex-shrink-0 text-red-500" width="14" />
+						<p class="text-sm font-medium text-gray-700">{$selectedLocation.locationName}</p>
+					</div>
+				{/if}
+
+				<!-- Location coordinates and elevation in a compact row -->
+				<div class="flex flex-wrap gap-2">
+					<div class="flex items-center rounded-md bg-gray-50 px-2 py-1 text-sm">
+						<span class="font-medium text-gray-500">Lat:</span>
+						<span class="ml-1">{$selectedLocation.lat}</span>
+					</div>
+
+					<div class="flex items-center rounded-md bg-gray-50 px-2 py-1 text-sm">
+						<span class="font-medium text-gray-500">Lng:</span>
+						<span class="ml-1">{$selectedLocation.lng}</span>
+					</div>
+
+					<div class="flex items-center rounded-md bg-gray-50 px-2 py-1 text-sm">
+						<span class="font-medium text-gray-500">Elevation:</span>
+						{#if $selectedLocation.error}
+							<span class="ml-1 text-red-600">Error</span>
+						{:else}
+							<span class="ml-1">{$selectedLocation.elevation} m</span>
+						{/if}
+					</div>
+				</div>
+
+				<!-- Reference data in cards with clear spacing -->
+				<div class="flex flex-wrap gap-2">
+					{#if $nearestWeatherCity}
+						<div
+							class="min-w-[150px] flex-1 rounded-md border border-blue-100 bg-blue-50 px-2 py-1"
+						>
+							<div class="flex items-center justify-between">
+								<div class="flex items-center">
+									<Icon
+										icon="mdi:weather-partly-cloudy"
+										class="mr-1 flex-shrink-0 text-blue-500"
+										width="14"
+									/>
+									<span class="text-sm font-medium">Weather Forecast</span>
+								</div>
+								<span class="rounded-full bg-blue-100 px-1.5 py-0.5 text-xs text-blue-800">
+									{formatDistance($nearestWeatherCity.distance)}
+								</span>
+							</div>
+							<div class="mt-0.5 ml-5 text-sm text-blue-800">
+								{$nearestWeatherCity.name}
+							</div>
+						</div>
+					{/if}
+
+					{#if $nearestWaterStation}
+						<div
+							class="min-w-[150px] flex-1 rounded-md border border-blue-100 bg-blue-50 px-2 py-1"
+						>
+							<div class="flex items-center justify-between">
+								<div class="flex items-center">
+									<Icon icon="mdi:water" class="mr-1 flex-shrink-0 text-blue-500" width="14" />
+									<span class="text-sm font-medium">Water Station</span>
+								</div>
+								<span class="rounded-full bg-blue-100 px-1.5 py-0.5 text-xs text-blue-800">
+									{formatDistance($nearestWaterStation.distance)}
+								</span>
+							</div>
+							<div class="mt-0.5 ml-5 text-sm text-blue-800">
+								{$nearestWaterStation.obsnm}
+								{#if $nearestWaterStation.wl}
+									<span class="ml-1 text-xs">(Level: {$nearestWaterStation.wl} m)</span>
+								{/if}
+							</div>
+						</div>
+					{/if}
+				</div>
+			</div>
+			<div class="bg-base-200 rounded-lg p-3 shadow">
+				<h3 class="text-primary-focus mb-2 flex items-center text-base font-semibold">
+					<Icon icon="mdi:near-me" class="mr-1.5" width="16" />
+					5 Nearest Facilities
+				</h3>
+				{#if $nearestFacilities.length > 0}
+					<ul class="list-none space-y-2.5 pl-0">
+						{#each $nearestFacilities as facility}
+							<li class="rounded-md border border-gray-400 bg-white">
+								<button on:click={() => toggleFacilityDetails(facility.id)} class="flex items-center p-2 w-full cursor-pointer">
+									<Icon
+										icon={facility.icon || 'mdi:map-marker'}
+										style="color: {facility.color || '#777'};"
+										class="mr-2 flex-shrink-0"
+										width="18"
+									/>
+									<div class="flex-1 text-left">
+										<p class="font-medium">{facility.name}</p>
+										<p class="text-xs text-gray-600"> ({facility.type})</p>
+									</div>
+									<span class="ml-2 rounded-full bg-gray-200 px-1.5 py-0.5 text-xs text-gray-700">
+										{formatDistance(facility.distance)}
+									</span>
+									<div									
+										class="ml-1 px-1 text-blue-500 hover:text-blue-700 focus:outline-none"
+									>
+										<Icon 
+											icon={expandedFacilities[facility.id] ? 'mdi:chevron-up' : 'mdi:chevron-down'} 
+											width="16" 
+										/>
+								</div>
+								</button>
+								
+								{#if expandedFacilities[facility.id] && facility.properties}
+									<div class="border-t border-gray-100 bg-gray-50 p-2 text-sm">
+										<!-- Address -->
+										{#if getFormattedAddress(facility.properties)}
+											<div class="mb-1 flex items-start">
+												<Icon icon="mdi:map-marker" class="mr-1.5 mt-0.5 flex-shrink-0 text-gray-500" width="14" />
+												<div>
+													<span class="font-medium text-gray-600">Address:</span>
+													<span class="ml-1">{getFormattedAddress(facility.properties)}</span>
+												</div>
+											</div>
+										{/if}
+										
+										<!-- Building Info -->
+										{#if getBuildingInfo(facility.properties).length > 0}
+											<div class="mb-1 flex items-start">
+												<Icon icon="mdi:office-building" class="mr-1.5 mt-0.5 flex-shrink-0 text-gray-500" width="14" />
+												<div>
+													<span class="font-medium text-gray-600">Building:</span>
+													<div class="ml-1">
+														{#each getBuildingInfo(facility.properties) as info}
+															<div class="flex items-center">
+																<span class="text-gray-500">{info.label}:</span>
+																<span class="ml-1">{info.value}</span>
+															</div>
+														{/each}
+													</div>
+												</div>
+											</div>
+										{/if}
+										
+										<!-- Additional Properties -->
+										{#if getAdditionalProperties(facility.properties).length > 0}
+											<div class="flex items-start">
+												<Icon icon="mdi:information-outline" class="mr-1.5 mt-0.5 flex-shrink-0 text-gray-500" width="14" />
+												<div>
+													<span class="font-medium text-gray-600">Details:</span>
+													<div class="ml-1">
+														{#each getAdditionalProperties(facility.properties) as prop}
+															<div class="flex items-start flex-wrap">
+																<span class="text-gray-500">{prop.label}:</span>
+																{#if prop.label === 'Website'}
+																	<a 
+																		href={prop.value.startsWith('http') ? prop.value : `https://${prop.value}`} 
+																		target="_blank" 
+																		rel="noopener noreferrer"
+																		class="ml-1 text-blue-600 underline break-all"
+																	>
+																		{prop.value}
+																	</a>
+																{:else}
+																	<span class="ml-1 break-words">{prop.value}</span>
+																{/if}
+															</div>
+														{/each}
+													</div>
+												</div>
+											</div>
+										{/if}
+										
+										<!-- If no additional info was found -->
+										{#if !getFormattedAddress(facility.properties) && 
+											getBuildingInfo(facility.properties).length === 0 &&
+											getAdditionalProperties(facility.properties).length === 0}
+											<div class="text-center text-gray-500">
+												No additional information available
+											</div>
+										{/if}
+									</div>
+								{/if}
+							</li>
+						{/each}
+					</ul>
+				{:else}
+					<p class="text-sm text-gray-500">
+						No nearby facilities found within the search radius for active layers.
+					</p>
+				{/if}
+			</div>
+		{/if}
+	</div>
+
 	<!-- Instructions Card: More compact design -->
 	<div class="mb-2 rounded-lg border border-gray-200 bg-white p-2.5">
 		<h3 class="mb-1.5 flex items-center text-sm font-medium text-[#0c3143]">
@@ -698,7 +899,7 @@
 			How to Use This Tool
 		</h3>
 
-		<div class="flex flex-wrap gap-2">
+		<div class="flex flex-wrap flex-col gap-2">
 			<div class="flex flex-1 items-center rounded-md bg-gray-50 p-1.5 text-sm">
 				<span
 					class="mr-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-blue-100 text-blue-800"

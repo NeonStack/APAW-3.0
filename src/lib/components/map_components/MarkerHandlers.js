@@ -1,6 +1,12 @@
 import { toast } from 'svelte-sonner';
 import { selectedLocation, getLocationName, setLocationLoading } from '$lib/stores/locationStore.js';
-import { NEARBY_RADIUS_METERS, facilityTypes } from './MapConfig.js';
+import { 
+  NEARBY_RADIUS_METERS, 
+  getFacilityIconAndColor, 
+  getFacilityFriendlyName, 
+  getFacilityType,
+  formatFacilityType 
+} from './MapConfig.js';
 import { get } from 'svelte/store';
 
 export function calculateDistance(lat1, lon1, lat2, lon2) {
@@ -136,50 +142,166 @@ export async function setSelectedLocation(lat, lng, locationName = null, map, L,
   return marker;
 }
 
-export function displayNearbyFacilities(typeInfo, centerLat, centerLng, radius, map, L, facilityLayers, loadedGeojsonData) {
-  const { id, name, icon, color } = typeInfo;
-  const fullGeojsonData = loadedGeojsonData[id];
+// Handles both points and polygons/multipolygons
+function getFeatureCoordinates(feature) {
+  if (!feature.geometry) return null;
+  
+  if (feature.geometry.type === 'Point') {
+    return {
+      lat: feature.geometry.coordinates[1],
+      lng: feature.geometry.coordinates[0]
+    };
+  } 
+  else if (feature.geometry.type === 'Polygon') {
+    // Use the first coordinate of the polygon for distance calculation
+    const firstCoord = feature.geometry.coordinates[0][0];
+    return {
+      lat: firstCoord[1],
+      lng: firstCoord[0]
+    };
+  }
+  else if (feature.geometry.type === 'MultiPolygon') {
+    // Use the first coordinate of the first polygon for distance calculation
+    const firstCoord = feature.geometry.coordinates[0][0][0];
+    return {
+      lat: firstCoord[1],
+      lng: firstCoord[0]
+    };
+  }
+  return null;
+}
 
-  if (!map || !facilityLayers[id] || !fullGeojsonData || !fullGeojsonData.features) {
-    console.warn(`Cannot display nearby ${name}: Map, layer group, or data missing.`);
+// Modified to handle consolidated facilities with improved popup content
+export function displayNearbyFacilities(centerLat, centerLng, radius, map, L, facilityLayers, loadedGeojsonData) {
+  const facilitiesId = 'facilities';
+  const fullGeojsonData = loadedGeojsonData[facilitiesId];
+
+  if (!map || !facilityLayers[facilitiesId] || !fullGeojsonData || !fullGeojsonData.features) {
+    console.warn(`Cannot display nearby facilities: Map, layer group, or data missing.`);
     return;
   }
 
-  facilityLayers[id].clearLayers();
+  facilityLayers[facilitiesId].clearLayers();
 
   let count = 0;
   fullGeojsonData.features.forEach((feature) => {
-    if (feature.geometry && feature.geometry.type === 'Point') {
-      const coords = feature.geometry.coordinates;
-      const featureLng = coords[0];
-      const featureLat = coords[1];
+    // Get coordinates for all geometry types
+    const coords = getFeatureCoordinates(feature);
+    if (!coords) return;
+    
+    const { lat: featureLat, lng: featureLng } = coords;
+    const distance = calculateDistance(parseFloat(centerLat), parseFloat(centerLng), featureLat, featureLng);
 
-      const distance = calculateDistance(parseFloat(centerLat), parseFloat(centerLng), featureLat, featureLng);
+    if (distance <= radius) {
+      count++;
+      // Get icon and color based on facility properties
+      const { icon, color } = getFacilityIconAndColor(feature.properties);
+      
+      // Create marker for the facility
+      const marker = L.marker([featureLat, featureLng], {
+        icon: createFacilityIcon(L, { icon, color })
+      });
 
-      if (distance <= radius) {
-        count++;
-        const marker = L.marker([featureLat, featureLng], {
-          icon: createFacilityIcon(L, { icon, color })
-        });
-
-        let popupContent = `<b>${name}</b><br>`;
-        const props = feature.properties;
-        const nameProp =
-          props.NAME || props.Name || props.name || props.facility_n || props.school_nam;
-        const addressProp = props.ADDRESS || props.Address || props.address || props.location;
-        if (nameProp) popupContent += `${nameProp}<br>`;
-        else popupContent += `Unnamed ${name}<br>`;
-        if (addressProp) popupContent += `${addressProp}<br>`;
-        marker.bindPopup(popupContent);
-
-        facilityLayers[id].addLayer(marker);
+      // Determine friendly name and facility type
+      const friendlyName = getFacilityFriendlyName(feature.properties);
+      const facilityType = getFacilityType(feature.properties);
+      
+      // Build rich popup content
+      let popupContent = `<div class="facility-popup">`;
+      
+      // Main heading - facility name
+      popupContent += `<h4 style="margin:0 0 5px 0;font-size:14px;color:#0c3143;">${friendlyName}</h4>`;
+      
+      // Only show facility type if it's different from the name and not null
+      if (facilityType && friendlyName !== facilityType) {
+        popupContent += `<div style="font-size:12px;color:#555;margin-bottom:5px;"><b>${facilityType}</b></div>`;
       }
+      
+      // Add additional details if available
+      let hasAddress = false;
+      let addressParts = [];
+      
+      // Building number and street
+      if (feature.properties['addr:housenumber'] && feature.properties['addr:street']) {
+        addressParts.push(`${feature.properties['addr:housenumber']} ${feature.properties['addr:street']}`);
+        hasAddress = true;
+      } else if (feature.properties['addr:street']) {
+        addressParts.push(feature.properties['addr:street']);
+        hasAddress = true;
+      }
+      
+      // City/province
+      if (feature.properties['addr:city']) {
+        addressParts.push(feature.properties['addr:city']);
+      } else if (feature.properties['addr:district']) {
+        addressParts.push(feature.properties['addr:district']);
+      }
+      
+      if (feature.properties['addr:province']) {
+        addressParts.push(feature.properties['addr:province']);
+      }
+      
+      // Display formatted address if we have components
+      if (addressParts.length > 0) {
+        popupContent += `<div style="font-size:12px;color:#666;margin-bottom:5px;">${addressParts.join(', ')}</div>`;
+      }
+      
+      // Add additional details if available
+      let detailsAdded = false;
+      
+      // Add phone if available
+      if (feature.properties.phone) {
+        popupContent += `<div style="font-size:11px;color:#666;"><b>Phone:</b> ${feature.properties.phone}</div>`;
+        detailsAdded = true;
+      }
+      
+      // Add website if available
+      if (feature.properties.website) {
+        popupContent += `<div style="font-size:11px;color:#666;"><b>Website:</b> <a href="${feature.properties.website}" target="_blank">${feature.properties.website.replace(/^https?:\/\//, '')}</a></div>`;
+        detailsAdded = true;
+      }
+      
+      // Add operating hours if available
+      if (feature.properties.opening_hours) {
+        popupContent += `<div style="font-size:11px;color:#666;"><b>Hours:</b> ${feature.properties.opening_hours}</div>`;
+        detailsAdded = true;
+      }
+      
+      // Add relevant emergency info
+      if (feature.properties.emergency && feature.properties.emergency !== 'yes') {
+        popupContent += `<div style="font-size:11px;color:#666;"><b>Emergency Type:</b> ${formatFacilityType(feature.properties.emergency)}</div>`;
+        detailsAdded = true;
+      }
+      
+      // Add capacity if available (for evacuation centers, schools, etc.)
+      if (feature.properties.capacity) {
+        popupContent += `<div style="font-size:11px;color:#666;"><b>Capacity:</b> ${feature.properties.capacity}</div>`;
+        detailsAdded = true;
+      }
+      
+      // Add religion for places of worship
+      if (feature.properties.religion) {
+        popupContent += `<div style="font-size:11px;color:#666;"><b>Religion:</b> ${formatFacilityType(feature.properties.religion)}</div>`;
+        detailsAdded = true;
+      }
+      
+      // Add operator if available
+      if (feature.properties.operator) {
+        popupContent += `<div style="font-size:11px;color:#666;"><b>Operator:</b> ${feature.properties.operator}</div>`;
+        detailsAdded = true;
+      }
+      
+      // Close the popup div
+      popupContent += `</div>`;
+      
+      marker.bindPopup(popupContent);
+      facilityLayers[facilitiesId].addLayer(marker);
     }
   });
-  console.log(`Displayed ${count} nearby ${name}(s) within ${radius}m.`);
+  console.log(`Displayed ${count} nearby facilities within ${radius}m.`);
 }
 
-export function updateNearestFacilitiesList(map, nearestFacilities, loadedGeojsonData, facilityTypes) {
+export function updateNearestFacilitiesList(map, nearestFacilities, loadedGeojsonData) {
   const location = get(selectedLocation);
   const allNearbyFacilitiesList = [];
 
@@ -190,38 +312,38 @@ export function updateNearestFacilitiesList(map, nearestFacilities, loadedGeojso
   
   const centerLat = parseFloat(location.lat);
   const centerLng = parseFloat(location.lng);
+  const facilitiesId = 'facilities';
 
-  facilityTypes.forEach((typeInfo) => {
-    if (loadedGeojsonData[typeInfo.id]) {
-      const fullGeojsonData = loadedGeojsonData[typeInfo.id];
-      if (!fullGeojsonData || !fullGeojsonData.features) return;
+  if (loadedGeojsonData[facilitiesId]) {
+    const fullGeojsonData = loadedGeojsonData[facilitiesId];
+    if (!fullGeojsonData || !fullGeojsonData.features) return;
 
-      fullGeojsonData.features.forEach((feature, index) => {
-        if (feature.geometry && feature.geometry.type === 'Point') {
-          const coords = feature.geometry.coordinates;
-          const featureLng = coords[0];
-          const featureLat = coords[1];
-          const distance = calculateDistance(centerLat, centerLng, featureLat, featureLng);
+    fullGeojsonData.features.forEach((feature, index) => {
+      const coords = getFeatureCoordinates(feature);
+      if (!coords) return;
+      
+      const { lat: featureLat, lng: featureLng } = coords;
+      const distance = calculateDistance(centerLat, centerLng, featureLat, featureLng);
 
-          if (distance <= NEARBY_RADIUS_METERS) {
-            const props = feature.properties;
-            const nameProp =
-              props.NAME || props.Name || props.name || props.facility_n || props.school_nam;
-            allNearbyFacilitiesList.push({
-              id: feature.id || `${typeInfo.id}-${index}`,
-              name: nameProp || `Unnamed ${typeInfo.name}`,
-              type: typeInfo.name,
-              distance: distance,
-              lat: featureLat,
-              lng: featureLng,
-              icon: typeInfo.icon,
-              color: typeInfo.color
-            });
-          }
-        }
-      });
-    }
-  });
+      if (distance <= NEARBY_RADIUS_METERS) {
+        const { icon, color } = getFacilityIconAndColor(feature.properties);
+        const friendlyName = getFacilityFriendlyName(feature.properties);
+        const facilityType = getFacilityType(feature.properties);
+        
+        allNearbyFacilitiesList.push({
+          id: feature.properties['@id'] || `facility-${index}`,
+          name: feature.properties.name || friendlyName,
+          type: facilityType,
+          distance: distance,
+          lat: featureLat,
+          lng: featureLng,
+          icon: icon,
+          color: color,
+          properties: feature.properties // Store the full properties for expandable view
+        });
+      }
+    });
+  }
   
   allNearbyFacilitiesList.sort((a, b) => a.distance - b.distance);
   const top5Facilities = allNearbyFacilitiesList.slice(0, 5);

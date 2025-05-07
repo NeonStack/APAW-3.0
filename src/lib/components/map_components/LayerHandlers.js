@@ -3,75 +3,79 @@ import { get } from 'svelte/store';
 import { selectedLocation } from '$lib/stores/locationStore.js';
 import { loadAndProcessGeoJson } from './GeoJsonUtils.js';
 import { displayNearbyFacilities } from './MarkerHandlers.js';
-import { NEARBY_RADIUS_METERS } from './MapConfig.js';
+import { NEARBY_RADIUS_METERS, facilitiesConfig } from './MapConfig.js';
 
-export function setupLayerControl(L, map, baseLayers, facilityLayers, facilityTypes, floodHazardLayers) {
-  const overlayGroups = {
-    facilities: {},
-    hazards: {}
-  };
-
-  facilityTypes.forEach((type) => {
-    facilityLayers[type.id] = L.layerGroup();
-    overlayGroups.facilities[
-      `<i class="iconify" data-icon="${type.icon}" style="color: ${type.color};"></i> ${type.name}`
-    ] = facilityLayers[type.id];
-  });
-
-  floodHazardLayers.forEach((hazardLayer) => {
+export function setupLayerControl(L, map, baseLayers, facilityLayers, floodHazardLayers) {
+  // Create separate layer groups
+  facilityLayers[facilitiesConfig.id] = L.layerGroup();
+  floodHazardLayers.forEach(hazardLayer => {
     facilityLayers[hazardLayer.id] = L.layerGroup();
-    overlayGroups.hazards[
-      `<i class="iconify" data-icon="mdi:waves" style="color: #3498db;"></i> ${hazardLayer.name}`
-    ] = facilityLayers[hazardLayer.id];
+  });
+  
+  // Create a combined overlays object for the control
+  const overlays = {};
+  
+  // Add the facilities layer with icon
+  overlays[`<i class="iconify" data-icon="mdi:map-marker-multiple" style="color: #3498db;"></i> ${facilitiesConfig.name}`] = 
+    facilityLayers[facilitiesConfig.id];
+  
+  // Add hazard layers with icons
+  floodHazardLayers.forEach(hazardLayer => {
+    overlays[`<i class="iconify" data-icon="mdi:waves" style="color: #3498db;"></i> ${hazardLayer.name}`] = 
+      facilityLayers[hazardLayer.id];
   });
 
-  const allOverlayControls = { ...overlayGroups.facilities, ...overlayGroups.hazards };
-
-  const layerControl = L.control.layers(baseLayers, allOverlayControls, { collapsed: true });
+  // Create and add the layer control to the map
+  const layerControl = L.control.layers(baseLayers, overlays, { collapsed: true });
   layerControl.addTo(map);
-
-  try {
-    const controlContainer = layerControl.getContainer();
-    if (controlContainer) {
-      const baseLayersDiv = controlContainer.querySelector('.leaflet-control-layers-base');
-      const overlaysDiv = controlContainer.querySelector('.leaflet-control-layers-overlays');
-
-      if (baseLayersDiv) {
-        const baseTitle = L.DomUtil.create('div', 'leaflet-control-layers-title');
-        baseTitle.innerHTML = 'Base Maps';
-        baseLayersDiv.parentNode.insertBefore(baseTitle, baseLayersDiv);
-      }
-
-      if (overlaysDiv && Object.keys(overlayGroups.facilities).length > 0) {
-        const facilityTitle = L.DomUtil.create('div', 'leaflet-control-layers-title');
-        facilityTitle.innerHTML = 'Facilities';
-        const firstFacilityLabel = overlaysDiv
-          .querySelector(
-            `label input[name='leaflet-base-layers'] + span i[data-icon='${facilityTypes[0].icon}']`
-          )
-          ?.closest('label');
-        overlaysDiv.insertBefore(facilityTitle, firstFacilityLabel || overlaysDiv.firstChild);
-      }
+  
+  // Manually insert section titles using DOM manipulation
+  setTimeout(() => {
+    try {
+      const container = layerControl.getContainer();
+      if (!container) return;
       
-      if (overlaysDiv && Object.keys(overlayGroups.hazards).length > 0) {
-        const hazardTitle = L.DomUtil.create('div', 'leaflet-control-layers-title');
-        hazardTitle.innerHTML = 'Flood Hazards';
-        const firstHazardLabel = overlaysDiv
-          .querySelector(
-            `label input[name='leaflet-base-layers'] + span i[data-icon='mdi:waves']`
-          )
-          ?.closest('label');
-        if (firstHazardLabel) {
-          overlaysDiv.insertBefore(hazardTitle, firstHazardLabel);
-        } else {
-          overlaysDiv.appendChild(hazardTitle);
+      // Find the overlay section
+      const overlaysDiv = container.querySelector('.leaflet-control-layers-overlays');
+      if (!overlaysDiv) return;
+      
+      // Remove any existing titles (to avoid duplicates if this runs multiple times)
+      const existingTitles = overlaysDiv.querySelectorAll('.leaflet-control-layers-title');
+      existingTitles.forEach(title => title.remove());
+      
+      // Get all the labels in the overlay section
+      const labels = overlaysDiv.querySelectorAll('label');
+      if (!labels.length) return;
+      
+      // Find where to insert the Facilities title (before the first label)
+      const facilitiesTitle = document.createElement('div');
+      facilitiesTitle.className = 'leaflet-control-layers-title';
+      facilitiesTitle.innerHTML = 'Facilities';
+      overlaysDiv.insertBefore(facilitiesTitle, labels[0]);
+      
+      // Find the first flood hazard label
+      let floodHazardLabel = null;
+      for (let i = 0; i < labels.length; i++) {
+        const text = labels[i].textContent || '';
+        // Check if this label is for a flood hazard
+        if (floodHazardLayers.some(h => text.includes(h.name))) {
+          floodHazardLabel = labels[i];
+          break;
         }
       }
+      
+      // Insert the Flood Hazards title if we found a flood hazard label
+      if (floodHazardLabel) {
+        const floodHazardsTitle = document.createElement('div');
+        floodHazardsTitle.className = 'leaflet-control-layers-title';
+        floodHazardsTitle.innerHTML = 'Flood Hazards';
+        overlaysDiv.insertBefore(floodHazardsTitle, floodHazardLabel);
+      }
+    } catch (error) {
+      console.error('Error adding layer control titles:', error);
     }
-  } catch (error) {
-    console.error('Error adding titles to layer control:', error);
-  }
-
+  }, 100); // Small delay to ensure DOM is ready
+  
   return layerControl;
 }
 
@@ -94,7 +98,6 @@ export async function handleLayerToggle(layerConfig, isAdding, showToast, map, L
           const location = get(selectedLocation);
           if (location && location.lat !== null && location.lng !== null) {
             displayNearbyFacilities(
-              layerConfig,
               location.lat,
               location.lng,
               NEARBY_RADIUS_METERS,

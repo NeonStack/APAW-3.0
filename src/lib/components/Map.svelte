@@ -15,7 +15,7 @@
 	import { toast } from 'svelte-sonner';
 	
 	// Import extracted components
-	import { loadGeoJSON } from './map_components/GeoJsonUtils.js';
+	import { loadGeoJSON, loadAndProcessGeoJson } from './map_components/GeoJsonUtils.js';
 	import { 
 		createWaterIcon, 
 		getStationAlertInfo, 
@@ -31,7 +31,7 @@
 		handleLayerToggle
 	} from './map_components/LayerHandlers.js';
 	import {
-		facilityTypes,
+		facilitiesConfig,
 		floodHazardLayers,
 		allLayerConfigs,
 		baseMaps,
@@ -76,11 +76,9 @@
 		const location = get(selectedLocation);
 
 		if (!map || !location || location.lat === null || location.lng === null) {
-			facilityTypes.forEach((type) => {
-				if (facilityLayers[type.id]) {
-					facilityLayers[type.id].clearLayers();
-				}
-			});
+			if (facilityLayers[facilitiesConfig.id]) {
+				facilityLayers[facilitiesConfig.id].clearLayers();
+			}
 			nearestFacilities.set([]);
 			return;
 		}
@@ -90,40 +88,38 @@
 
 		console.log('Updating nearby facilities with center:', centerLat, centerLng);
 
-		facilityTypes.forEach((typeInfo) => {
-			const layerGroup = facilityLayers[typeInfo.id];
-			if (layerGroup && map.hasLayer(layerGroup)) {
-				if (loadedGeojsonData[typeInfo.id]) {
-					displayNearbyFacilities(
-						typeInfo, 
-						centerLat, 
-						centerLng, 
-						NEARBY_RADIUS_METERS, 
-						map, 
-						L, 
-						facilityLayers, 
-						loadedGeojsonData
-					);
-				} else {
-					// Try to load the data if not available
-					handleLayerToggle(
-						allLayerConfigs.find(lc => lc.id === typeInfo.id),
-						true,
-						false,
-						map,
-						L,
-						facilityLayers,
-						loadedGeojsonData,
-						activeLeafletLayers,
-						layerControl
-					);
-				}
-			} else if (layerGroup) {
-				layerGroup.clearLayers();
+		// Check if facilities layer is active and has data
+		const layerGroup = facilityLayers[facilitiesConfig.id];
+		if (layerGroup && map.hasLayer(layerGroup)) {
+			if (loadedGeojsonData[facilitiesConfig.id]) {
+				displayNearbyFacilities(
+					centerLat, 
+					centerLng, 
+					NEARBY_RADIUS_METERS, 
+					map, 
+					L, 
+					facilityLayers, 
+					loadedGeojsonData
+				);
+			} else {
+				// Try to load the data if not available
+				handleLayerToggle(
+					facilitiesConfig,
+					true,
+					false,
+					map,
+					L,
+					facilityLayers,
+					loadedGeojsonData,
+					activeLeafletLayers,
+					layerControl
+				);
 			}
-		});
+		} else if (layerGroup) {
+			layerGroup.clearLayers();
+		}
 		
-		updateNearestFacilitiesList(map, nearestFacilities, loadedGeojsonData, facilityTypes);
+		updateNearestFacilitiesList(map, nearestFacilities, loadedGeojsonData);
 	}
 
 	function handleSearchLocation(event) {
@@ -215,7 +211,7 @@
 			'Esri Street': esriStreet
 		};
 
-		layerControl = setupLayerControl(L, map, baseLayers, facilityLayers, facilityTypes, floodHazardLayers);
+		layerControl = setupLayerControl(L, map, baseLayers, facilityLayers, floodHazardLayers);
 
 		L.control.zoom({ position: 'bottomleft' }).addTo(map);
 
@@ -281,15 +277,13 @@
 			}
 		});
 
-		facilityTypes.forEach((ft) => {
-			const layerConfig = allLayerConfigs.find((lc) => lc.id === ft.id);
-			if (layerConfig && facilityLayers[ft.id]) {
-				map.addLayer(facilityLayers[ft.id]);
-				// Pre-load the data for all facility types
-				loadAndProcessGeoJson(layerConfig, loadedGeojsonData, true)
-					.catch(err => console.warn(`Failed to pre-load ${layerConfig.name}:`, err));
-			}
-		});
+		// Add and initialize facilities layer
+		facilityLayers[facilitiesConfig.id] = L.layerGroup();
+		map.addLayer(facilityLayers[facilitiesConfig.id]);
+		
+		// Pre-load the facilities data
+		loadAndProcessGeoJson(facilitiesConfig, loadedGeojsonData, true)
+			.catch(err => console.warn(`Failed to pre-load ${facilitiesConfig.name}:`, err));
 
 		isInitialLayerSetup = false;
 
@@ -324,7 +318,6 @@
 
 				if (waterStationMarkers.length > 0) {
 					const group = L.featureGroup(waterStationMarkers);
-					// Optional: Fit bounds to water stations
 				} else if (map && !marker) {
 					map.fitBounds(paddedNcrBounds);
 				}
