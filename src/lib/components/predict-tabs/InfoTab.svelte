@@ -549,7 +549,7 @@
 						class={`rounded-md border p-2.5 shadow-sm ${getPredictionCardStyle(day.prediction_label, day.risk_level)}`}
 					>
 						<!-- Header with date and prediction -->
-						<div class="mb-2 flex items-start justify-between">
+						<div class="mb-2 flex items-start">
 							<div>
 								<h4 class="flex items-center text-base font-medium">
 									<Icon icon="mdi:calendar" class="mr-1.5" width="16" />
@@ -574,6 +574,18 @@
 										<Icon icon="mdi:trending-up" class="mr-0.5" width="12" />
 										{day.risk_level} Risk
 									</span>
+									<div class="text-left">
+										{#if day.predicted_depth_inches}
+											<div
+												class="flex items-center rounded-md bg-red-100 px-2 py-1 text-xs text-red-800"
+											>
+												<Icon icon="mdi:water" class="mr-1.5" width="16" />
+												<span class="font-medium"
+													>Up to {(day.predicted_depth_inches).toFixed(2)} inches deep</span
+												>
+											</div>
+										{/if}
+									</div>
 								</div>
 								
 								<!-- Model probability info -->
@@ -595,18 +607,7 @@
 								</p>
 							</div>
 							
-							<div class="text-right">
-								{#if day.predicted_depth_inches}
-									<div
-										class="flex items-center rounded-md bg-red-100 px-2 py-1 text-sm text-red-800"
-									>
-										<Icon icon="mdi:water" class="mr-1.5" width="16" />
-										<span class="font-medium"
-											>{(day.predicted_depth_inches * 2.54).toFixed(1)} cm depth</span
-										>
-									</div>
-								{/if}
-							</div>
+							
 						</div>
 
 						<!-- Key Weather Indicators: Redesigned with better layout -->
