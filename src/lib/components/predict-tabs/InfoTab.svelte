@@ -3,7 +3,8 @@
 		selectedLocation,
 		findNearestPoint,
 		locationLoadingStatus,
-		nearestFacilities
+		nearestFacilities,
+		facilitiesLayerActive // Import the facilities layer status store
 	} from '$lib/stores/locationStore.js';
 	import { waterStations, nearestWaterStation } from '$lib/stores/waterStationStore.js';
 	import { metroManilaCities, nearestWeatherCity } from '$lib/stores/weatherStore.js';
@@ -128,6 +129,62 @@
 		});
 	}
 
+	// Get color based on flood probability and risk level
+	function getPredictionColor(prediction, riskLevel) {
+		if (prediction === 'FLOODED') return 'text-red-600 font-bold';
+		
+		switch(riskLevel) {
+			case 'Medium': return 'text-orange-500 font-medium';
+			case 'Low': return 'text-yellow-600 font-medium';
+			case 'Very Low': return 'text-green-600';
+			default: return 'text-green-600';
+		}
+	}
+
+	// Get background color for prediction card based on risk level
+	function getPredictionCardStyle(prediction, riskLevel) {
+		if (prediction === 'FLOODED') return 'bg-red-50 border-red-200';
+		
+		switch(riskLevel) {
+			case 'Medium': return 'bg-orange-50 border-orange-200';
+			case 'Low': return 'bg-yellow-50 border-yellow-200';
+			case 'Very Low': return 'bg-green-50 border-green-200';
+			default: return 'bg-green-50 border-green-200';
+		}
+	}
+
+	// Get risk level badge style
+	function getRiskLevelBadgeStyle(riskLevel) {
+		switch(riskLevel) {
+			case 'High': return 'bg-red-100 text-red-800';
+			case 'Medium': return 'bg-orange-100 text-orange-800';
+			case 'Low': return 'bg-yellow-100 text-yellow-800';
+			case 'Very Low': return 'bg-green-100 text-green-800';
+			default: return 'bg-gray-100 text-gray-800';
+		}
+	}
+
+	// Get icon for prediction
+	function getPredictionIcon(prediction, riskLevel) {
+		if (prediction === 'FLOODED') return 'mdi:alert-circle';
+		
+		switch(riskLevel) {
+			case 'Medium': return 'mdi:alert';
+			case 'Low': return 'mdi:information';
+			case 'Very Low': return 'mdi:check-circle';
+			default: return 'mdi:check-circle';
+		}
+	}
+
+	// Format probability relative to threshold
+	function formatRelativeProbability(probability, threshold) {
+		if (!probability || !threshold) return '';
+		
+		const ratio = probability / threshold;
+		if (ratio >= 1) return 'exceeds threshold';
+		return `${Math.round(ratio * 100)}% of threshold`;
+	}
+
 	// Get color based on flood probability
 	function getFloodProbabilityColor(probability, prediction) {
 		if (prediction === 'FLOODED') return 'text-red-600 font-bold';
@@ -135,11 +192,6 @@
 		return 'text-green-600';
 	}
 
-	// Get background color for prediction card
-	function getPredictionCardStyle(prediction) {
-		if (prediction === 'FLOODED') return 'bg-red-50 border-red-200';
-		return 'bg-green-50 border-green-200';
-	}
 
 	// Format property value for display (convert fire_station -> Fire Station)
 	function formatPropertyValue(value) {
@@ -475,7 +527,7 @@
 			<div class="grid grid-cols-1 gap-2">
 				{#each floodPrediction.predictions as day, index}
 					<div
-						class={`rounded-md border p-2.5 shadow-sm ${getPredictionCardStyle(day.prediction)}`}
+						class={`rounded-md border p-2.5 shadow-sm ${getPredictionCardStyle(day.prediction_label, day.risk_level)}`}
 					>
 						<!-- Header with date and prediction -->
 						<div class="mb-2 flex items-start justify-between">
@@ -484,19 +536,36 @@
 									<Icon icon="mdi:calendar" class="mr-1.5" width="16" />
 									{formatDate(day.date)}
 								</h4>
-								<p
-									class={`${getFloodProbabilityColor(day.probability_flood, day.prediction)} mt-0.5 flex items-center text-sm`}
-								>
-									<Icon
-										icon={day.prediction === 'FLOODED' ? 'mdi:alert-circle' : 'mdi:check-circle'}
-										class="mr-1.5"
-										width="16"
-									/>
-									{day.prediction}
-									<span class="ml-1">({(day.probability_flood * 100).toFixed(1)}% probability)</span
+								
+								<!-- Prediction with risk level -->
+								<div class="mt-0.5 flex flex-wrap items-center gap-2">
+									<p
+										class={`${getPredictionColor(day.prediction_label, day.risk_level)} flex items-center text-sm`}
 									>
+										<Icon
+											icon={getPredictionIcon(day.prediction_label, day.risk_level)}
+											class="mr-1.5"
+											width="16"
+										/>
+										{day.prediction_label}
+									</p>
+									
+									<!-- Risk level badge -->
+									<span class={`flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${getRiskLevelBadgeStyle(day.risk_level)}`}>
+										<Icon icon="mdi:trending-up" class="mr-0.5" width="12" />
+										{day.risk_level} Risk
+									</span>
+								</div>
+								
+								<!-- Model probability info -->
+								<p class="mt-1 text-xs text-gray-500">
+									<span>Model confidence: {(day.probability_flood * 100).toFixed(1)}%</span>
+									{#if day.threshold_used}
+										<span class="ml-1">({formatRelativeProbability(day.probability_flood, day.threshold_used)})</span>
+									{/if}
 								</p>
 							</div>
+							
 							<div class="text-right">
 								{#if day.predicted_depth_inches}
 									<div
@@ -780,9 +849,17 @@
 			<div class="bg-base-200 rounded-lg p-3 shadow">
 				<h3 class="text-primary-focus mb-2 flex items-center text-base font-semibold">
 					<Icon icon="mdi:near-me" class="mr-1.5" width="16" />
-					5 Nearest Facilities
+					Nearest Facilities
 				</h3>
-				{#if $nearestFacilities.length > 0}
+				{#if !$facilitiesLayerActive}
+					<!-- Show message when facilities layer is off -->
+					<div class="rounded-md border border-yellow-200 bg-yellow-50 p-2">
+						<div class="flex items-center text-sm text-gray-700">
+							<Icon icon="mdi:layers-off" class="mr-2 flex-shrink-0 text-yellow-600" width="16" />
+							<p>Enable the "Nearby Facilities" layer in the map controls to see facilities in this area.</p>
+						</div>
+					</div>
+				{:else if $nearestFacilities.length > 0}
 					<ul class="list-none space-y-2.5 pl-0">
 						{#each $nearestFacilities as facility}
 							<li class="rounded-md border border-gray-400 bg-white">

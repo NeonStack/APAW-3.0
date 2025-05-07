@@ -6,7 +6,8 @@
 		getLocationName,
 		getCurrentPosition,
 		setLocationLoading,
-		nearestFacilities
+		nearestFacilities,
+		facilitiesLayerActive // Import the new store
 	} from '$lib/stores/locationStore.js';
 	import { waterStations } from '$lib/stores/waterStationStore.js';
 	import { get } from 'svelte/store';
@@ -58,6 +59,9 @@
 	let loadedGeojsonData = {};
 	let activeLeafletLayers = {};
 
+	// Remove local state variable and use the store instead
+	// let isFacilitiesLayerActive = false;
+
 	async function handleLocateUser() {
 		try {
 			dispatch('locationSelectionStart', { message: 'Getting your location...' });
@@ -74,6 +78,7 @@
 
 	function updateDisplayedFacilities() {
 		const location = get(selectedLocation);
+		const isFacilitiesLayerActive = get(facilitiesLayerActive);
 
 		if (!map || !location || location.lat === null || location.lng === null) {
 			if (facilityLayers[facilitiesConfig.id]) {
@@ -88,10 +93,16 @@
 
 		console.log('Updating nearby facilities with center:', centerLat, centerLng);
 
-		// Check if facilities layer is active and has data
-		const layerGroup = facilityLayers[facilitiesConfig.id];
-		if (layerGroup && map.hasLayer(layerGroup)) {
-			if (loadedGeojsonData[facilitiesConfig.id]) {
+		// Check if facilities layer is active
+		if (isFacilitiesLayerActive) {
+			const layerGroup = facilityLayers[facilitiesConfig.id];
+			
+			// Make sure layer is on the map if active
+			if (layerGroup && !map.hasLayer(layerGroup)) {
+				map.addLayer(layerGroup);
+			}
+			
+			if (layerGroup && loadedGeojsonData[facilitiesConfig.id]) {
 				displayNearbyFacilities(
 					centerLat, 
 					centerLng, 
@@ -100,27 +111,32 @@
 					L, 
 					facilityLayers, 
 					loadedGeojsonData
-				);
+					);
+					
+					// Update the nearest facilities list as well
+					updateNearestFacilitiesList(map, nearestFacilities, loadedGeojsonData);
+				} else if (layerGroup) {
+					// Try to load the data if not available
+					handleLayerToggle(
+						facilitiesConfig,
+						true,
+						false,
+						map,
+						L,
+						facilityLayers,
+						loadedGeojsonData,
+						activeLeafletLayers,
+						layerControl
+					);
+				}
 			} else {
-				// Try to load the data if not available
-				handleLayerToggle(
-					facilitiesConfig,
-					true,
-					false,
-					map,
-					L,
-					facilityLayers,
-					loadedGeojsonData,
-					activeLeafletLayers,
-					layerControl
-				);
+				// Clear facilities if layer is not active
+				if (facilityLayers[facilitiesConfig.id]) {
+					facilityLayers[facilitiesConfig.id].clearLayers();
+				}
+				nearestFacilities.set([]);
 			}
-		} else if (layerGroup) {
-			layerGroup.clearLayers();
 		}
-		
-		updateNearestFacilitiesList(map, nearestFacilities, loadedGeojsonData);
-	}
 
 	function handleSearchLocation(event) {
 		const { lat, lng, name } = event.detail;
@@ -243,30 +259,23 @@
 			const addedLayerName = e.name;
 			const layerConfig = allLayerConfigs.find(
 				(lc) => addedLayerName && addedLayerName.includes(lc.name)
-			);
-			handleLayerToggle(
-				layerConfig, 
-				true, 
-				!isInitialLayerSetup, 
-				map, 
-				L, 
-				facilityLayers, 
-				loadedGeojsonData, 
-				activeLeafletLayers, 
-				layerControl
-			);
-		});
-
-		map.on('overlayremove', function (e) {
-			const removedLayerName = e.name;
-			const layerConfig = allLayerConfigs.find(
-				(lc) => removedLayerName && removedLayerName.includes(lc.name)
-			);
-			if (layerConfig) {
+				);
+				
+				// Track when facilities layer is checked
+				if (layerConfig && layerConfig.id === facilitiesConfig.id) {
+					console.log('Facilities layer activated');
+					facilitiesLayerActive.set(true); // Update the store instead of local variable
+					
+					// Force update the display immediately if a location is selected
+					if ($selectedLocation && $selectedLocation.lat !== null) {
+						setTimeout(() => updateDisplayedFacilities(), 100);
+					}
+				}
+				
 				handleLayerToggle(
 					layerConfig, 
-					false, 
-					false, 
+					true, 
+					!isInitialLayerSetup, 
 					map, 
 					L, 
 					facilityLayers, 
@@ -274,18 +283,47 @@
 					activeLeafletLayers, 
 					layerControl
 				);
-			}
-		});
-
-		// Add and initialize facilities layer
-		facilityLayers[facilitiesConfig.id] = L.layerGroup();
-		map.addLayer(facilityLayers[facilitiesConfig.id]);
-		
-		// Pre-load the facilities data
-		loadAndProcessGeoJson(facilitiesConfig, loadedGeojsonData, true)
-			.catch(err => console.warn(`Failed to pre-load ${facilitiesConfig.name}:`, err));
-
-		isInitialLayerSetup = false;
+			});
+			
+			map.on('overlayremove', function (e) {
+				const removedLayerName = e.name;
+				const layerConfig = allLayerConfigs.find(
+					(lc) => removedLayerName && removedLayerName.includes(lc.name)
+					);
+					
+					// Track when facilities layer is unchecked
+					if (layerConfig && layerConfig.id === facilitiesConfig.id) {
+						facilitiesLayerActive.set(false); // Update the store instead of local variable
+						// Clear facilities in sidebar when layer is turned off
+						nearestFacilities.set([]);
+					}
+					
+					if (layerConfig) {
+						handleLayerToggle(
+							layerConfig, 
+							false, 
+							false, 
+							map, 
+							L, 
+							facilityLayers, 
+							loadedGeojsonData, 
+							activeLeafletLayers, 
+							layerControl
+						);
+					}
+				});
+				
+				// Add and initialize facilities layer but don't check it by default
+				facilityLayers[facilitiesConfig.id] = L.layerGroup();
+				
+				// Only pre-load the data but don't add the layer to the map by default
+				loadAndProcessGeoJson(facilitiesConfig, loadedGeojsonData, true)
+				.catch(err => console.warn(`Failed to pre-load ${facilitiesConfig.name}:`, err));
+				
+				// Don't automatically add the facilities layer to the map
+				// map.addLayer(facilityLayers[facilitiesConfig.id]);  <- Remove this line
+				
+				isInitialLayerSetup = false;
 
 		waterStationSubscription = waterStations.subscribe((value) => {
 			if (!map || !L) return;

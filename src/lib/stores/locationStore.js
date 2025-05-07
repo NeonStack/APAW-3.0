@@ -17,6 +17,9 @@ export const locationLoadingStatus = writable({
 
 export const nearestFacilities = writable([]);
 
+// Add new store for facilities layer status
+export const facilitiesLayerActive = writable(false);
+
 // Function to set loading state with a message
 export function setLocationLoading(isLoading, message = '') {
   locationLoadingStatus.set({ isLoading, message });

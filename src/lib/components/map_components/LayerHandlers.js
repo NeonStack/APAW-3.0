@@ -88,6 +88,11 @@ export async function handleLayerToggle(layerConfig, isAdding, showToast, map, L
   const layerGroup = facilityLayers[layerConfig.id];
 
   if (isAdding) {
+    // Make sure the layer group is added to the map when activated
+    if (!map.hasLayer(layerGroup)) {
+      map.addLayer(layerGroup);
+    }
+    
     const loadPromise = loadAndProcessGeoJson(layerConfig, loadedGeojsonData, !showToast)
       .then((geoJsonData) => {
         if (!geoJsonData) throw new Error('No data loaded.');
@@ -95,17 +100,21 @@ export async function handleLayerToggle(layerConfig, isAdding, showToast, map, L
         layerGroup.clearLayers();
 
         if (layerConfig.type === 'facility') {
-          const location = get(selectedLocation);
-          if (location && location.lat !== null && location.lng !== null) {
+          // For facility layers, immediately trigger the update for currently selected location
+          const selectedLoc = get(selectedLocation);
+          if (selectedLoc && selectedLoc.lat !== null && selectedLoc.lng !== null) {
             displayNearbyFacilities(
-              location.lat,
-              location.lng,
+              selectedLoc.lat,
+              selectedLoc.lng,
               NEARBY_RADIUS_METERS,
               map,
               L,
               facilityLayers,
               loadedGeojsonData
             );
+            console.log(`Displaying nearby ${layerConfig.name} for current location.`);
+          } else {
+            console.log(`${layerConfig.name} layer is active, waiting for location selection.`);
           }
         } else if (layerConfig.type === 'hazard' && layerConfig.style) {
           activeLeafletLayers[layerConfig.id] = L.geoJSON(geoJsonData, {
@@ -159,6 +168,12 @@ export async function handleLayerToggle(layerConfig, isAdding, showToast, map, L
   } else {
     console.log(`Clearing ${layerConfig.name} layer.`);
     layerGroup.clearLayers();
+    
+    // Ensure the layer is removed from the map
+    if (map.hasLayer(layerGroup)) {
+      map.removeLayer(layerGroup);
+    }
+    
     if (activeLeafletLayers[layerConfig.id]) {
       delete activeLeafletLayers[layerConfig.id];
     }
