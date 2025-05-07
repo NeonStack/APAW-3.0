@@ -60,6 +60,12 @@
 		nearestWeatherCity.set(nearestCity);
 	}
 
+	// Reset flood prediction when location changes
+	$: if ($selectedLocation) {
+		floodPrediction = null;
+		predictionError = null;
+	}
+
 	// Request flood prediction from API
 	async function predictFlood() {
 		if (!$selectedLocation.lat || !$selectedLocation.lng) {
@@ -421,6 +427,19 @@
 		};
 		return units[key] || '';
 	}
+
+	// Format probability with 4 decimal places
+	function formatRawProbability(probability) {
+		if (!probability && probability !== 0) return 'N/A';
+		return probability.toFixed(4);
+	}
+
+	// Format threshold ratio as percentage with 2 decimal places
+	function formatThresholdRatio(probability, threshold) {
+		if (!probability || !threshold) return '';
+		const ratio = (probability / threshold) * 100;
+		return ratio.toFixed(2) + '%';
+	}
 </script>
 
 <div class="info-tab">
@@ -558,10 +577,20 @@
 								</div>
 								
 								<!-- Model probability info -->
-								<p class="mt-1 text-xs text-gray-500">
-									<span>Model confidence: {(day.probability_flood * 100).toFixed(1)}%</span>
+								<p class="mt-1 text-xs text-gray-500 flex flex-wrap gap-x-2">
+									<span class="whitespace-nowrap">
+										<span class="font-medium">Model confidence:</span> {formatRawProbability(day.probability_flood)}
+									</span>
+									
 									{#if day.threshold_used}
-										<span class="ml-1">({formatRelativeProbability(day.probability_flood, day.threshold_used)})</span>
+										<span class="whitespace-nowrap">
+											<span class="font-medium">Threshold:</span> {formatRawProbability(day.threshold_used)}
+										</span>
+										
+										<span class="whitespace-nowrap">
+											<span class="font-medium">Ratio:</span> {formatThresholdRatio(day.probability_flood, day.threshold_used)}
+											<span class="text-2xs ml-1 italic">of threshold</span>
+										</span>
 									{/if}
 								</p>
 							</div>
@@ -658,84 +687,51 @@
 							{expandedPredictions[day.date] ? 'Hide detailed data' : 'Show detailed data'}
 						</button>
 
-						<!-- Expanded Details: More efficient layout -->
+						<!-- Expanded Details: Improved layout for features -->
 						{#if expandedPredictions[day.date] && day.features_used}
 							<div class="mt-2 grid grid-cols-1 gap-2 md:grid-cols-2">
 								<!-- Feature groups displayed in a better layout -->
-								<div class="rounded border border-gray-200 bg-gray-50 p-2">
-									<h5 class="mb-1 flex items-center text-sm font-medium text-gray-700">
-										<Icon icon="mdi:map-marker" class="mr-1 text-gray-600" width="14" />
-										Location Data
-									</h5>
-									<div class="space-y-1 text-sm">
-										{#each groupFeatures(day.features_used)['Location'] as key}
-											{#if hasValidValue(day.features_used[key])}
-												<div class="flex justify-between">
-													<span class="text-gray-500">{getFeatureDisplayName(key)}:</span>
-													<span class="font-medium">{formatValue(key, day.features_used[key])}</span
-													>
-												</div>
-											{/if}
-										{/each}
+								{#each Object.entries(groupFeatures(day.features_used)) as [groupName, groupKeys]}
+									<div class="rounded border border-gray-200 bg-gray-50 p-2">
+										<h5 class="mb-1 flex items-center text-xs font-medium text-gray-700">
+											<Icon 
+												icon={
+													groupName === 'Location' ? 'mdi:map-marker' : 
+													groupName === 'Current Day' ? 'mdi:weather-partly-cloudy' :
+													groupName === 'Previous Days' ? 'mdi:history' :
+													groupName === 'Accumulated Precipitation' ? 'mdi:water-percent' :
+													'mdi:information-outline'
+												} 
+												class="mr-1 text-gray-600" 
+												width="14" 
+											/>
+											{groupName}
+										</h5>
+										<div class="space-y-0.5 text-2xs">
+											{#each groupKeys as key}
+												{#if hasValidValue(day.features_used[key])}
+													<div class="flex items-baseline justify-between overflow-hidden">
+														<span class="text-gray-500 truncate pr-2" title={getFeatureDisplayName(key)}>
+															{getFeatureDisplayName(key).replace(/ \([^)]+\)/, '')}: 
+														</span>
+														<div class="flex-shrink-0 font-medium text-right">
+															{formatValue(key, day.features_used[key])}
+															<span class="text-gray-400 ml-0.5">
+																{key.includes('C_') ? '°C' : 
+																key.includes('mm') ? 'mm' : 
+																key.includes('kmh') ? 'km/h' : 
+																key.includes('m3m3') ? 'm³/m³' : 
+																key.includes('m') ? 'm' : 
+																key.includes('Hours') ? 'hrs' : 
+																key.includes('%') ? '%' : ''}
+															</span>
+														</div>
+													</div>
+												{/if}
+											{/each}
+										</div>
 									</div>
-								</div>
-
-								<!-- Current Day Weather -->
-								<div class="rounded border border-gray-200 bg-gray-50 p-2">
-									<h5 class="mb-1 flex items-center text-sm font-medium text-gray-700">
-										<Icon icon="mdi:weather-partly-cloudy" class="mr-1 text-gray-600" width="14" />
-										Forecast Day Weather
-									</h5>
-									<div class="space-y-1 text-sm">
-										{#each groupFeatures(day.features_used)['Current Day'] as key}
-											{#if hasValidValue(day.features_used[key])}
-												<div class="flex justify-between">
-													<span class="text-gray-500">{getFeatureDisplayName(key)}:</span>
-													<span class="font-medium">{formatValue(key, day.features_used[key])}</span
-													>
-												</div>
-											{/if}
-										{/each}
-									</div>
-								</div>
-
-								<!-- Previous Days Weather -->
-								<div class="rounded border border-gray-200 bg-gray-50 p-2">
-									<h5 class="mb-1 flex items-center text-sm font-medium text-gray-700">
-										<Icon icon="mdi:history" class="mr-1 text-gray-600" width="14" />
-										Previous Days Weather
-									</h5>
-									<div class="space-y-1 text-sm">
-										{#each groupFeatures(day.features_used)['Previous Days'] as key}
-											{#if hasValidValue(day.features_used[key])}
-												<div class="flex justify-between">
-													<span class="text-gray-500">{getFeatureDisplayName(key)}:</span>
-													<span class="font-medium">{formatValue(key, day.features_used[key])}</span
-													>
-												</div>
-											{/if}
-										{/each}
-									</div>
-								</div>
-
-								<!-- Accumulated Precipitation -->
-								<div class="rounded border border-gray-200 bg-gray-50 p-2">
-									<h5 class="mb-1 flex items-center text-sm font-medium text-gray-700">
-										<Icon icon="mdi:water-percent" class="mr-1 text-gray-600" width="14" />
-										Accumulated Precipitation
-									</h5>
-									<div class="space-y-1 text-sm">
-										{#each groupFeatures(day.features_used)['Accumulated Precipitation'] as key}
-											{#if hasValidValue(day.features_used[key])}
-												<div class="flex justify-between">
-													<span class="text-gray-500">{getFeatureDisplayName(key)}:</span>
-													<span class="font-medium">{formatValue(key, day.features_used[key])}</span
-													>
-												</div>
-											{/if}
-										{/each}
-									</div>
-								</div>
+								{/each}
 							</div>
 						{/if}
 					</div>
