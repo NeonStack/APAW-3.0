@@ -1,0 +1,35 @@
+### NOAH Flood Hazard Maps
+
+# Description:
+The 100-year rain return flood hazard maps show low (Var=1), medium (Var=2), and high (Var=3) flood hazards represented as
+yellow, orange, and red respectively. Flood hazards consider take both the height and velocity of the water
+into consideration and calculates the hazard levels based on the danger they pose to people and
+structures. Generally, for an average Filipino with a height of 5’ 6”, areas with flood depths from the knee
+down can be considered to have low hazard levels. Those with flood depths ranging from the knee to neck
+are considered to have medium hazard levels, and those covered with floods that are higher than the neck
+have high hazard levels. However, since the flow velocity is also considered, areas that have shallow but
+fast-flowing flood waters may have a higher hazard level than that denoted by the height of the flood
+covering it.
+
+# Geographic Coverage
+Entire Philippines; LiDAR data specifically covers the 18 major river basins
+
+# Attributes Information
+Var: Hazard classification indicator.
+1: Low hazard (0-0.5 meters)
+2: Medium hazard (>0.5-1.5 meters)
+3: High hazard (>1.5 meters)
+
+# Coordinate System
+Datum: WGS 84
+EPSG Code: 4326
+
+# Data Format
+ESRI Shapefile
+
+# Use Constraints
+This data is licensed under Open Data Commons Open Database License (ODC-ODbL). If you alter or build upon our data, you may only distribute the result under the same license
+(ODC-ODbL).
+
+# Update Frequency
+Annual, or as needed based on field validation and/or new data inputs
