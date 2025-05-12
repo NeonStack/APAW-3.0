@@ -63,7 +63,13 @@
 	// let isFacilitiesLayerActive = false;
 
 	async function handleLocateUser() {
+		if (isSelectingLocation) {
+			console.log('Location selection already in progress, ignoring locate request');
+			return;
+		}
+		
 		try {
+			isSelectingLocation = true; // Set flag before starting
 			dispatch('locationSelectionStart', { message: 'Getting your location...' });
 			const position = await getCurrentPosition();
 			const locationName = await getLocationName(position.lat, position.lng);
@@ -73,6 +79,8 @@
 			alert(`Could not get your location: ${error.message}`);
 			setLocationLoading(false);
 			dispatch('locationSelectionComplete', { error: error.message });
+		} finally {
+			isSelectingLocation = false; // Always reset flag when done
 		}
 	}
 
@@ -139,10 +147,50 @@
 		}
 
 	function handleSearchLocation(event) {
+		// Also prevent search location if already selecting
+		if (isSelectingLocation) {
+			console.log('Location selection already in progress, ignoring search');
+			return;
+		}
+		
 		const { lat, lng, name } = event.detail;
-		setSelectedLocation(lat, lng, name, map, L, marker, dispatch)
+		isSelectingLocation = true; // Set flag before starting
+		
+		// Show immediate loading marker for search results too
+		if (marker && map) {
+			try {
+				map.removeLayer(marker);
+				marker = null;
+			} catch (e) {
+				console.error('Error removing existing marker:', e);
+			}
+		}
+		
+		// Create loading indicator marker
+		const loadingIcon = L.divIcon({
+			html: `<div class="loading-marker-wrapper">
+				<div class="loading-marker-inner"></div>
+			</div>`,
+			className: 'loading-marker-icon',
+			iconSize: [40, 40],
+			iconAnchor: [20, 20]
+		});
+		
+		// Add temporary marker
+		const tempMarker = L.marker([lat, lng], { icon: loadingIcon }).addTo(map);
+		map.panTo([lat, lng]);
+		
+		setSelectedLocation(lat, lng, name, map, L, marker, dispatch, tempMarker)
 			.then(newMarker => {
 				if (newMarker) marker = newMarker;
+			})
+			.finally(() => {
+				isSelectingLocation = false; // Always reset flag when done
+				
+				// Clean up temp marker if still exists
+				if (tempMarker && map.hasLayer(tempMarker)) {
+					map.removeLayer(tempMarker);
+				}
 			});
 	}
 
@@ -272,10 +320,52 @@
 		}
 
 		map.on('click', async (e) => {
+			// Prevent multiple clicks while fetching data
+			if (isSelectingLocation) {
+				console.log('Location selection already in progress, ignoring click');
+				return;
+			}
+			
 			const { lat, lng } = e.latlng;
 
 			if (strictNcrBounds && strictNcrBounds.contains(e.latlng)) {
-				marker = await setSelectedLocation(lat, lng, null, map, L, marker, dispatch);
+				isSelectingLocation = true; // Set flag before starting
+				
+				// Immediately add a temporary marker with loading effect
+				if (marker && map) {
+					try {
+						map.removeLayer(marker);
+						marker = null;
+					} catch (e) {
+						console.error('Error removing existing marker:', e);
+					}
+				}
+				
+				// Create a loading indicator marker
+				const loadingIcon = L.divIcon({
+					html: `<div class="loading-marker-wrapper">
+						<div class="loading-marker-inner"></div>
+					</div>`,
+					className: 'loading-marker-icon',
+					iconSize: [40, 40],
+					iconAnchor: [20, 20]
+				});
+				
+				// Add temporary marker immediately
+				const tempMarker = L.marker([lat, lng], { icon: loadingIcon }).addTo(map);
+				map.panTo([lat, lng]);
+				
+				try {
+					// Get final marker from location setting function, which replaces the temp marker
+					marker = await setSelectedLocation(lat, lng, null, map, L, marker, dispatch, tempMarker);
+				} finally {
+					isSelectingLocation = false; // Always reset flag when done
+					
+					// If temporary marker still exists for some reason, remove it
+					if (tempMarker && map.hasLayer(tempMarker)) {
+						map.removeLayer(tempMarker);
+					}
+				}
 			} else {
 				toast.error('Please select a location near the National Capital Region (NCR).');
 			}
@@ -673,5 +763,42 @@
 
 	:global(.leaflet-control-recenter) {
 		margin-left: 10px !important;
+	}
+
+	/* Add new styles for loading marker */
+	:global(.loading-marker-icon) {
+		background: transparent;
+		border: none;
+	}
+
+	:global(.loading-marker-wrapper) {
+		position: relative;
+		width: 40px;
+		height: 40px;
+	}
+
+	:global(.loading-marker-inner) {
+		position: absolute;
+		top: 50%;
+		left: 50%;
+		width: 12px;
+		height: 12px;
+		margin: -6px 0 0 -6px;
+		background-color: #3ba6d0;
+		border-radius: 50%;
+		box-shadow: 0 0 0 rgba(12, 49, 67, 0.4);
+		animation: loading-pulse 1.5s infinite;
+	}
+
+	@keyframes loading-pulse {
+		0% {
+			box-shadow: 0 0 0 0 hsla(197, 61%, 52%, 0.875);
+		}
+		70% {
+			box-shadow: 0 0 0 20px hsla(197, 61%, 52%, 0.521)
+		}
+		100% {
+			box-shadow: 0 0 0 0 hsla(197, 61%, 52%, 0.111);
+		}
 	}
 </style>

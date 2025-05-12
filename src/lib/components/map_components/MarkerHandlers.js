@@ -14,7 +14,7 @@ export function calculateDistance(lat1, lon1, lat2, lon2) {
   const φ1 = (lat1 * Math.PI) / 180;
   const φ2 = (lat2 * Math.PI) / 180;
   const Δφ = ((lat2 - lat1) * Math.PI) / 180;
-  const Δλ = ((lon2 - lon1) * Math.PI) / 180;
+  const Δλ = ((lon1 - lon1) * Math.PI) / 180;
 
   const a =
     Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
@@ -55,16 +55,27 @@ export async function fetchElevation(lat, lng) {
   }
 }
 
-export async function setSelectedLocation(lat, lng, locationName = null, map, L, marker, dispatch) {
-  let isSelectingLocation = true;
+export async function setSelectedLocation(lat, lng, locationName = null, map, L, marker, dispatch, tempMarker = null) {
   setLocationLoading(true, 'Fetching location data...');
   dispatch('locationSelectionStart', { lat, lng });
 
   const currentLat = parseFloat(lat).toFixed(6);
   const currentLng = parseFloat(lng).toFixed(6);
 
+  // If there's no temporary marker, remove the existing marker
+  // If there is a temporary marker, we'll keep it until we're ready to replace it
+  if (!tempMarker && marker && map) {
+    try {
+      map.removeLayer(marker);
+      marker = null;
+    } catch (e) {
+      console.error('Error removing existing marker:', e);
+    }
+  }
+
   const elevationResult = await fetchElevation(currentLat, currentLng);
 
+  // Handle error cases
   if (
     elevationResult &&
     typeof elevationResult === 'object' &&
@@ -73,12 +84,15 @@ export async function setSelectedLocation(lat, lng, locationName = null, map, L,
     const errorMessage = elevationResult.error;
     toast.error(`${errorMessage}`);
     setLocationLoading(false);
-    isSelectingLocation = false;
     dispatch('locationSelectionComplete', { error: errorMessage });
-
-    if (marker && map) {
-      map.removeLayer(marker);
-      marker = null;
+    
+    // If there was a temp marker, remove it
+    if (tempMarker && map) {
+      try {
+        map.removeLayer(tempMarker);
+      } catch (e) {
+        console.error('Error removing temporary marker:', e);
+      }
     }
     
     selectedLocation.set({
@@ -92,11 +106,16 @@ export async function setSelectedLocation(lat, lng, locationName = null, map, L,
     return null;
   }
 
-  if (marker && map) {
-    map.removeLayer(marker);
-    marker = null;
+  // Remove the temporary marker if it exists
+  if (tempMarker && map) {
+    try {
+      map.removeLayer(tempMarker);
+    } catch (e) {
+      console.error('Error removing temporary marker:', e);
+    }
   }
 
+  // Create the final marker
   if (map && L) {
     marker = L.marker([currentLat, currentLng]).addTo(map);
     map.panTo([currentLat, currentLng]);
@@ -129,7 +148,6 @@ export async function setSelectedLocation(lat, lng, locationName = null, map, L,
     toast.error(`Elevation Error: ${errorMessage}`);
   }
 
-  isSelectingLocation = false;
   setLocationLoading(false);
 
   dispatch('locationSelectionComplete', {
@@ -153,7 +171,6 @@ function getFeatureCoordinates(feature) {
     };
   } 
   else if (feature.geometry.type === 'Polygon') {
-    // Use the first coordinate of the polygon for distance calculation
     const firstCoord = feature.geometry.coordinates[0][0];
     return {
       lat: firstCoord[1],
@@ -161,7 +178,6 @@ function getFeatureCoordinates(feature) {
     };
   }
   else if (feature.geometry.type === 'MultiPolygon') {
-    // Use the first coordinate of the first polygon for distance calculation
     const firstCoord = feature.geometry.coordinates[0][0][0];
     return {
       lat: firstCoord[1],
@@ -185,7 +201,6 @@ export function displayNearbyFacilities(centerLat, centerLng, radius, map, L, fa
 
   let count = 0;
   fullGeojsonData.features.forEach((feature) => {
-    // Get coordinates for all geometry types
     const coords = getFeatureCoordinates(feature);
     if (!coords) return;
     
@@ -194,34 +209,24 @@ export function displayNearbyFacilities(centerLat, centerLng, radius, map, L, fa
 
     if (distance <= radius) {
       count++;
-      // Get icon and color based on facility properties
       const { icon, color } = getFacilityIconAndColor(feature.properties);
-      
-      // Create marker for the facility
       const marker = L.marker([featureLat, featureLng], {
         icon: createFacilityIcon(L, { icon, color })
       });
 
-      // Determine friendly name and facility type
       const friendlyName = getFacilityFriendlyName(feature.properties);
       const facilityType = getFacilityType(feature.properties);
       
-      // Build rich popup content
       let popupContent = `<div class="facility-popup">`;
-      
-      // Main heading - facility name
       popupContent += `<h4 style="margin:0 0 5px 0;font-size:14px;color:#0c3143;">${friendlyName}</h4>`;
       
-      // Only show facility type if it's different from the name and not null
       if (facilityType && friendlyName !== facilityType) {
         popupContent += `<div style="font-size:12px;color:#555;margin-bottom:5px;"><b>${facilityType}</b></div>`;
       }
       
-      // Add additional details if available
       let hasAddress = false;
       let addressParts = [];
       
-      // Building number and street
       if (feature.properties['addr:housenumber'] && feature.properties['addr:street']) {
         addressParts.push(`${feature.properties['addr:housenumber']} ${feature.properties['addr:street']}`);
         hasAddress = true;
@@ -230,7 +235,6 @@ export function displayNearbyFacilities(centerLat, centerLng, radius, map, L, fa
         hasAddress = true;
       }
       
-      // City/province
       if (feature.properties['addr:city']) {
         addressParts.push(feature.properties['addr:city']);
       } else if (feature.properties['addr:district']) {
@@ -241,57 +245,47 @@ export function displayNearbyFacilities(centerLat, centerLng, radius, map, L, fa
         addressParts.push(feature.properties['addr:province']);
       }
       
-      // Display formatted address if we have components
       if (addressParts.length > 0) {
         popupContent += `<div style="font-size:12px;color:#666;margin-bottom:5px;">${addressParts.join(', ')}</div>`;
       }
       
-      // Add additional details if available
       let detailsAdded = false;
       
-      // Add phone if available
       if (feature.properties.phone) {
         popupContent += `<div style="font-size:11px;color:#666;"><b>Phone:</b> ${feature.properties.phone}</div>`;
         detailsAdded = true;
       }
       
-      // Add website if available
       if (feature.properties.website) {
         popupContent += `<div style="font-size:11px;color:#666;"><b>Website:</b> <a href="${feature.properties.website}" target="_blank">${feature.properties.website.replace(/^https?:\/\//, '')}</a></div>`;
         detailsAdded = true;
       }
       
-      // Add operating hours if available
       if (feature.properties.opening_hours) {
         popupContent += `<div style="font-size:11px;color:#666;"><b>Hours:</b> ${feature.properties.opening_hours}</div>`;
         detailsAdded = true;
       }
       
-      // Add relevant emergency info
       if (feature.properties.emergency && feature.properties.emergency !== 'yes') {
         popupContent += `<div style="font-size:11px;color:#666;"><b>Emergency Type:</b> ${formatFacilityType(feature.properties.emergency)}</div>`;
         detailsAdded = true;
       }
       
-      // Add capacity if available (for evacuation centers, schools, etc.)
       if (feature.properties.capacity) {
         popupContent += `<div style="font-size:11px;color:#666;"><b>Capacity:</b> ${feature.properties.capacity}</div>`;
         detailsAdded = true;
       }
       
-      // Add religion for places of worship
       if (feature.properties.religion) {
         popupContent += `<div style="font-size:11px;color:#666;"><b>Religion:</b> ${formatFacilityType(feature.properties.religion)}</div>`;
         detailsAdded = true;
       }
       
-      // Add operator if available
       if (feature.properties.operator) {
         popupContent += `<div style="font-size:11px;color:#666;"><b>Operator:</b> ${feature.properties.operator}</div>`;
         detailsAdded = true;
       }
       
-      // Close the popup div
       popupContent += `</div>`;
       
       marker.bindPopup(popupContent);
@@ -339,7 +333,7 @@ export function updateNearestFacilitiesList(map, nearestFacilities, loadedGeojso
           lng: featureLng,
           icon: icon,
           color: color,
-          properties: feature.properties // Store the full properties for expandable view
+          properties: feature.properties
         });
       }
     });
