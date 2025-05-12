@@ -148,3 +148,15 @@ export const mapAttributions = {
   esriTopo: 'Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ, TomTom, Intermap, iPC, USGS, FAO, NPS, NRCAN, GeoBase, Kadaster NL, Ordnance Survey, Esri Japan, METI, Esri China (Hong Kong), and the GIS User Community'
   // Removing esriTerrain
 };
+
+// Add shorter attribution info to keep the UI clean
+export const shortMapAttributions = {
+  standard: 'OSM Contributors',
+  topographic: 'OpenTopoMap',
+  satellite: 'Esri',
+  osmHot: 'OSM-HOT',
+  positron: 'OSM & CARTO',
+  darkMatter: 'OSM & CARTO',
+  esriStreet: 'Esri',
+  esriTopo: 'Esri & contributors'
+};

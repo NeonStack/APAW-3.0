@@ -852,4 +852,35 @@
 			box-shadow: 0 0 0 0 hsla(197, 61%, 52%, 0);
 		}
 	}
+
+	/* Style the attribution control to be smaller with hover expansion */
+	:global(.leaflet-control-attribution) {
+		line-height: 1.2 !important;
+		padding: 2px 4px !important;
+		max-width: 300px !important;
+		white-space: nowrap !important;
+		overflow: hidden !important;
+		text-overflow: ellipsis !important;
+		background-color: rgba(255, 255, 255, 0.7) !important;
+		transition: all 0.3s ease !important;
+	}
+
+	:global(.leaflet-control-attribution:hover) {
+		max-width: none !important;
+		white-space: normal !important;
+		background-color: rgba(255, 255, 255, 0.9) !important;
+		z-index: 1000 !important;
+	}
+
+	/* Ensure attribution doesn't overlap with controls */
+	:global(.leaflet-bottom.leaflet-right) {
+		right: 0 !important;
+		bottom: 0 !important;
+	}
+
+	:global(.leaflet-bottom.leaflet-left) {
+		left: 0 !important;
+		bottom: 0 !important;
+		margin-bottom: 5px !important;
+	}
 </style>
