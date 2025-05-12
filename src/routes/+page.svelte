@@ -1,5 +1,4 @@
 <script>
-	import PredictTabs from '$lib/components/PredictTabs.svelte';
 	import { onMount } from 'svelte';
 	import Icon from '@iconify/svelte';
 
