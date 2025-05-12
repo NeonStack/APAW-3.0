@@ -377,6 +377,58 @@ export async function POST({ request, url }) {
 									(get(forecast, 'Night.WetBulbTemperature.Average.Value', 0) ?? 0)) /
 								2,
 
+								// WBGT data
+							min_wbgt_c: Math.min(
+								get(forecast, 'Day.WetBulbGlobeTemperature.Minimum.Value', 999) ?? 999,
+								get(forecast, 'Night.WetBulbGlobeTemperature.Minimum.Value', 999) ?? 999
+							) === 999 ? null : Math.min(
+								get(forecast, 'Day.WetBulbGlobeTemperature.Minimum.Value', 999) ?? 999,
+								get(forecast, 'Night.WetBulbGlobeTemperature.Minimum.Value', 999) ?? 999
+							),
+							max_wbgt_c: Math.max(
+								get(forecast, 'Day.WetBulbGlobeTemperature.Maximum.Value', -999) ?? -999,
+								get(forecast, 'Night.WetBulbGlobeTemperature.Maximum.Value', -999) ?? -999
+							) === -999 ? null : Math.max(
+								get(forecast, 'Day.WetBulbGlobeTemperature.Maximum.Value', -999) ?? -999,
+								get(forecast, 'Night.WetBulbGlobeTemperature.Maximum.Value', -999) ?? -999
+							),
+							avg_wbgt_c:
+								(get(forecast, 'Day.WetBulbGlobeTemperature.Average.Value') === null && 
+								 get(forecast, 'Night.WetBulbGlobeTemperature.Average.Value') === null) ? null :
+								((get(forecast, 'Day.WetBulbGlobeTemperature.Average.Value', 0) ?? 0) +
+									(get(forecast, 'Night.WetBulbGlobeTemperature.Average.Value', 0) ?? 0)) /
+								(((get(forecast, 'Day.WetBulbGlobeTemperature.Average.Value') !== null) ? 1 : 0) + 
+								 ((get(forecast, 'Night.WetBulbGlobeTemperature.Average.Value') !== null) ? 1 : 0) || 1),
+
+							// Day weather condition data
+							day_icon: get(forecast, 'Day.Icon'),
+							day_icon_phrase: get(forecast, 'Day.IconPhrase'),
+							day_short_phrase: get(forecast, 'Day.ShortPhrase'),
+							day_long_phrase: get(forecast, 'Day.LongPhrase'),
+							day_has_precipitation: get(forecast, 'Day.HasPrecipitation'),
+							day_precipitation_type: get(forecast, 'Day.PrecipitationType'),
+							day_precipitation_intensity: get(forecast, 'Day.PrecipitationIntensity'),
+
+							// Night weather condition data
+							night_icon: get(forecast, 'Night.Icon'),
+							night_icon_phrase: get(forecast, 'Night.IconPhrase'),
+							night_short_phrase: get(forecast, 'Night.ShortPhrase'),
+							night_long_phrase: get(forecast, 'Night.LongPhrase'),
+							night_has_precipitation: get(forecast, 'Night.HasPrecipitation'),
+
+							// Headline data from AccuWeather
+							headline_effective_date: get(weatherData, 'Headline.EffectiveDate') ? 
+								moment(get(weatherData, 'Headline.EffectiveDate')).toISOString() : null,
+							headline_end_date: get(weatherData, 'Headline.EndDate') ? 
+								moment(get(weatherData, 'Headline.EndDate')).toISOString() : null,
+							headline_severity: get(weatherData, 'Headline.Severity'),
+							headline_text: get(weatherData, 'Headline.Text'),
+							headline_category: get(weatherData, 'Headline.Category'),
+							
+							// Additional fields
+							hours_of_sun: get(forecast, 'HoursOfSun'),
+							link: get(forecast, 'Link'),
+
 							// Soil Data (from Open-Meteo)
 							avg_soil_temp_6cm_c: soilDataForDay.avg_soil_temp_6cm_c,
 							avg_soil_moisture_3_9cm_m3m3: soilDataForDay.avg_soil_moisture_3_9cm_m3m3,
