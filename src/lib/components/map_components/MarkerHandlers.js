@@ -187,6 +187,122 @@ function getFeatureCoordinates(feature) {
   return null;
 }
 
+// Format property value for display (convert fire_station -> Fire Station)
+function formatPropertyValue(value) {
+  if (!value || typeof value !== 'string') return value;
+  
+  return value
+    .split('_')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+}
+
+// Extract readable property info from facility properties
+function getFormattedAddress(properties) {
+  if (!properties) return null;
+  
+  // Collect address components
+  const addressParts = [];
+  
+  // Street and house number
+  if (properties['addr:housenumber'] && properties['addr:street']) {
+    addressParts.push(`${properties['addr:housenumber']} ${properties['addr:street']}`);
+  } else if (properties['addr:street']) {
+    addressParts.push(properties['addr:street']);
+  }
+  
+  // City/municipality
+  if (properties['addr:city']) {
+    addressParts.push(properties['addr:city']);
+  } else if (properties['addr:district']) {
+    addressParts.push(properties['addr:district']);
+  }
+  
+  // Province
+  if (properties['addr:province']) {
+    addressParts.push(properties['addr:province']);
+  }
+  
+  // Postcode
+  if (properties['addr:postcode']) {
+    addressParts.push(properties['addr:postcode']);
+  }
+  
+  return addressParts.length > 0 ? addressParts.join(', ') : null;
+}
+
+// Extract building info from properties with better formatting
+function getBuildingInfo(properties) {
+  if (!properties) return [];
+  
+  const buildingInfo = [];
+  const skipKeys = ['building:part', 'building:type']; // Skip these building keys
+  
+  // Extract building keys like building:levels, building:material, etc.
+  Object.keys(properties).forEach(key => {
+    if (key.startsWith('building:') && !skipKeys.includes(key)) {
+      // Extract the part after building:
+      const label = key.replace('building:', '');
+      // Capitalize first letter and replace underscores
+      const formattedLabel = label
+        .split('_')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
+      
+      // Format the value if it's a string
+      const value = typeof properties[key] === 'string' 
+        ? formatPropertyValue(properties[key]) 
+        : properties[key];
+      
+      buildingInfo.push({
+        label: formattedLabel,
+        value: value
+      });
+    }
+  });
+      
+  return buildingInfo;
+}
+
+// Get additional properties worth displaying with better formatting
+function getAdditionalProperties(properties) {
+  if (!properties) return [];
+  
+  const additionalProps = [];
+  // IMPORTANT: Using EXACTLY the same properties as in InfoTab.svelte
+  const interestingProps = [
+    'amenity', 'emergency', 'evacuation_center', 'leisure', 'operator', 'capacity'
+  ];
+  
+  interestingProps.forEach(prop => {
+    if (properties[prop] && properties[prop] !== 'yes') {
+      // Format the label
+      let label = prop;
+      if (prop.includes(':')) {
+        label = prop.split(':')[1];
+      }
+      
+      // Properly format the label with spaces and capitalization
+      label = label
+        .split('_')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
+      
+      // Format the value if it's a string
+      const value = typeof properties[prop] === 'string' 
+        ? formatPropertyValue(properties[prop]) 
+        : properties[prop];
+      
+      additionalProps.push({
+        label,
+        value
+      });
+    }
+  });
+  
+  return additionalProps;
+}
+
 // Modified to handle consolidated facilities with improved popup content
 export function displayNearbyFacilities(centerLat, centerLng, radius, map, L, facilityLayers, loadedGeojsonData) {
   const facilitiesId = 'facilities';
@@ -217,78 +333,68 @@ export function displayNearbyFacilities(centerLat, centerLng, radius, map, L, fa
       const friendlyName = getFacilityFriendlyName(feature.properties);
       const facilityType = getFacilityType(feature.properties);
       
+      // New enhanced popup content that matches InfoTab display
       let popupContent = `<div class="facility-popup">`;
+      
+      // Facility Name and Type Header
       popupContent += `<h4 style="margin:0 0 5px 0;font-size:14px;color:#0c3143;">${friendlyName}</h4>`;
       
       if (facilityType && friendlyName !== facilityType) {
         popupContent += `<div style="font-size:12px;color:#555;margin-bottom:5px;"><b>${facilityType}</b></div>`;
       }
       
-      let hasAddress = false;
-      let addressParts = [];
-      
-      if (feature.properties['addr:housenumber'] && feature.properties['addr:street']) {
-        addressParts.push(`${feature.properties['addr:housenumber']} ${feature.properties['addr:street']}`);
-        hasAddress = true;
-      } else if (feature.properties['addr:street']) {
-        addressParts.push(feature.properties['addr:street']);
-        hasAddress = true;
+      // Address Section
+      const formattedAddress = getFormattedAddress(feature.properties);
+      if (formattedAddress) {
+        popupContent += `<div style="margin-top:8px;margin-bottom:8px;">`;
+        popupContent += `<div style="font-size:12px;color:#666;"><b>Address:</b> ${formattedAddress}</div>`;
+        popupContent += `</div>`;
       }
       
-      if (feature.properties['addr:city']) {
-        addressParts.push(feature.properties['addr:city']);
-      } else if (feature.properties['addr:district']) {
-        addressParts.push(feature.properties['addr:district']);
+      // Building Info Section
+      const buildingInfo = getBuildingInfo(feature.properties);
+      if (buildingInfo.length > 0) {
+        popupContent += `<div style="margin-top:8px;margin-bottom:8px;">`;
+        popupContent += `<div style="font-size:12px;color:#666;"><b>Building:</b></div>`;
+        
+        buildingInfo.forEach(info => {
+          popupContent += `<div style="font-size:11px;color:#666;margin-left:8px;">
+            <span style="color:#555;">${info.label}:</span> ${info.value}
+          </div>`;
+        });
+        
+        popupContent += `</div>`;
       }
       
-      if (feature.properties['addr:province']) {
-        addressParts.push(feature.properties['addr:province']);
+      // Additional Properties Section
+      const additionalProps = getAdditionalProperties(feature.properties);
+      if (additionalProps.length > 0) {
+        popupContent += `<div style="margin-top:8px;">`;
+        popupContent += `<div style="font-size:12px;color:#666;"><b>Details:</b></div>`;
+        
+        additionalProps.forEach(prop => {
+          // Removed the special handling for website links
+          popupContent += `<div style="font-size:11px;color:#666;margin-left:8px;">
+            <span style="color:#555;">${prop.label}:</span> ${prop.value}
+          </div>`;
+        });
+        
+        popupContent += `</div>`;
       }
       
-      if (addressParts.length > 0) {
-        popupContent += `<div style="font-size:12px;color:#666;margin-bottom:5px;">${addressParts.join(', ')}</div>`;
-      }
-      
-      let detailsAdded = false;
-      
-      if (feature.properties.phone) {
-        popupContent += `<div style="font-size:11px;color:#666;"><b>Phone:</b> ${feature.properties.phone}</div>`;
-        detailsAdded = true;
-      }
-      
-      if (feature.properties.website) {
-        popupContent += `<div style="font-size:11px;color:#666;"><b>Website:</b> <a href="${feature.properties.website}" target="_blank">${feature.properties.website.replace(/^https?:\/\//, '')}</a></div>`;
-        detailsAdded = true;
-      }
-      
-      if (feature.properties.opening_hours) {
-        popupContent += `<div style="font-size:11px;color:#666;"><b>Hours:</b> ${feature.properties.opening_hours}</div>`;
-        detailsAdded = true;
-      }
-      
-      if (feature.properties.emergency && feature.properties.emergency !== 'yes') {
-        popupContent += `<div style="font-size:11px;color:#666;"><b>Emergency Type:</b> ${formatFacilityType(feature.properties.emergency)}</div>`;
-        detailsAdded = true;
-      }
-      
-      if (feature.properties.capacity) {
-        popupContent += `<div style="font-size:11px;color:#666;"><b>Capacity:</b> ${feature.properties.capacity}</div>`;
-        detailsAdded = true;
-      }
-      
-      if (feature.properties.religion) {
-        popupContent += `<div style="font-size:11px;color:#666;"><b>Religion:</b> ${formatFacilityType(feature.properties.religion)}</div>`;
-        detailsAdded = true;
-      }
-      
-      if (feature.properties.operator) {
-        popupContent += `<div style="font-size:11px;color:#666;"><b>Operator:</b> ${feature.properties.operator}</div>`;
-        detailsAdded = true;
+      // Show message if no additional info was found
+      if (!formattedAddress && buildingInfo.length === 0 && additionalProps.length === 0) {
+        popupContent += `<div style="font-size:11px;color:#666;text-align:center;margin-top:5px;">
+          No additional information available
+        </div>`;
       }
       
       popupContent += `</div>`;
       
-      marker.bindPopup(popupContent);
+      marker.bindPopup(popupContent, { 
+        maxWidth: 300, 
+        className: 'facility-popup-container' 
+      });
       facilityLayers[facilitiesId].addLayer(marker);
     }
   });
