@@ -36,6 +36,7 @@
 		floodHazardLayers,
 		allLayerConfigs,
 		baseMaps,
+		mapAttributions,  // Import the new map attributions
 		NEARBY_RADIUS_METERS
 	} from './map_components/MapConfig.js';
 
@@ -203,14 +204,24 @@
 			
 			onAdd: function() {
 				const container = L.DomUtil.create('div', 'leaflet-bar leaflet-control leaflet-control-recenter');
+				
+	
 				container.innerHTML = `
 					<a href="#" title="Re-center map on selected location" class="recenter-button">
-						<i class="iconify" data-icon="carbon:map-center"></i>
+						<div class="icon-container">
+							<i class="iconify" data-icon="carbon:map-center" data-width="20" data-height="20"></i>
+						</div>
 					</a>
 				`;
 				
+				// Prevent clicks from propagating to the map
+				L.DomEvent.disableClickPropagation(container);
+				// Also disable scroll propagation for good measure
+				L.DomEvent.disableScrollPropagation(container);
+				
 				L.DomEvent.on(container, 'click', function(e) {
 					L.DomEvent.preventDefault(e);
+					L.DomEvent.stopPropagation(e);
 					if (marker && map) {
 						map.panTo(marker.getLatLng());
 					}
@@ -252,7 +263,7 @@
 			maxBoundsViscosity: 0.9
 		});
 
-		// Set up base layers
+		// Set up base layers with correct attributions
 		const standard = L.tileLayer(baseMaps.standard, {
 			attribution: '© OpenStreetMap contributors',
 			maxZoom: 19
@@ -283,17 +294,28 @@
 			attribution: 'Tiles &copy; Esri',
 			maxZoom: 19
 		});
+		
+			// Only keep Esri Topo which works well
+		const esriTopo = L.tileLayer(baseMaps.esriTopo, {
+			attribution: mapAttributions.esriTopo,
+			maxZoom: 19
+		});
+		
+		// Removed: stamenTerrain, thunderforestOutdoors, thunderforestLandscape, esriTerrain
 
 		standard.addTo(map);
 
 		const baseLayers = {
-			Standard: standard,
-			Topographic: topographic,
-			Satellite: satellite,
-			Humanitarian: osmHot,
+			'Standard': standard,
+			'Topographic': topographic,
+			'Satellite': satellite,
+			'Humanitarian': osmHot,
 			'Positron (Light)': positron,
 			'Dark Matter': darkMatter,
-			'Esri Street': esriStreet
+			'Esri Street': esriStreet,
+				// Only keep the working 3D-like option
+			'Topographic (Esri)': esriTopo
+			// Removed: 'Terrain (Stamen)', 'Outdoors', 'Landscape', 'Terrain (Esri)'
 		};
 
 		layerControl = setupLayerControl(L, map, baseLayers, facilityLayers, floodHazardLayers);
@@ -747,22 +769,51 @@
 
 	:global(.leaflet-control-recenter a) {
 		background-color: white;
-		width: 30px;
-		height: 30px;
-		display: flex;
-		align-items: center;
-		justify-content: center;
+		width: 30px !important;
+		height: 30px !important;
+		display: flex !important;
+		align-items: center !important;
+		justify-content: center !important;
 		color: #333;
 		font-size: 16px;
 		cursor: pointer;
+		position: relative;
+		padding: 0;
+		text-align: center;
+		text-decoration: none;
 	}
 
 	:global(.leaflet-control-recenter a:hover) {
 		background-color: #f4f4f4;
 	}
+	
+	:global(.leaflet-control-recenter .icon-container) {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 100%;
+		height: 100%;
+	}
+
+	:global(.leaflet-control-recenter .iconify) {
+		margin: 0;
+		padding: 0;
+		display: inline-block;
+		vertical-align: middle;
+		width: 20px !important;
+		height: 20px !important;
+	}
 
 	:global(.leaflet-control-recenter) {
 		margin-left: 10px !important;
+	}
+	
+	:global(.recenter-button) {
+		background-color: white;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		cursor: pointer;
 	}
 
 	/* Add new styles for loading marker */
@@ -787,18 +838,18 @@
 		background-color: #3ba6d0;
 		border-radius: 50%;
 		box-shadow: 0 0 0 rgba(12, 49, 67, 0.4);
-		animation: loading-pulse 1.5s infinite;
+		animation: loading-pulse ease 1s infinite;
 	}
 
 	@keyframes loading-pulse {
 		0% {
-			box-shadow: 0 0 0 0 hsla(197, 61%, 52%, 0.875);
+			box-shadow: 0 0 0 0 hsla(197, 61%, 52%, 0.8);
 		}
 		70% {
-			box-shadow: 0 0 0 20px hsla(197, 61%, 52%, 0.521)
+			box-shadow: 0 0 0 20px hsla(197, 61%, 52%, 0);
 		}
 		100% {
-			box-shadow: 0 0 0 0 hsla(197, 61%, 52%, 0.111);
+			box-shadow: 0 0 0 0 hsla(197, 61%, 52%, 0);
 		}
 	}
 </style>

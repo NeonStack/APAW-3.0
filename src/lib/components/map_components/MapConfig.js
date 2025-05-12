@@ -136,5 +136,15 @@ export const baseMaps = {
   osmHot: 'https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png',
   positron: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
   darkMatter: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
-  esriStreet: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}'
+  esriStreet: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',
+  // Only keep Esri Topo which works well
+  esriTopo: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}'
+  // Removing stamenTerrain, thunderforestOutdoors, thunderforestLandscape, and esriTerrain
+};
+
+// Add attribution info for remaining map providers
+export const mapAttributions = {
+  // Removing stamenTerrain, thunderforestOutdoors, thunderforestLandscape
+  esriTopo: 'Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ, TomTom, Intermap, iPC, USGS, FAO, NPS, NRCAN, GeoBase, Kadaster NL, Ordnance Survey, Esri Japan, METI, Esri China (Hong Kong), and the GIS User Community'
+  // Removing esriTerrain
 };
