@@ -54,50 +54,125 @@
 		return weatherIcons[iconCode] || weatherIcons.default;
 	}
 
-	// Data sorting and filtering
+	// Data sorting and filtering 
 	let selectedDistrict = $state('all');
 	let districts = ['all', '1st District', '2nd District', '3rd District', '4th District'];
 	let sortOption = $state('name');
+	
+	// Streamlined sort options with only primary visible metrics
 	let sortOptions = [
 		{ value: 'name', label: 'City Name (A-Z)' },
 		{ value: 'precipitation', label: 'Rain Probability (High-Low)' },
 		{ value: 'temperature', label: 'Temperature (High-Low)' },
-		{ value: 'rainfall', label: 'Rainfall mm (High-Low)' }
+		{ value: 'rainfall', label: 'Rainfall mm (High-Low)' },
+		{ value: 'windgust', label: 'Wind Gust (High-Low)' }
 	];
 
 	// Access store values directly in Svelte 5
 	let weatherDataValue = $derived($weatherData);
+	
+	// Global date selection
+	let selectedDate = $state(moment().format('YYYY-MM-DD'));
+	let availableDates = $derived(getAvailableDates(weatherDataValue.data));
+	
+	// Function to get all available dates from weather data (today and future only)
+	function getAvailableDates(cities) {
+		if (!cities || cities.length === 0) return [];
+		
+		// Collect all unique dates from all cities
+		const dateSet = new Set();
+		const today = moment().startOf('day');
+		
+		cities.forEach(city => {
+			city.forecasts.forEach(forecast => {
+				const forecastDate = moment(forecast.forecast_date);
+				// Only include today and future dates
+				if (forecastDate.isSameOrAfter(today)) {
+					dateSet.add(forecast.forecast_date);
+				}
+			});
+		});
+		
+		// Convert to array and sort
+		return [...dateSet].sort();
+	}
+	
+	// Function to get forecast for the selected date
+	function getForecastForDate(cityData, dateStr) {
+		return cityData.forecasts.find(f => f.forecast_date === dateStr) || null;
+	}
 
-	// Filtered cities list
+	// Helper function to get today's forecast from city data - improved for accuracy
+	function getTodayForecast(cityData) {
+		const todayFormatted = moment().format('YYYY-MM-DD');
+		const todayForecast = cityData.forecasts.find(f => 
+			moment(f.forecast_date).format('YYYY-MM-DD') === todayFormatted
+		);
+		
+		// Return today's forecast if found, otherwise return the first forecast
+		return todayForecast || cityData.forecasts[0];
+	}
+
+	// Filter forecasts to only show today and future dates
+	function filterForecastsFromToday(forecasts) {
+		const todayStart = moment().startOf('day');
+		return forecasts.filter(forecast => 
+			moment(forecast.forecast_date).isSameOrAfter(todayStart)
+		);
+	}
+
+	// Watch for sort option changes and refresh data
+	$effect(() => {
+		if (sortOption || selectedDate) {
+			// Small delay to allow reactivity to settle
+			setTimeout(() => {
+				// Force refresh of the derived value
+				weatherData.update(data => ({...data}));
+			}, 10);
+		}
+	});
+
+	// Updated filtered cities list with sorting based on selected date
 	let filteredCities = $derived(
 		weatherDataValue.data
 			.filter((city) => {
 				if (selectedDistrict === 'all') return true;
 
-				// Fix: Match by city name instead of ID for more reliable filtering
+				// Match by city name instead of ID for more reliable filtering
 				const cityInfo = metroManilaCities.find(
 					(c) => c.name.toLowerCase() === city.city_name.toLowerCase()
 				);
 				return cityInfo && cityInfo.district === selectedDistrict;
 			})
 			.sort((a, b) => {
+				// Get selected date's forecast for each city for accurate sorting
+				const aForecast = getForecastForDate(a, selectedDate);
+				const bForecast = getForecastForDate(b, selectedDate);
+
+				// Check if forecasts exist
+				if (!aForecast && !bForecast) return 0;
+				if (!aForecast) return 1;
+				if (!bForecast) return -1;
+
 				if (sortOption === 'name') {
 					return a.city_name.localeCompare(b.city_name);
 				} else if (sortOption === 'precipitation') {
-					// Sort by today's precipitation probability
-					const aPrecip = a.forecasts?.[0]?.day_precipitation_probability || 0;
-					const bPrecip = b.forecasts?.[0]?.day_precipitation_probability || 0;
+					// Convert to numbers and compare
+					const aPrecip = Number(aForecast.day_precipitation_probability) || 0;
+					const bPrecip = Number(bForecast.day_precipitation_probability) || 0;
 					return bPrecip - aPrecip;
 				} else if (sortOption === 'temperature') {
-					// Sort by today's max temperature
-					const aTemp = a.forecasts?.[0]?.max_temp_c || 0;
-					const bTemp = b.forecasts?.[0]?.max_temp_c || 0;
+					const aTemp = Number(aForecast.max_temp_c) || 0;
+					const bTemp = Number(bForecast.max_temp_c) || 0;
 					return bTemp - aTemp;
 				} else if (sortOption === 'rainfall') {
-					// Sort by rainfall mm
-					const aRain = a.forecasts?.[0]?.total_rain_mm || 0;
-					const bRain = b.forecasts?.[0]?.total_rain_mm || 0;
+					const aRain = Number(aForecast.total_rain_mm) || 0;
+					const bRain = Number(bForecast.total_rain_mm) || 0;
 					return bRain - aRain;
+				} else if (sortOption === 'windgust') {
+					const aGust = Number(aForecast.max_wind_gust_kmh) || 0;
+					const bGust = Number(bForecast.max_wind_gust_kmh) || 0;
+					return bGust - aGust;
 				}
 				return 0;
 			})
@@ -249,10 +324,57 @@
 		if (value === undefined || value === null) return 'N/A';
 		return `${Number(value).toFixed(precision)} ${unit}`;
 	}
+	
+	// Selected date index tracking (per city)
+	let selectedDateIndexes = $state({});
+	
+	// Improved toggle function for day details - show selected date and hide others
+	function toggleDayDetails(cityIndex, dateIndex) {
+		// Store the selected date index for this city
+		selectedDateIndexes[cityIndex] = dateIndex;
+		
+		// Force component update
+		selectedDateIndexes = {...selectedDateIndexes};
+	}
+	
+	// Screen size detection for responsive layout
+	let isMobile = $state(false);
+	
+	onMount(() => {
+		// Check initial screen size
+		checkScreenSize();
+		
+		// Add event listener for screen size changes
+		window.addEventListener('resize', checkScreenSize);
+		
+		// Cleanup on component destroy
+		return () => {
+			window.removeEventListener('resize', checkScreenSize);
+		};
+	});
+	
+	function checkScreenSize() {
+		isMobile = window.innerWidth < 768;
+	}
+
+	// Format a date with a more user-friendly label
+	function formatDateWithLabel(dateStr) {
+		const dateObj = moment(dateStr);
+		const today = moment().startOf('day');
+		const tomorrow = moment().add(1, 'day').startOf('day');
+		
+		if (dateObj.isSame(today, 'day')) {
+			return `Today (${dateObj.format('MMM D')})`;
+		} else if (dateObj.isSame(tomorrow, 'day')) {
+			return `Tomorrow (${dateObj.format('MMM D')})`;
+		} else {
+			return `${dateObj.format('ddd, MMM D')}`;
+		}
+	}
 </script>
 
 <div class="weather-tab flex h-full flex-col">
-	<div class="mb-2 flex items-center justify-between">
+	<div class="mb-2 flex items-center justify-between flex-wrap gap-2">
 		<h2 class="text-xl font-semibold text-gray-800">Metro Manila Weather</h2>
 
 		<div class="flex space-x-2">
@@ -276,10 +398,8 @@
 		</div>
 	</div>
 
-	<!-- Removed the general "Last updated" line -->
-
 	<!-- Filters and sorting -->
-	<div class="mb-3 flex flex-wrap gap-2 text-xs">
+	<div class="mb-2 flex flex-wrap gap-2 text-xs">
 		<div class="flex items-center">
 			<span class="mr-1">District:</span>
 			<select bind:value={selectedDistrict} class="rounded border bg-white px-1.5 py-1 text-xs">
@@ -296,6 +416,23 @@
 					<option value={option.value}>{option.label}</option>
 				{/each}
 			</select>
+		</div>
+	</div>
+	
+	<!-- Global date selector -->
+	<div class="mb-3 overflow-x-auto">
+		<div class="flex items-center">
+			<span class="mr-1 text-xs">Date:</span>
+			<div class="flex space-x-1 overflow-x-auto">
+				{#each availableDates as date}
+					<button 
+						class="whitespace-nowrap px-2 py-1 text-xs rounded-md {selectedDate === date ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}"
+						on:click={() => selectedDate = date}
+					>
+						{formatDateWithLabel(date)}
+					</button>
+				{/each}
+			</div>
 		</div>
 	</div>
 
@@ -334,8 +471,9 @@
 		{:else}
 			<div class="space-y-1 pb-4">
 				{#each filteredCities as city}
-					{#if city.forecasts.find((f) => isToday(f.forecast_date))}
-						{@const todayForecast = city.forecasts.find((f) => isToday(f.forecast_date))}
+					{@const forecast = getForecastForDate(city, selectedDate)}
+					
+					{#if forecast}
 						<div class="mb-5 rounded border border-gray-200 bg-white shadow-sm transition-all">
 							<!-- City header - With district information -->
 							<div class="flex flex-col border-l-3 border-l-blue-500 p-2">
@@ -345,7 +483,7 @@
 										<div
 											class="rounded-sm bg-gray-100 px-1.5 py-0.5 text-xs font-medium text-gray-600"
 										>
-                    {getDistrictByName(city.city_name)}
+										{getDistrictByName(city.city_name)}
 										</div>
 									</div>
 								</div>
@@ -354,309 +492,286 @@
 								<div class="flex flex-col text-xs text-gray-500">
 									<div>
 										<Icon icon="mdi:calendar" class="mr-0.5 inline-block text-xs" />
-										{formatFullDate(todayForecast.forecast_date)}
-									</div>
-									<div>
-										<Icon icon="mdi:clock-outline" class="mr-0.5 inline-block text-xs" />
-										Last updated: {formatTimestamp(todayForecast.fetched_at)}
+										<span class="font-medium">{formatFullDate(forecast.forecast_date)}</span> • 
+										Last updated: {formatTimestamp(forecast.fetched_at)}
 									</div>
 								</div>
 							</div>
 
-							<!-- Weather info - Enhanced to show precipitation data prominently -->
-							<div class="border-t border-gray-100 px-2 py-1.5">
-								<!-- Today's weather summary -->
-								<div class="mb-2 flex items-center justify-between">
+							<!-- Weather info for the selected date -->
+							<div class="border-t border-gray-100 p-3">
+								<!-- Weather summary - simplified layout -->
+								<div class="mb-3 flex flex-wrap md:items-center justify-between gap-2">
 									<!-- Left: Temperature and conditions -->
 									<div class="flex items-center gap-3">
 										<!-- Weather icon -->
-										<div class="flex h-10 w-10 items-center justify-center text-blue-500">
-											<Icon icon={getWeatherIcon(todayForecast.day_icon)} width="32" />
+										<div class="flex h-12 w-12 items-center justify-center text-blue-500">
+											<Icon icon={getWeatherIcon(forecast.day_icon)} width="40" />
 										</div>
 
 										<!-- Temperature -->
 										<div>
 											<div class="flex items-baseline">
-												<span class="text-xl font-bold"
-													>{Math.round(todayForecast.max_temp_c)}°C</span
+												<span class="text-2xl font-bold"
+													>{Math.round(forecast.max_temp_c)}°C</span
 												>
-												<span class="ml-1 text-xs text-gray-500"
-													>/ {Math.round(todayForecast.min_temp_c)}°C</span
+												<span class="ml-1 text-sm text-gray-500"
+													>/ {Math.round(forecast.min_temp_c)}°C</span
 												>
 											</div>
-											<div class="text-sm text-gray-700">{todayForecast.day_icon_phrase}</div>
+											<div class="text-sm">{forecast.day_icon_phrase}</div>
+											<div class="text-xs text-gray-600">{forecast.day_short_phrase}</div>
 										</div>
 									</div>
 
-									<!-- Right: Precipitation data (both probability and amount) -->
-									<div class="flex flex-col items-end">
+									<!-- Right: Precipitation data -->
+									<div class="flex flex-col">
 										<div class="flex items-center">
 											<Icon icon="mdi:water" class="mr-1 text-blue-500" />
 											<span class="font-medium">
-												{todayForecast.day_precipitation_probability !== undefined
-													? `${todayForecast.day_precipitation_probability}%`
+												{forecast.day_precipitation_probability !== undefined
+													? `${forecast.day_precipitation_probability}%`
 													: 'N/A'}
+												<span class="text-sm ml-1">chance of rain</span>
 											</span>
 										</div>
-										<div class="text-xs font-medium text-blue-600">
-											{formatValue(todayForecast.total_rain_mm, 'mm')} rainfall
-										</div>
 									</div>
 								</div>
 
-								<!-- Forecast metrics - Enhanced with more precipitation data -->
-								<div class="mb-2 grid grid-cols-4 gap-1 text-xs">
-									<div class="rounded border border-blue-100 bg-blue-50 p-1">
+								<!-- Key weather metrics - Cleaned up layout -->
+								<div class="mb-4 grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
+									<div class="rounded border border-blue-100 bg-blue-50 p-2">
 										<div class="text-blue-700">Rain</div>
-										<div class="font-medium">{formatValue(todayForecast.total_rain_mm, 'mm')}</div>
+										<div class="font-medium">{formatValue(forecast.total_rain_mm, 'mm')}</div>
 									</div>
-									<div class="rounded bg-gray-50 p-1">
+									<div class="rounded bg-gray-50 p-2 border">
 										<div class="text-gray-500">Humidity</div>
-										<div class="font-medium">{todayForecast.avg_relative_humidity_percent}%</div>
+										<div class="font-medium">{forecast.avg_relative_humidity_percent}%</div>
 									</div>
-									<div class="rounded bg-gray-50 p-1">
-										<div class="text-gray-500">Wind</div>
+									<div class="rounded bg-gray-50 p-2 border">
+										<div class="text-gray-500">Wind Speed</div>
 										<div class="font-medium">
-											{Math.round(todayForecast.avg_wind_speed_kmh)} km/h
+											{Math.round(forecast.avg_wind_speed_kmh)} km/h
 										</div>
 									</div>
-									<div class="rounded bg-gray-50 p-1">
-										<div class="text-gray-500">Hours of Rain</div>
-										<div class="font-medium">{todayForecast.total_hours_rain || 0} hrs</div>
+									<div class="rounded bg-gray-50 p-2 border">
+										<div class="text-gray-500">Wind Gust</div>
+										<div class="font-medium">
+											{Math.round(forecast.max_wind_gust_kmh)} km/h
+										</div>
 									</div>
 								</div>
 
-								<!-- Additional precipitation metrics focused on flood prediction -->
-								<div class="grid grid-cols-3 gap-1 text-xs">
-									<div class="rounded border border-blue-100 bg-blue-50 p-1">
-										<div class="text-blue-700">Total Liquid</div>
-										<div class="font-medium">
-											{formatValue(todayForecast.total_liquid_mm, 'mm')}
-										</div>
+								<!-- Additional weather metrics -->
+								<div class="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm mb-3">
+									<div class="rounded border border-blue-100 bg-blue-50 p-2">
+										<div class="text-blue-700">Hours of Rain</div>
+										<div class="font-medium">{forecast.total_hours_rain || 0} hrs</div>
 									</div>
-									<div class="rounded border border-blue-100 bg-blue-50 p-1">
+									<div class="rounded border border-blue-100 bg-blue-50 p-2">
 										<div class="text-blue-700">Thunder Prob.</div>
-										<div class="font-medium">{todayForecast.day_thunderstorm_probability}%</div>
+										<div class="font-medium">{forecast.day_thunderstorm_probability}%</div>
 									</div>
-									<div class="rounded border border-blue-100 bg-blue-50 p-1">
-										<div class="text-blue-700">Max Gust</div>
-										<div class="font-medium">
-											{formatValue(todayForecast.max_wind_gust_kmh, 'km/h', 0)}
-										</div>
+									<div class="rounded border border-blue-100 bg-blue-50 p-2">
+										<div class="text-blue-700">Cloud Cover</div>
+										<div class="font-medium">{forecast.avg_cloud_cover_percent}%</div>
 									</div>
 								</div>
+
+								<!-- Detailed weather data accordion -->
+								<details class="border rounded mb-2">
+									<summary class="cursor-pointer px-3 py-2 bg-gray-50 text-sm font-medium">
+										Detailed Weather Data
+									</summary>
+									<div class="p-3">
+										<!-- Sunrise/Sunset information -->
+										<div class="border rounded p-2 bg-gray-50 flex flex-wrap justify-around text-sm mb-3">
+											<div class="flex items-center">
+												<Icon icon="mdi:weather-sunset-up" class="mr-1 text-orange-500" />
+												Sunrise: {moment(forecast.sunrise_time).format('h:mm A')}
+											</div>
+											<div class="flex items-center">
+												<Icon icon="mdi:weather-sunset-down" class="mr-1 text-purple-500" />
+												Sunset: {moment(forecast.sunset_time).format('h:mm A')}
+											</div>
+											<div class="flex items-center">
+												<Icon icon="mdi:moon-waning-gibbous" class="mr-1 text-blue-500" />
+												Moon: {forecast.moon_phase}
+											</div>
+										</div>
+										
+										<!-- Detailed metrics grid -->
+										<div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+											<!-- Temperature data -->
+											<div class="rounded border bg-white p-2">
+												<h4 class="mb-1 font-medium text-gray-700">Temperature</h4>
+												<div class="space-y-1">
+													<div class="flex justify-between">
+														<span>Min:</span>
+														<span>{formatValue(forecast.min_temp_c, '°C')}</span>
+													</div>
+													<div class="flex justify-between">
+														<span>Max:</span>
+														<span>{formatValue(forecast.max_temp_c, '°C')}</span>
+													</div>
+													<div class="flex justify-between">
+														<span>Avg:</span>
+														<span>{formatValue(forecast.avg_temp_c, '°C')}</span>
+													</div>
+													<div class="flex justify-between">
+														<span>RealFeel Min:</span>
+														<span>{formatValue(forecast.min_realfeel_temp_c, '°C')}</span>
+													</div>
+													<div class="flex justify-between">
+														<span>RealFeel Max:</span>
+														<span>{formatValue(forecast.max_realfeel_temp_c, '°C')}</span>
+													</div>
+												</div>
+											</div>
+
+											<!-- Precipitation data - added Total Liquid -->
+											<div class="rounded border bg-white p-2">
+												<h4 class="mb-1 font-medium text-gray-700">Precipitation</h4>
+												<div class="space-y-1">
+													<div class="flex justify-between">
+														<span>Total Liquid:</span>
+														<span>{formatValue(forecast.total_liquid_mm, 'mm')}</span>
+													</div>
+													<div class="flex justify-between">
+														<span>Rain:</span>
+														<span>{formatValue(forecast.total_rain_mm, 'mm')}</span>
+													</div>
+													<div class="flex justify-between">
+														<span>Ice:</span>
+														<span>{formatValue(forecast.total_ice_mm, 'mm')}</span>
+													</div>
+													<div class="flex justify-between">
+														<span>Hours Precip:</span>
+														<span>{forecast.total_hours_precipitation || 0} hrs</span>
+													</div>
+													<div class="flex justify-between">
+														<span>Hours Rain:</span>
+														<span>{forecast.total_hours_rain || 0} hrs</span>
+													</div>
+												</div>
+											</div>
+
+											<!-- Probabilities -->
+											<div class="rounded border bg-white p-2">
+												<h4 class="mb-1 font-medium text-gray-700">Probabilities</h4>
+												<div class="space-y-1">
+													<div class="flex justify-between">
+														<span>Precipitation (Day):</span>
+														<span>{forecast.day_precipitation_probability}%</span>
+													</div>
+													<div class="flex justify-between">
+														<span>Precipitation (Night):</span>
+														<span>{forecast.night_precipitation_probability}%</span>
+													</div>
+													<div class="flex justify-between">
+														<span>Thunderstorm (Day):</span>
+														<span>{forecast.day_thunderstorm_probability}%</span>
+													</div>
+													<div class="flex justify-between">
+														<span>Thunderstorm (Night):</span>
+														<span>{forecast.night_thunderstorm_probability}%</span>
+													</div>
+												</div>
+											</div>
+
+											<!-- Wind data -->
+											<div class="rounded border bg-white p-2">
+												<h4 class="mb-1 font-medium text-gray-700">Wind</h4>
+												<div class="space-y-1">
+													<div class="flex justify-between">
+														<span>Avg Speed:</span>
+														<span>{formatValue(forecast.avg_wind_speed_kmh, 'km/h', 0)}</span>
+													</div>
+													<div class="flex justify-between">
+														<span>Max Gust:</span>
+														<span>{formatValue(forecast.max_wind_gust_kmh, 'km/h', 0)}</span>
+													</div>
+													<div class="flex justify-between">
+														<span>Day Direction:</span>
+														<span>{forecast.day_wind_direction_loc || 'N/A'}</span>
+													</div>
+													<div class="flex justify-between">
+														<span>Night Direction:</span>
+														<span>{forecast.night_wind_direction_loc || 'N/A'}</span>
+													</div>
+												</div>
+											</div>
+
+											<!-- Humidity data -->
+											<div class="rounded border bg-white p-2">
+												<h4 class="mb-1 font-medium text-gray-700">Humidity & Atmosphere</h4>
+												<div class="space-y-1">
+													<div class="flex justify-between">
+														<span>Min Humidity:</span>
+														<span>{forecast.min_relative_humidity_percent}%</span>
+													</div>
+													<div class="flex justify-between">
+														<span>Max Humidity:</span>
+														<span>{forecast.max_relative_humidity_percent}%</span>
+													</div>
+													<div class="flex justify-between">
+														<span>Avg Humidity:</span>
+														<span>{forecast.avg_relative_humidity_percent}%</span>
+													</div>
+													<div class="flex justify-between">
+														<span>Cloud Cover:</span>
+														<span>{forecast.avg_cloud_cover_percent}%</span>
+													</div>
+													<div class="flex justify-between">
+														<span>Evapotranspiration:</span>
+														<span>{formatValue(forecast.total_evapotranspiration_mm, 'mm')}</span>
+													</div>
+												</div>
+											</div>
+
+											<!-- Additional meteorological data -->
+											<div class="rounded border bg-white p-2">
+												<h4 class="mb-1 font-medium text-gray-700">Heat Indices</h4>
+												<div class="space-y-1">
+													<div class="flex justify-between">
+														<span>Avg WetBulb Temp:</span>
+														<span>{formatValue(forecast.avg_wetbulb_temp_c, '°C')}</span>
+													</div>
+													<div class="flex justify-between">
+														<span>Min WetBulb Temp:</span>
+														<span>{formatValue(forecast.min_wetbulb_temp_c, '°C')}</span>
+													</div>
+													<div class="flex justify-between">
+														<span>Max WetBulb Temp:</span>
+														<span>{formatValue(forecast.max_wetbulb_temp_c, '°C')}</span>
+													</div>
+													<div class="flex justify-between">
+														<span>Avg WBGT:</span>
+														<span>{formatValue(forecast.avg_wbgt_c, '°C')}</span>
+													</div>
+												</div>
+											</div>
+										</div>
+
+										<!-- Headline data if available -->
+										{#if forecast.headline_text}
+											<div class="mt-3 rounded border border-yellow-200 bg-yellow-50 p-2">
+												<div class="font-medium text-yellow-800">{forecast.headline_text}</div>
+												{#if forecast.headline_category}
+													<div class="text-yellow-600 text-xs">
+														Category: {forecast.headline_category} (Severity: {forecast.headline_severity})
+													</div>
+												{/if}
+											</div>
+										{/if}
+									</div>
+								</details>
 							</div>
-
-							<!-- Forecast details - Changed title and only showing future dates -->
-							<details class="border-t border-gray-100 text-sm">
-								<summary
-									class="flex cursor-pointer items-center bg-gray-50 px-2 py-1 text-xs text-gray-600 hover:text-gray-900"
-								>
-									<Icon icon="mdi:calendar-range" class="mr-1 text-xs" /> Weather Forecasts
-								</summary>
-								<div class="grid grid-cols-4 gap-1 bg-gray-50 p-2 text-xs">
-									{#if city.forecasts.filter(f => isFutureDate(f.forecast_date)).length > 0}
-										{@const futureForecastCount = city.forecasts.filter(f => isFutureDate(f.forecast_date)).length}
-										{#each city.forecasts.filter(f => isFutureDate(f.forecast_date)) as forecast}
-											<div class="flex flex-col items-center rounded border bg-white p-1">
-												<div class="text-gray-500">{formatDate(forecast.forecast_date)}</div>
-												<div class="my-1">
-													<Icon
-														icon={getWeatherIcon(forecast.day_icon)}
-														class="text-blue-500"
-														width="20"
-													/>
-												</div>
-												<div class="font-medium">{Math.round(forecast.max_temp_c)}°</div>
-												<div class="font-medium text-blue-600">
-													{formatValue(forecast.total_rain_mm, 'mm')}
-												</div>
-												<div class="text-xs text-gray-500">
-													{forecast.day_precipitation_probability}%</div>
-											</div>
-										{/each}
-									{:else}
-										<div class="col-span-4 p-2 text-center text-gray-500">
-											No future forecasts available
-										</div>
-									{/if}
-								</div>
-							</details>
-
-							<!-- All detailed weather data -->
-							<details class="border-t border-gray-100 text-sm">
-								<summary
-									class="flex cursor-pointer items-center bg-gray-50 px-2 py-1 text-xs text-gray-600 hover:text-gray-900"
-								>
-									<Icon icon="mdi:information-outline" class="mr-1 text-xs" /> All Weather Data
-								</summary>
-								<div class="bg-gray-50 p-2 text-xs">
-									<div class="grid grid-cols-2 gap-1 md:grid-cols-3">
-										<!-- Temperature data -->
-										<div class="rounded border bg-white p-2">
-											<h4 class="mb-1 font-medium text-gray-700">Temperature</h4>
-											<div class="space-y-1">
-												<div class="flex justify-between">
-													<span>Min:</span>
-													<span>{formatValue(todayForecast.min_temp_c, '°C')}</span>
-												</div>
-												<div class="flex justify-between">
-													<span>Max:</span>
-													<span>{formatValue(todayForecast.max_temp_c, '°C')}</span>
-												</div>
-												<div class="flex justify-between">
-													<span>Avg:</span>
-													<span>{formatValue(todayForecast.avg_temp_c, '°C')}</span>
-												</div>
-												<div class="flex justify-between">
-													<span>RealFeel Min:</span>
-													<span>{formatValue(todayForecast.min_realfeel_temp_c, '°C')}</span>
-												</div>
-												<div class="flex justify-between">
-													<span>RealFeel Max:</span>
-													<span>{formatValue(todayForecast.max_realfeel_temp_c, '°C')}</span>
-												</div>
-											</div>
-										</div>
-
-										<!-- Precipitation data -->
-										<div class="rounded border bg-white p-2">
-											<h4 class="mb-1 font-medium text-gray-700">Precipitation</h4>
-											<div class="space-y-1">
-												<div class="flex justify-between">
-													<span>Total Liquid:</span>
-													<span>{formatValue(todayForecast.total_liquid_mm, 'mm')}</span>
-												</div>
-												<div class="flex justify-between">
-													<span>Rain:</span>
-													<span>{formatValue(todayForecast.total_rain_mm, 'mm')}</span>
-												</div>
-												<div class="flex justify-between">
-													<span>Ice:</span>
-													<span>{formatValue(todayForecast.total_ice_mm, 'mm')}</span>
-												</div>
-												<div class="flex justify-between">
-													<span>Hours Precip:</span>
-													<span>{todayForecast.total_hours_precipitation || 0} hrs</span>
-												</div>
-												<div class="flex justify-between">
-													<span>Hours Rain:</span>
-													<span>{todayForecast.total_hours_rain || 0} hrs</span>
-												</div>
-											</div>
-										</div>
-
-										<!-- Probabilities -->
-										<div class="rounded border bg-white p-2">
-											<h4 class="mb-1 font-medium text-gray-700">Probabilities</h4>
-											<div class="space-y-1">
-												<div class="flex justify-between">
-													<span>Precipitation (Day):</span>
-													<span>{todayForecast.day_precipitation_probability}%</span>
-												</div>
-												<div class="flex justify-between">
-													<span>Precipitation (Night):</span>
-													<span>{todayForecast.night_precipitation_probability}%</span>
-												</div>
-												<div class="flex justify-between">
-													<span>Thunderstorm (Day):</span>
-													<span>{todayForecast.day_thunderstorm_probability}%</span>
-												</div>
-												<div class="flex justify-between">
-													<span>Thunderstorm (Night):</span>
-													<span>{todayForecast.night_thunderstorm_probability}%</span>
-												</div>
-											</div>
-										</div>
-
-										<!-- Wind data -->
-										<div class="rounded border bg-white p-2">
-											<h4 class="mb-1 font-medium text-gray-700">Wind</h4>
-											<div class="space-y-1">
-												<div class="flex justify-between">
-													<span>Avg Speed:</span>
-													<span>{formatValue(todayForecast.avg_wind_speed_kmh, 'km/h', 0)}</span>
-												</div>
-												<div class="flex justify-between">
-													<span>Max Gust:</span>
-													<span>{formatValue(todayForecast.max_wind_gust_kmh, 'km/h', 0)}</span>
-												</div>
-												<div class="flex justify-between">
-													<span>Day Direction:</span>
-													<span>{todayForecast.day_wind_direction_loc || 'N/A'}</span>
-												</div>
-												<div class="flex justify-between">
-													<span>Night Direction:</span>
-													<span>{todayForecast.night_wind_direction_loc || 'N/A'}</span>
-												</div>
-											</div>
-										</div>
-
-										<!-- Humidity data -->
-										<div class="rounded border bg-white p-2">
-											<h4 class="mb-1 font-medium text-gray-700">Humidity & Atmosphere</h4>
-											<div class="space-y-1">
-												<div class="flex justify-between">
-													<span>Min Humidity:</span>
-													<span>{todayForecast.min_relative_humidity_percent}%</span>
-												</div>
-												<div class="flex justify-between">
-													<span>Max Humidity:</span>
-													<span>{todayForecast.max_relative_humidity_percent}%</span>
-												</div>
-												<div class="flex justify-between">
-													<span>Avg Humidity:</span>
-													<span>{todayForecast.avg_relative_humidity_percent}%</span>
-												</div>
-												<div class="flex justify-between">
-													<span>Cloud Cover:</span>
-													<span>{todayForecast.avg_cloud_cover_percent}%</span>
-												</div>
-												<div class="flex justify-between">
-													<span>Evapotranspiration:</span>
-													<span>{formatValue(todayForecast.total_evapotranspiration_mm, 'mm')}</span
-													>
-												</div>
-											</div>
-										</div>
-
-										<!-- Additional meteorological data -->
-										<div class="rounded border bg-white p-2">
-											<h4 class="mb-1 font-medium text-gray-700">Heat Indices</h4>
-											<div class="space-y-1">
-												<div class="flex justify-between">
-													<span>Avg WetBulb Temp:</span>
-													<span>{formatValue(todayForecast.avg_wetbulb_temp_c, '°C')}</span>
-												</div>
-												<div class="flex justify-between">
-													<span>Min WetBulb Temp:</span>
-													<span>{formatValue(todayForecast.min_wetbulb_temp_c, '°C')}</span>
-												</div>
-												<div class="flex justify-between">
-													<span>Max WetBulb Temp:</span>
-													<span>{formatValue(todayForecast.max_wetbulb_temp_c, '°C')}</span>
-												</div>
-												<div class="flex justify-between">
-													<span>Avg WBGT:</span>
-													<span>{formatValue(todayForecast.avg_wbgt_c, '°C')}</span>
-												</div>
-											</div>
-										</div>
-									</div>
-
-									<!-- Headline data if available -->
-									{#if todayForecast.headline_text}
-										<div class="mt-2 rounded border border-yellow-200 bg-yellow-50 p-2">
-											<div class="font-medium text-yellow-800">{todayForecast.headline_text}</div>
-											{#if todayForecast.headline_category}
-												<div class="text-yellow-600">
-													Category: {todayForecast.headline_category} (Severity: {todayForecast.headline_severity})
-												</div>
-											{/if}
-										</div>
-									{/if}
-								</div>
-							</details>
+						</div>
+					{:else}
+						<div class="mb-5 rounded border border-gray-200 bg-white p-3 text-center shadow-sm">
+							<h3 class="font-medium text-gray-800">{city.city_name}</h3>
+							<p class="text-sm text-gray-500">No forecast data available for this date</p>
 						</div>
 					{/if}
 				{/each}
@@ -669,5 +784,12 @@
 	/* Add custom border width */
 	.border-l-3 {
 		border-left-width: 3px;
+	}
+
+	/* Mobile optimizations */
+	@media (max-width: 768px) {
+		.weather-tab {
+			font-size: 0.9rem;
+		}
 	}
 </style>
