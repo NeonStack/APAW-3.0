@@ -42,6 +42,15 @@
 <div class="bg-white h-full flex flex-col shadow-md">
   <div class="p-3 border-b border-gray-200 flex justify-between items-center bg-[#0c3143] text-white">
     <h2 class="font-semibold text-sm tracking-wide">FLOOD PREDICTION PANEL</h2>
+    
+    <!-- Mobile close button with proper event dispatch -->
+    <button 
+      class="md:hidden text-white flex items-center justify-center p-1"
+      on:click={() => dispatch('closeSidebar')}
+      aria-label="Close sidebar"
+    >
+      <Icon icon="mdi:close" width="20" />
+    </button>
   </div>
 
   <div class="px-3 pt-3 pb-1">
@@ -73,4 +82,18 @@
 
 <style>
   /* Optional global styles or component-specific styles can go here */
+  /* Make sure the sidebar has proper z-index and background */
+  :global(.predict-page > div > div:last-child) {
+    background-color: white;
+  }
+  
+  /* Additional mobile-specific styles */
+  @media (max-width: 767px) {
+    div.bg-white {
+      border-radius: 0;
+      height: 100%;
+      max-height: 100%;
+      overflow-y: auto;
+    }
+  }
 </style>

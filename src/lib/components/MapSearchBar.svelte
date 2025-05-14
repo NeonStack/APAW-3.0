@@ -209,10 +209,16 @@
 </div>
 
 <style>
-  /* Keeping minimal CSS for responsive design */
+  /* Improved responsive styling */
   @media (max-width: 640px) {
     .search-input-wrapper {
       width: 100%;
+    }
+    
+    /* Add background to search results on mobile for better visibility */
+    div.absolute.w-full.bg-white {
+      background-color: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(5px);
     }
   }
 </style>

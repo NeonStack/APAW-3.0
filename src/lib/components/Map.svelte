@@ -606,6 +606,10 @@
 	@media (max-width: 640px) {
 		.search-overlay {
 			max-width: 100%;
+			top: 10px; /* Move back to top */
+			left: 8px;
+			right: 50px; /* Give space for the layers button */
+			width: calc(100% - 60px); /* Account for the space */
 		}
 	}
 
@@ -882,5 +886,17 @@
 		left: 0 !important;
 		bottom: 0 !important;
 		margin-bottom: 5px !important;
+	}
+
+	/* Adjust layer control position on mobile */
+	@media (max-width: 640px) {
+		:global(.leaflet-top.leaflet-right) {
+			top: 10px !important;
+			right: 10px !important;
+		}
+
+		:global(.leaflet-control-layers) {
+			margin-right: 0 !important;
+		}
 	}
 </style>
