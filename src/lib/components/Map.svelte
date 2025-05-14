@@ -606,10 +606,10 @@
 	@media (max-width: 640px) {
 		.search-overlay {
 			max-width: 100%;
-			top: 10px; /* Move back to top */
+			top: 10px;
 			left: 8px;
-			right: 50px; /* Give space for the layers button */
-			width: calc(100% - 60px); /* Account for the space */
+			right: 70px; /* Increase space for the layers button */
+			width: calc(100% - 80px); /* Adjust width calculation accordingly */
 		}
 	}
 

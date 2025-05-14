@@ -8,6 +8,24 @@
   let isSidebarOpen = $state(true);
   let mapContainerHeight = $state(0);
   
+  // Add window resize handler to show sidebar on desktop
+  function handleResize() {
+    // Get window width
+    const windowWidth = window.innerWidth;
+    
+    // If on desktop (md breakpoint and above), always show sidebar
+    if (windowWidth >= 768) {
+      isSidebarOpen = true;
+    }
+    
+    // Update container heights
+    const predictPage = document.querySelector('.predict-page');
+    if (predictPage) {
+      mapContainerHeight = predictPage.offsetHeight;
+      document.documentElement.style.setProperty('--map-container-height', `${mapContainerHeight}px`);
+    }
+  }
+  
   onMount(() => {
     // Get exact navbar height
     const navbar = document.querySelector('header');
@@ -25,20 +43,12 @@
       }
     }
     
-    // Close sidebar by default on mobile
+    // Close sidebar by default on mobile only
     if (window.innerWidth < 768) {
       isSidebarOpen = false;
     }
     
-    // Update height on window resize
-    const handleResize = () => {
-      const predictPage = document.querySelector('.predict-page');
-      if (predictPage) {
-        mapContainerHeight = predictPage.offsetHeight;
-        document.documentElement.style.setProperty('--map-container-height', `${mapContainerHeight}px`);
-      }
-    };
-    
+    // Add resize listener to handle responsive behavior
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   });
@@ -72,10 +82,10 @@
 </svelte:head>
 
 <!-- Full height predict page that accounts for navbar -->
-<div class="predict-page w-full">
-  <div class="flex flex-col md:flex-row h-full relative">
+<div class="predict-page w-full overflow-hidden">
+  <div class="flex flex-col md:flex-row h-full w-full">
     <!-- Map takes full width and height on mobile -->
-    <div class="w-full h-full relative">
+    <div class="w-full md:w-2/3 h-full">
       <Map height="100%" />
     </div>
     
@@ -88,12 +98,11 @@
       <Icon icon={isSidebarOpen ? 'mdi:chevron-right' : 'mdi:chevron-left'} width="24" />
     </button>
     
-    <!-- Sidebar as floating container on mobile - with strictly contained height -->
+    <!-- Radically simplified mobile sidebar with explicit large width -->
     <div class="
-      md:w-1/3 md:h-full md:border-l md:border-gray-200 md:shadow-lg md:static md:block md:overflow-y-auto
-      fixed z-30 transition-all duration-300 ease-in-out
-      {isSidebarOpen ? 'right-0 w-[85%] max-w-md' : 'right-[-100%] w-0'}
-      mobile-sidebar
+      mobile-sidebar-container
+      md:static md:w-1/3 md:h-full md:block
+      {isSidebarOpen ? 'mobile-sidebar-open' : 'mobile-sidebar-closed'}
     ">
       {#if isSidebarOpen || window?.innerWidth >= 768}
         <PredictSidebar on:tabChange={handleTabChange} on:closeSidebar={handleCloseSidebar} />
@@ -107,6 +116,34 @@
     width: 100%;
     overflow: hidden;
     /* Height will be dynamically set via JavaScript */
+  }
+  
+  /* Fix for empty space issue - ensure containers take full width */
+  .predict-page > div {
+    width: 100%;
+    max-width: 100%;
+  }
+  
+  /* Remove flex-grow: 0 that might be causing the issue */
+  .predict-page > div {
+    width: 100%;
+  }
+  
+  /* Ensure the map and sidebar containers fill their parent completely */
+  .predict-page > div > div {
+    flex-shrink: 0;
+  }
+  
+  /* Sidebar should fill its container on desktop */
+  .predict-page > div > div:last-child {
+    width: 33.333%;
+  }
+  
+  @media (min-width: 768px) {
+    .predict-page > div > div:last-child {
+      flex: 1 0 33.333%;
+      max-width: none !important;
+    }
   }
   
   /* Remove any default margins that might cause scrolling */
@@ -134,5 +171,90 @@
       bottom: 0 !important;
       overflow-y: auto !important;
     }
+  }
+  
+  /* Explicit sidebar styles to prevent conflicts */
+  .sidebar-container {
+    height: var(--map-container-height, calc(100vh - var(--nav-height, 0px)));
+  }
+  
+  /* Open sidebar state for mobile */
+  .sidebar-open {
+    right: 0;
+    width: 85%; /* Explicit width as percentage of viewport */
+    max-width: 400px;
+  }
+  
+  /* Closed sidebar state for mobile */
+  .sidebar-closed {
+    right: -100%;
+    width: 0;
+  }
+  
+  /* Desktop sidebar overrides */
+  @media (min-width: 768px) {
+    .sidebar-container {
+      width: 33.333% !important;
+      max-width: none !important;
+      flex: 1 !important;
+    }
+  }
+  
+  /* Mobile sidebar positioning */
+  @media (max-width: 767px) {
+    .sidebar-container {
+      top: var(--nav-height, 0px);
+      bottom: 0;
+      width: 85vw; /* Use viewport width units for mobile */
+      max-width: 400px;
+      overflow-y: auto;
+    }
+  }
+  
+  /* Remove all conflicting styles */
+  .mobile-sidebar-container {
+    position: fixed;
+    height: var(--map-container-height, calc(100vh - var(--nav-height, 0px)));
+    top: var(--nav-height, 0px);
+    z-index: 30;
+    border-left: 1px solid #e5e7eb;
+    box-shadow: -2px 0 10px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease-in-out;
+    overflow-y: auto;
+    background-color: white;
+  }
+  
+  /* Force wide sidebar on mobile */
+  .mobile-sidebar-open {
+    right: 0;
+    width: 85vw !important; /* Use viewport width with !important */
+    max-width: 450px !important;
+  }
+  
+  /* Hidden sidebar */
+  .mobile-sidebar-closed {
+    right: -100%;
+    width: 0;
+  }
+  
+  /* Desktop override - make sure it's exactly 1/3 */
+  @media (min-width: 768px) {
+    .mobile-sidebar-container {
+      position: static;
+      width: 33.333% !important;
+      right: auto !important;
+      box-shadow: none;
+      border-left: 1px solid #e5e7eb;
+    }
+  }
+  
+  /* Remove all the old style rules that might be conflicting */
+  .predict-page > div > div:last-child {
+    width: auto; /* Override any previous width settings */
+  }
+  
+  .sidebar-container, .sidebar-open, .sidebar-closed {
+    /* Override any existing styles */
+    width: auto !important;
   }
 </style>
