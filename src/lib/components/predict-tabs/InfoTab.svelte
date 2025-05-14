@@ -25,6 +25,13 @@
 	let fakeProgress = 0;
 	let progressInterval = null;
 	let predictingStartTime = null;
+
+	const phases = [
+			{ endTime: 10000, endProgress: 40 },  // Phase 1: 0-10s, 0-40%
+			{ endTime: 20000, endProgress: 70 },  // Phase 2: 10-25s, 40-80%
+			{ endTime: 35000, endProgress: 90 },  // Phase 3: 25-40s, 80-90%
+			{ endTime: Infinity, endProgress: 99 } // Final phase: stays at 99%
+		];
 	
 	// Start the fake progress animation
 	function startFakeProgress() {
@@ -39,24 +46,30 @@
 		progressInterval = setInterval(() => {
 			const elapsedTime = Date.now() - predictingStartTime;
 			
-			// Different phases of the progress simulation:
-			// Phase 1 (0-15s): Progress quickly to 40%
-			// Phase 2 (15-40s): Slow down, reach 75%
-			// Phase 3 (40-80s): Very slow progress, reach 90%
-			// After 80s: Stay at 90% until completion
+			// Find the current phase based on elapsed time
+			let currentPhase = 0;
+			let prevTime = 0;
+			let prevProgress = 0;
 			
-			if (elapsedTime < 15000) {
-				// Phase 1: Quick initial progress (builds confidence)
-				fakeProgress = Math.min(40, elapsedTime / 15000 * 40);
-			} else if (elapsedTime < 40000) {
-				// Phase 2: Moderate progress
-				fakeProgress = 40 + Math.min(35, (elapsedTime - 15000) / 25000 * 35);
-			} else if (elapsedTime < 80000) {
-				// Phase 3: Slow finishing progress
-				fakeProgress = 75 + Math.min(15, (elapsedTime - 40000) / 40000 * 15);
+			for (let i = 0; i < phases.length; i++) {
+				if (elapsedTime < phases[i].endTime) {
+					currentPhase = i;
+					break;
+				}
+				prevTime = phases[i].endTime;
+				prevProgress = phases[i].endProgress;
+			}
+			
+			const phase = phases[currentPhase];
+			const phaseDuration = phase.endTime - prevTime;
+			const phaseProgress = phase.endProgress - prevProgress;
+			const timeInPhase = elapsedTime - prevTime;
+			
+			// Calculate current progress based on time within the current phase
+			if (phaseDuration > 0) {
+				fakeProgress = prevProgress + Math.min(phaseProgress, (timeInPhase / phaseDuration) * phaseProgress);
 			} else {
-				// Maximum progress before completion
-				fakeProgress = 90;
+				fakeProgress = phase.endProgress;
 			}
 		}, 100); // Update every 100ms for smooth animation
 	}
@@ -156,7 +169,11 @@
 		} finally {
 			// Complete the progress animation
 			completeProgress();
-			isPredicting = false;
+			
+			// Delay setting isPredicting to false to ensure progress bar reaches 100%
+			setTimeout(() => {
+				isPredicting = false;
+			}, 500); // Adjust the delay (in milliseconds) as needed
 		}
 	}
 
@@ -301,14 +318,6 @@
 	// Format progress percentage for display
 	function formatProgress(progress) {
 		return Math.round(progress) + '%';
-	}
-
-	// Format elapsed time for display
-	function formatElapsedTime() {
-		if (!predictingStartTime) return '';
-		
-		const elapsedSeconds = Math.floor((Date.now() - predictingStartTime) / 1000);
-		return `${elapsedSeconds}s`;
 	}
 
 	// Extract readable property info from facility properties
@@ -583,7 +592,7 @@
 			<button
 				on:click={predictFlood}
 				disabled={isPredicting || !$selectedLocation.lat || locationLoadingState}
-				class="flex items-center justify-center rounded-md bg-[#0c3143] px-4 py-1.5 text-sm text-white shadow-sm transition duration-150 hover:bg-[#1a4a5a] focus:ring-2 focus:ring-[#0c3143] focus:ring-offset-2 focus:outline-none disabled:opacity-50"
+				class={`flex items-center justify-center rounded-md bg-[#0c3143] px-4 py-1.5 text-sm text-white shadow-sm transition duration-150 hover:bg-[#1a4a5a] focus:ring-2 focus:ring-[#0c3143] focus:ring-offset-2 focus:outline-none disabled:opacity-50 ${(isPredicting || !$selectedLocation.lat || locationLoadingState) ? 'cursor-not-allowed' : 'cursor-pointer'}`}
 			>
 				{#if isPredicting}
 					<span class="mr-1.5 inline-block animate-spin">
@@ -616,7 +625,6 @@
 					<Icon icon="eos-icons:loading" class="mr-2 animate-spin text-blue-500" width="20" />
 					<p class="text-sm text-blue-700">Processing prediction data...</p>
 				</div>
-				<span class="text-xs text-blue-600">{formatElapsedTime()}</span>
 			</div>
 			
 			<!-- Progress bar -->
@@ -629,22 +637,20 @@
 			
 			<!-- Progress percentage -->
 			<div class="mt-1 flex justify-between text-xs text-gray-600">
-				<span>Analyzing terrain, weather, and hydrological data...</span>
+				<span>Please wait... Selecting different location will cancel prediction</span>
 				<span class="font-medium">{formatProgress(fakeProgress)}</span>
 			</div>
 			
 			<!-- Prediction stages based on progress -->
 			<div class="mt-2 text-xs text-gray-600">
-				{#if fakeProgress < 30}
-					<p>• Gathering location, elevation and water proximity data</p>
-				{:else if fakeProgress < 60}
+				{#if fakeProgress < phases[0].endProgress}
+					<p>• Gathering data for predicting flood</p>
+				{:else if fakeProgress < phases[1].endProgress}
 					<p>• Processing terrain and weather variables</p>
-					<p>• Analyzing historical precipitation patterns</p>
-				{:else if fakeProgress < 90}
-					<p>• Running Random Forest and LSTM prediction models</p>
+				{:else if fakeProgress < phases[2].endProgress}
 					<p>• Calculating flood probability and risk level</p>
 				{:else}
-					<p>• Finalizing results and generating forecast</p>
+					<p>• Finalizing results and generating predictions</p>
 				{/if}
 			</div>
 		</div>
