@@ -234,8 +234,10 @@
 	// Get risk level color based on risk level
 	function getRiskLevelColor(riskLevel) {
 		switch(riskLevel) {
+			case 'Very High': return 'text-red-800 font-bold';
 			case 'High': return 'text-red-600 font-bold';
-			case 'Medium': return 'text-orange-500 font-medium';
+			case 'Medium': 
+			case 'Moderate': return 'text-orange-500 font-medium';
 			case 'Low': return 'text-yellow-600 font-medium';
 			case 'Very Low': return 'text-green-600';
 			default: return 'text-gray-600';
@@ -248,8 +250,10 @@
 		if (prediction === 'LOCATION_ON_WATER') return 'bg-blue-50 border-blue-200';
 		
 		switch(riskLevel) {
+			case 'Very High': return 'bg-red-100 border-red-300';
 			case 'High': return 'bg-red-50 border-red-200';
-			case 'Medium': return 'bg-orange-50 border-orange-200';
+			case 'Medium': 
+			case 'Moderate': return 'bg-orange-50 border-orange-200';
 			case 'Low': return 'bg-yellow-50 border-yellow-200';
 			case 'Very Low': return 'bg-green-50 border-green-200';
 			default: return 'bg-gray-50 border-gray-200';
@@ -259,8 +263,10 @@
 	// Get risk level badge style
 	function getRiskLevelBadgeStyle(riskLevel) {
 		switch(riskLevel) {
+			case 'Very High': return 'bg-red-200 text-red-900';
 			case 'High': return 'bg-red-100 text-red-800';
-			case 'Medium': return 'bg-orange-100 text-orange-800';
+			case 'Medium': 
+			case 'Moderate': return 'bg-orange-100 text-orange-800';
 			case 'Low': return 'bg-yellow-100 text-yellow-800';
 			case 'Very Low': return 'bg-green-100 text-green-800';
 			default: return 'bg-gray-100 text-gray-800';
@@ -273,8 +279,10 @@
 		if (prediction === 'LOCATION_ON_WATER') return 'mdi:water';
 		
 		switch(riskLevel) {
+			case 'Very High': return 'mdi:alert-octagon';
 			case 'High': return 'mdi:alert-circle';
-			case 'Medium': return 'mdi:alert';
+			case 'Medium': 
+			case 'Moderate': return 'mdi:alert';
 			case 'Low': return 'mdi:information';
 			case 'Very Low': return 'mdi:check-circle';
 			default: return 'mdi:check-circle';
@@ -293,7 +301,10 @@
 	// Get color based on flood probability
 	function getFloodProbabilityColor(probability, prediction) {
 		if (prediction === 'FLOODED') return 'text-red-600 font-bold';
-		if (probability > 0.15) return 'text-orange-500 font-medium';
+		if (probability >= 0.80) return 'text-red-800 font-bold';
+		if (probability >= 0.60) return 'text-red-600 font-bold';
+		if (probability >= 0.40) return 'text-orange-500 font-medium';
+		if (probability >= 0.20) return 'text-yellow-600 font-medium';
 		return 'text-green-600';
 	}
 
