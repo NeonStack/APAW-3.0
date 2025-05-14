@@ -59,13 +59,18 @@
 	let districts = ['all', '1st District', '2nd District', '3rd District', '4th District'];
 	let sortOption = $state('name');
 	
-	// Streamlined sort options with only primary visible metrics
+	// Streamlined sort options with both high-to-low and low-to-high options
 	let sortOptions = [
 		{ value: 'name', label: 'City Name (A-Z)' },
+		{ value: 'name-desc', label: 'City Name (Z-A)' },
 		{ value: 'precipitation', label: 'Rain Probability (High-Low)' },
+		{ value: 'precipitation-asc', label: 'Rain Probability (Low-High)' },
 		{ value: 'temperature', label: 'Temperature (High-Low)' },
+		{ value: 'temperature-asc', label: 'Temperature (Low-High)' },
 		{ value: 'rainfall', label: 'Rainfall mm (High-Low)' },
-		{ value: 'windgust', label: 'Wind Gust (High-Low)' }
+		{ value: 'rainfall-asc', label: 'Rainfall mm (Low-High)' },
+		{ value: 'windgust', label: 'Wind Gust (High-Low)' },
+		{ value: 'windgust-asc', label: 'Wind Gust (Low-High)' }
 	];
 
 	// Access store values directly in Svelte 5
@@ -132,7 +137,7 @@
 		}
 	});
 
-	// Updated filtered cities list with sorting based on selected date
+	// Updated filtered cities list with sorting based on selected date - now includes ascending options
 	let filteredCities = $derived(
 		weatherDataValue.data
 			.filter((city) => {
@@ -156,23 +161,41 @@
 
 				if (sortOption === 'name') {
 					return a.city_name.localeCompare(b.city_name);
+				} else if (sortOption === 'name-desc') {
+					return b.city_name.localeCompare(a.city_name);
 				} else if (sortOption === 'precipitation') {
 					// Convert to numbers and compare
 					const aPrecip = Number(aForecast.day_precipitation_probability) || 0;
 					const bPrecip = Number(bForecast.day_precipitation_probability) || 0;
 					return bPrecip - aPrecip;
+				} else if (sortOption === 'precipitation-asc') {
+					const aPrecip = Number(aForecast.day_precipitation_probability) || 0;
+					const bPrecip = Number(bForecast.day_precipitation_probability) || 0;
+					return aPrecip - bPrecip;
 				} else if (sortOption === 'temperature') {
 					const aTemp = Number(aForecast.max_temp_c) || 0;
 					const bTemp = Number(bForecast.max_temp_c) || 0;
 					return bTemp - aTemp;
+				} else if (sortOption === 'temperature-asc') {
+					const aTemp = Number(aForecast.max_temp_c) || 0;
+					const bTemp = Number(bForecast.max_temp_c) || 0;
+					return aTemp - bTemp;
 				} else if (sortOption === 'rainfall') {
 					const aRain = Number(aForecast.total_rain_mm) || 0;
 					const bRain = Number(bForecast.total_rain_mm) || 0;
 					return bRain - aRain;
+				} else if (sortOption === 'rainfall-asc') {
+					const aRain = Number(aForecast.total_rain_mm) || 0;
+					const bRain = Number(bForecast.total_rain_mm) || 0;
+					return aRain - bRain;
 				} else if (sortOption === 'windgust') {
 					const aGust = Number(aForecast.max_wind_gust_kmh) || 0;
 					const bGust = Number(bForecast.max_wind_gust_kmh) || 0;
 					return bGust - aGust;
+				} else if (sortOption === 'windgust-asc') {
+					const aGust = Number(aForecast.max_wind_gust_kmh) || 0;
+					const bGust = Number(bForecast.max_wind_gust_kmh) || 0;
+					return aGust - bGust;
 				}
 				return 0;
 			})
@@ -224,17 +247,17 @@
 
 	// Format a date for display
 	function formatDate(dateStr) {
-		return moment(dateStr).format('MMM D');
+		return moment(dateStr).format('MMMM D, YYYY');
 	}
 
 	// Format a date with day of week
 	function formatFullDate(dateStr) {
-		return moment(dateStr).format('dddd, MMMM D');
+		return moment(dateStr).format('MMMM D, YYYY - dddd');
 	}
 
 	// Format timestamp for display
 	function formatTimestamp(timestamp) {
-		return moment(timestamp).format('MMM D, YYYY [at] h:mm A');
+		return moment(timestamp).format('MMMM D, YYYY - dddd [at] h:mm A');
 	}
 
 	// Function to refresh weather data
@@ -364,13 +387,16 @@
 		const tomorrow = moment().add(1, 'day').startOf('day');
 		
 		if (dateObj.isSame(today, 'day')) {
-			return `Today (${dateObj.format('MMM D')})`;
+			return `Today (${dateObj.format('MMMM D, YYYY')})`;
 		} else if (dateObj.isSame(tomorrow, 'day')) {
-			return `Tomorrow (${dateObj.format('MMM D')})`;
+			return `Tomorrow (${dateObj.format('MMMM D, YYYY')})`;
 		} else {
-			return `${dateObj.format('ddd, MMM D')}`;
+			return `${dateObj.format('MMMM D, YYYY - dddd')}`;
 		}
 	}
+
+	// Add filter visibility toggle
+	let showFilters = $state(false);
 </script>
 
 <div class="weather-tab flex h-full flex-col">
@@ -387,55 +413,89 @@
 				Refresh
 			</button>
 
-			<button
+			<!-- <button
 				class="flex items-center gap-1 rounded bg-blue-600 px-2 py-1 text-sm text-white transition-colors hover:bg-blue-700"
 				on:click={updateWeatherFromAccuweather}
 				disabled={weatherDataValue.loading}
 			>
 				<Icon icon="mdi:cloud-download" />
 				Update Forecast
+			</button> -->
+			
+			<!-- Add filter toggle button -->
+			<button
+				class="flex items-center gap-1 rounded bg-gray-100 px-2 py-1 text-sm text-gray-600 transition-colors hover:bg-gray-200 hover:text-gray-900"
+				on:click={() => showFilters = !showFilters}
+			>
+				<Icon icon={showFilters ? "mdi:filter-off" : "mdi:filter"} />
+				{showFilters ? 'Hide Filters' : 'Show Filters'}
 			</button>
 		</div>
 	</div>
 
-	<!-- Filters and sorting -->
-	<div class="mb-2 flex flex-wrap gap-2 text-xs">
-		<div class="flex items-center">
-			<span class="mr-1">District:</span>
-			<select bind:value={selectedDistrict} class="rounded border bg-white px-1.5 py-1 text-xs">
-				{#each districts as district}
-					<option value={district}>{district === 'all' ? 'All Districts' : district}</option>
-				{/each}
-			</select>
-		</div>
+	<!-- Collapsible filter section -->
+	{#if showFilters}
+		<div class="mb-2 bg-gray-50 p-2 rounded-md border border-gray-200 transition-all">
+			<div class="flex flex-wrap gap-3 text-xs">
+				<div class="filter-group">
+					<div class="font-medium mb-1 text-gray-700">Date</div>
+					<select bind:value={selectedDate} class="rounded border bg-white px-2 py-1.5 text-xs w-full min-w-[180px]">
+						{#each availableDates as date}
+							<option value={date}>{formatDateWithLabel(date)}</option>
+						{/each}
+					</select>
+				</div>
+				
+				<div class="filter-group">
+					<div class="font-medium mb-1 text-gray-700">District</div>
+					<select bind:value={selectedDistrict} class="rounded border bg-white px-2 py-1.5 text-xs w-full min-w-[150px]">
+						{#each districts as district}
+							<option value={district}>{district === 'all' ? 'All Districts' : district}</option>
+						{/each}
+					</select>
+				</div>
 
-		<div class="flex items-center">
-			<span class="mr-1">Sort by:</span>
-			<select bind:value={sortOption} class="rounded border bg-white px-1.5 py-1 text-xs">
-				{#each sortOptions as option}
-					<option value={option.value}>{option.label}</option>
-				{/each}
-			</select>
-		</div>
-	</div>
-	
-	<!-- Global date selector -->
-	<div class="mb-3 overflow-x-auto">
-		<div class="flex items-center">
-			<span class="mr-1 text-xs">Date:</span>
-			<div class="flex space-x-1 overflow-x-auto">
-				{#each availableDates as date}
-					<button 
-						class="whitespace-nowrap px-2 py-1 text-xs rounded-md {selectedDate === date ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}"
-						on:click={() => selectedDate = date}
-					>
-						{formatDateWithLabel(date)}
-					</button>
-				{/each}
+				<div class="filter-group">
+					<div class="font-medium mb-1 text-gray-700">Sort by</div>
+					<select bind:value={sortOption} class="rounded border bg-white px-2 py-1.5 text-xs w-full min-w-[180px]">
+						<optgroup label="Name">
+							{#each sortOptions.filter(o => o.value.includes('name')) as option}
+								<option value={option.value}>{option.label}</option>
+							{/each}
+						</optgroup>
+						<optgroup label="Temperature">
+							{#each sortOptions.filter(o => o.value.includes('temperature')) as option}
+								<option value={option.value}>{option.label}</option>
+							{/each}
+						</optgroup>
+						<optgroup label="Precipitation">
+							{#each sortOptions.filter(o => o.value.includes('precipitation')) as option}
+								<option value={option.value}>{option.label}</option>
+							{/each}
+						</optgroup>
+						<optgroup label="Rainfall">
+							{#each sortOptions.filter(o => o.value.includes('rainfall')) as option}
+								<option value={option.value}>{option.label}</option>
+							{/each}
+						</optgroup>
+						<optgroup label="Wind">
+							{#each sortOptions.filter(o => o.value.includes('windgust')) as option}
+								<option value={option.value}>{option.label}</option>
+							{/each}
+						</optgroup>
+					</select>
+				</div>
+				
+				<div class="ml-auto text-right text-xs text-gray-500 self-end">
+					<div>Showing {filteredCities.length} of {weatherDataValue.data.length} cities</div>
+					{#if weatherDataValue.lastUpdated}
+						<div class="mt-1">Last updated: {moment(weatherDataValue.lastUpdated).format('MMM D, h:mm A')}</div>
+					{/if}
+				</div>
 			</div>
 		</div>
-	</div>
-
+	{/if}
+	
 	<!-- Content wrapper - Main scrollable area -->
 	<div class="flex-1 overflow-auto">
 		{#if weatherDataValue.loading}
@@ -565,17 +625,17 @@
 								<!-- Additional weather metrics -->
 								<div class="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm mb-3">
 									<div class="rounded border border-blue-100 bg-blue-50 p-2">
-										<div class="text-blue-700">Hours of Rain</div>
-										<div class="font-medium">{forecast.total_hours_rain || 0} hrs</div>
-									</div>
-									<div class="rounded border border-blue-100 bg-blue-50 p-2">
-										<div class="text-blue-700">Thunder Prob.</div>
-										<div class="font-medium">{forecast.day_thunderstorm_probability}%</div>
-									</div>
-									<div class="rounded border border-blue-100 bg-blue-50 p-2">
-										<div class="text-blue-700">Cloud Cover</div>
-										<div class="font-medium">{forecast.avg_cloud_cover_percent}%</div>
-									</div>
+											<div class="text-blue-700">Hours of Rain</div>
+											<div class="font-medium">{forecast.total_hours_rain || 0} hrs</div>
+										</div>
+										<div class="rounded border border-blue-100 bg-blue-50 p-2">
+											<div class="text-blue-700">Thunder Prob.</div>
+											<div class="font-medium">{forecast.day_thunderstorm_probability}%</div>
+										</div>
+										<div class="rounded border border-blue-100 bg-blue-50 p-2">
+											<div class="text-blue-700">Cloud Cover</div>
+											<div class="font-medium">{forecast.avg_cloud_cover_percent}%</div>
+										</div>
 								</div>
 
 								<!-- Detailed weather data accordion -->
@@ -790,6 +850,30 @@
 	@media (max-width: 768px) {
 		.weather-tab {
 			font-size: 0.9rem;
+		}
+	}
+	
+	/* Add styles for filter layout */
+	.filter-group {
+		display: flex;
+		flex-direction: column;
+		min-width: 150px;
+		flex: 1;
+		max-width: 220px;
+	}
+	
+	/* Prevent filters from becoming too large on wide screens */
+	@media (min-width: 1200px) {
+		.filter-group {
+			max-width: 200px;
+		}
+	}
+	
+	/* Adjust for very small screens */
+	@media (max-width: 480px) {
+		.filter-group {
+			min-width: 100%;
+			max-width: 100%;
 		}
 	}
 </style>

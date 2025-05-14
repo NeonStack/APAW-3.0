@@ -84,30 +84,147 @@
     
     return timeStr;
   }
+  
+  // Add filter and sorting options
+  let statusFilter = $state('all');
+  let sortOption = $state('name');
+  
+  // Define status filter options
+  const statusOptions = [
+    { value: 'all', label: 'All Stations' },
+    { value: 'critical', label: 'Critical Status' },
+    { value: 'alarm', label: 'Alarm Status' },
+    { value: 'alert', label: 'Alert Status' },
+    { value: 'normal', label: 'Normal Status' }
+  ];
+  
+  // Define sorting options
+  const sortOptions = [
+    { value: 'name', label: 'Station Name (A-Z)' },
+    { value: 'name-desc', label: 'Station Name (Z-A)' },
+    { value: 'level-high', label: 'Water Level (High-Low)' },
+    { value: 'level-low', label: 'Water Level (Low-High)' },
+    { value: 'change-high', label: 'Level Change (Rising)' },
+    { value: 'change-low', label: 'Level Change (Falling)' }
+  ];
+  
+  // Access the water stations store value directly
+  let waterStationsValue = $derived($waterStations);
+  
+  // Computed property for filtered and sorted stations - fixed the $derived syntax
+  let filteredStations = $derived(
+    waterStationsValue.data
+      .filter(station => {
+        if (statusFilter === 'all') return true;
+        
+        const status = getStationStatus(station);
+        return status.level === statusFilter;
+      })
+      .sort((a, b) => {
+        // Get numeric water levels for sorting
+        const aLevel = parseFloat(a.wl) || 0;
+        const bLevel = parseFloat(b.wl) || 0;
+        
+        // Get water level changes for sorting
+        const aChange = a.wl && a.wl10m ? parseFloat(a.wl) - parseFloat(a.wl10m) : 0;
+        const bChange = b.wl && b.wl10m ? parseFloat(b.wl) - parseFloat(b.wl10m) : 0;
+        
+        switch (sortOption) {
+          case 'name':
+            return a.obsnm.localeCompare(b.obsnm);
+          case 'name-desc':
+            return b.obsnm.localeCompare(a.obsnm);
+          case 'level-high':
+            return bLevel - aLevel;
+          case 'level-low':
+            return aLevel - bLevel;
+          case 'change-high':
+            return bChange - aChange; // Sort by rising (highest positive change first)
+          case 'change-low':
+            return aChange - bChange; // Sort by falling (lowest negative change first)
+          default:
+            return 0;
+        }
+      })
+  );
+
+  // Add filter visibility toggle
+  let showFilters = $state(false);
 </script>
 
 <div class="water-stations-tab h-full flex flex-col">
   <div class="flex justify-between items-center mb-2">
     <h2 class="text-xl font-semibold text-gray-800">Water Level Stations</h2>
-    <button 
-      class="text-sm flex items-center gap-1 text-gray-600 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 py-1 px-2 rounded transition-colors"
-      on:click={refreshWaterStations}
-    >
-      <Icon icon="mdi:refresh" />
-      Refresh
-    </button>
+    <div class="flex gap-2">
+      <button 
+        class="text-sm flex items-center gap-1 text-gray-600 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 py-1 px-2 rounded transition-colors"
+        on:click={refreshWaterStations}
+      >
+        <Icon icon="mdi:refresh" />
+        Refresh
+      </button>
+      
+      <!-- Add filter toggle button -->
+      <button 
+        class="text-sm flex items-center gap-1 text-gray-600 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 py-1 px-2 rounded transition-colors"
+        on:click={() => showFilters = !showFilters}
+      >
+        <Icon icon={showFilters ? "mdi:filter-off" : "mdi:filter"} />
+        {showFilters ? 'Hide Filters' : 'Show Filters'}
+      </button>
+    </div>
   </div>
 
-  <!-- More compact legend -->
-  <div class="mb-3 text-xs bg-gray-50 p-1.5 rounded flex justify-between">
-    <div class="flex gap-2">
-      <div class="flex items-center"><span class="h-2 w-2 bg-green-600 rounded-full mr-1"></span>Normal</div>
-      <div class="flex items-center"><span class="h-2 w-2 bg-yellow-500 rounded-full mr-1"></span>Alert</div>
-      <div class="flex items-center"><span class="h-2 w-2 bg-orange-500 rounded-full mr-1"></span>Alarm</div>
-      <div class="flex items-center"><span class="h-2 w-2 bg-red-600 rounded-full mr-1"></span>Critical</div>
+  <!-- Collapsible filter section and legend -->
+  {#if showFilters}
+    <div class="mb-2 bg-gray-50 p-2 rounded-md border border-gray-200 transition-all">
+      <div class="flex flex-wrap gap-3 text-xs">
+        <div class="filter-group">
+          <div class="font-medium mb-1 text-gray-700">Status</div>
+          <select bind:value={statusFilter} class="rounded border bg-white px-2 py-1.5 text-xs w-full">
+            {#each statusOptions as option}
+              <option value={option.value}>{option.label}</option>
+            {/each}
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <div class="font-medium mb-1 text-gray-700">Sort by</div>
+          <select bind:value={sortOption} class="rounded border bg-white px-2 py-1.5 text-xs w-full">
+            <optgroup label="Name">
+              {#each sortOptions.filter(o => o.value.includes('name')) as option}
+                <option value={option.value}>{option.label}</option>
+              {/each}
+            </optgroup>
+            <optgroup label="Water Level">
+              {#each sortOptions.filter(o => o.value.includes('level')) as option}
+                <option value={option.value}>{option.label}</option>
+              {/each}
+            </optgroup>
+            <optgroup label="Change Rate">
+              {#each sortOptions.filter(o => o.value.includes('change')) as option}
+                <option value={option.value}>{option.label}</option>
+              {/each}
+            </optgroup>
+          </select>
+        </div>
+        
+        <div class="ml-auto text-gray-500 self-end text-right">
+          Showing: {filteredStations.length} of {waterStationsValue.data.length} stations
+        </div>
+      </div>
+      
+      <!-- Status legend - now inside the filter box -->
+      <div class="mt-2 pt-2 border-t border-gray-200 text-xs flex justify-between items-center">
+        <div class="flex gap-3">
+          <div class="flex items-center"><span class="h-2 w-2 bg-green-600 rounded-full mr-1"></span>Normal</div>
+          <div class="flex items-center"><span class="h-2 w-2 bg-yellow-500 rounded-full mr-1"></span>Alert</div>
+          <div class="flex items-center"><span class="h-2 w-2 bg-orange-500 rounded-full mr-1"></span>Alarm</div>
+          <div class="flex items-center"><span class="h-2 w-2 bg-red-600 rounded-full mr-1"></span>Critical</div>
+        </div>
+      </div>
     </div>
-    <div class="text-gray-500">Stations: {$waterStations.data?.length || 0}</div>
-  </div>
+  {/if}
 
   <!-- Content wrapper - Main scrollable area -->
   <div class="flex-1 overflow-auto">
@@ -129,9 +246,17 @@
       <div class="bg-gray-50 border border-gray-200 rounded p-4 text-center">
         <p class="text-gray-600">No water station data available.</p>
       </div>
+    {:else if filteredStations.length === 0}
+      <div class="bg-gray-50 border border-gray-200 rounded p-4 text-center">
+        <p class="text-gray-600">No stations found with the selected filters.</p>
+        <button 
+          class="mt-2 px-3 py-1 bg-blue-600 text-white rounded text-xs"
+          on:click={() => statusFilter = 'all'}
+        >Show All Stations</button>
+      </div>
     {:else}
       <div class="space-y-1 pb-4">
-        {#each $waterStations.data as station (station.obsnm)}
+        {#each filteredStations as station (station.obsnm)}
           {@const status = getStationStatus(station)}
           {@const change = calculateWaterChange(station)}
           
@@ -225,5 +350,29 @@
   /* Add custom border width */
   .border-l-3 {
     border-left-width: 3px;
+  }
+
+  /* Add styles for filter layout */
+  .filter-group {
+    display: flex;
+    flex-direction: column;
+    min-width: 150px;
+    flex: 1;
+    max-width: 220px;
+  }
+  
+  /* Prevent filters from becoming too large on wide screens */
+  @media (min-width: 1200px) {
+    .filter-group {
+      max-width: 200px;
+    }
+  }
+  
+  /* Adjust for very small screens */
+  @media (max-width: 480px) {
+    .filter-group {
+      min-width: 100%;
+      max-width: 100%;
+    }
   }
 </style>

@@ -4,7 +4,7 @@
 		findNearestPoint,
 		locationLoadingStatus,
 		nearestFacilities,
-		facilitiesLayerActive // Import the facilities layer status store
+		facilitiesLayerActive
 	} from '$lib/stores/locationStore.js';
 	import { waterStations, nearestWaterStation } from '$lib/stores/waterStationStore.js';
 	import { metroManilaCities, nearestWeatherCity } from '$lib/stores/weatherStore.js';
@@ -17,10 +17,66 @@
 	let floodPrediction = null;
 	let isPredicting = false;
 	let predictionError = null;
-	let selectedModel = 'rf'; // Default model (Random Forest)
 	let locationLoadingState = false;
 	let locationLoadingMessage = '';
 	let expandedFacilities = {}; // Track expanded state of facilities
+	
+	// Fake progress bar state
+	let fakeProgress = 0;
+	let progressInterval = null;
+	let predictingStartTime = null;
+	
+	// Start the fake progress animation
+	function startFakeProgress() {
+		// Reset progress
+		fakeProgress = 0;
+		predictingStartTime = Date.now();
+		
+		// Clear any existing interval
+		if (progressInterval) clearInterval(progressInterval);
+		
+		// Set up new interval
+		progressInterval = setInterval(() => {
+			const elapsedTime = Date.now() - predictingStartTime;
+			
+			// Different phases of the progress simulation:
+			// Phase 1 (0-15s): Progress quickly to 40%
+			// Phase 2 (15-40s): Slow down, reach 75%
+			// Phase 3 (40-80s): Very slow progress, reach 90%
+			// After 80s: Stay at 90% until completion
+			
+			if (elapsedTime < 15000) {
+				// Phase 1: Quick initial progress (builds confidence)
+				fakeProgress = Math.min(40, elapsedTime / 15000 * 40);
+			} else if (elapsedTime < 40000) {
+				// Phase 2: Moderate progress
+				fakeProgress = 40 + Math.min(35, (elapsedTime - 15000) / 25000 * 35);
+			} else if (elapsedTime < 80000) {
+				// Phase 3: Slow finishing progress
+				fakeProgress = 75 + Math.min(15, (elapsedTime - 40000) / 40000 * 15);
+			} else {
+				// Maximum progress before completion
+				fakeProgress = 90;
+			}
+		}, 100); // Update every 100ms for smooth animation
+	}
+	
+	// Stop progress and set to 100%
+	function completeProgress() {
+		// Clear the interval
+		if (progressInterval) {
+			clearInterval(progressInterval);
+			progressInterval = null;
+		}
+		
+		// Set to 100%
+		fakeProgress = 100;
+		
+		// After showing 100% for a moment, reset it
+		setTimeout(() => {
+			fakeProgress = 0;
+		}, 1000);
+	}
 
 	// Subscribe to location loading status
 	locationLoadingStatus.subscribe((status) => {
@@ -32,12 +88,6 @@
 	$: {
 		dispatch('predictionStatusChange', { isPredicting });
 	}
-
-	const modelOptions = [
-		{ value: 'rf', label: 'Random Forest (Recommended)' },
-		{ value: 'lgbm', label: 'LightGBM' },
-		{ value: 'lstm', label: 'LSTM Neural Network' }
-	];
 
 	// Update nearest points whenever selectedLocation changes
 	$: if ($selectedLocation.lat !== null && $selectedLocation.lng !== null) {
@@ -76,10 +126,13 @@
 		isPredicting = true;
 		predictionError = null;
 		floodPrediction = null;
+		
+		// Start the fake progress animation
+		startFakeProgress();
 
 		try {
 			const response = await fetch(
-				`/api/flood-prediction?lat=${$selectedLocation.lat}&lng=${$selectedLocation.lng}&model=${selectedModel}`
+				`/api/flood-prediction?lat=${$selectedLocation.lat}&lng=${$selectedLocation.lng}&elevation=${$selectedLocation.elevation || ''}`
 			);
 
 			if (!response.ok) {
@@ -101,9 +154,18 @@
 			predictionError = error.message || 'Failed to fetch flood prediction';
 			floodPrediction = null; // Ensure we clear any partial data
 		} finally {
+			// Complete the progress animation
+			completeProgress();
 			isPredicting = false;
 		}
 	}
+
+	// On component unmount, clear any running intervals
+	onMount(() => {
+		return () => {
+			if (progressInterval) clearInterval(progressInterval);
+		};
+	});
 
 	// Manage expanded state for each prediction
 	let expandedPredictions = {};
@@ -125,37 +187,55 @@
 		return `${Math.round(distance)}m`;
 	}
 
-	// Format date to more readable format
+	// Format date to more readable format for prediction cards
 	function formatDate(dateString) {
 		const date = new Date(dateString);
 		return date.toLocaleDateString('en-US', {
-			weekday: 'short',
-			month: 'short',
-			day: 'numeric'
+			month: 'long',
+			day: 'numeric',
+			year: 'numeric'
+		}) + ' - ' + date.toLocaleDateString('en-US', { weekday: 'long' });
+	}
+	
+	// Format date for header display (shorter format)
+	function formatHeaderDate(dateString) {
+		const date = new Date(dateString);
+		return date.toLocaleDateString('en-US', {
+			month: 'long',
+			day: 'numeric',
+			year: 'numeric'
 		});
 	}
 
-	// Get color based on flood probability and risk level
-	function getPredictionColor(prediction, riskLevel) {
+	// Get color based on flood prediction status
+	function getPredictionColor(prediction) {
 		if (prediction === 'FLOODED') return 'text-red-600 font-bold';
-		
+		if (prediction === 'LOCATION_ON_WATER') return 'text-blue-600 font-medium';
+		return 'text-green-600';
+	}
+
+	// Get risk level color based on risk level
+	function getRiskLevelColor(riskLevel) {
 		switch(riskLevel) {
+			case 'High': return 'text-red-600 font-bold';
 			case 'Medium': return 'text-orange-500 font-medium';
 			case 'Low': return 'text-yellow-600 font-medium';
 			case 'Very Low': return 'text-green-600';
-			default: return 'text-green-600';
+			default: return 'text-gray-600';
 		}
 	}
 
 	// Get background color for prediction card based on risk level
 	function getPredictionCardStyle(prediction, riskLevel) {
 		if (prediction === 'FLOODED') return 'bg-red-50 border-red-200';
+		if (prediction === 'LOCATION_ON_WATER') return 'bg-blue-50 border-blue-200';
 		
 		switch(riskLevel) {
+			case 'High': return 'bg-red-50 border-red-200';
 			case 'Medium': return 'bg-orange-50 border-orange-200';
 			case 'Low': return 'bg-yellow-50 border-yellow-200';
 			case 'Very Low': return 'bg-green-50 border-green-200';
-			default: return 'bg-green-50 border-green-200';
+			default: return 'bg-gray-50 border-gray-200';
 		}
 	}
 
@@ -173,8 +253,10 @@
 	// Get icon for prediction
 	function getPredictionIcon(prediction, riskLevel) {
 		if (prediction === 'FLOODED') return 'mdi:alert-circle';
+		if (prediction === 'LOCATION_ON_WATER') return 'mdi:water';
 		
 		switch(riskLevel) {
+			case 'High': return 'mdi:alert-circle';
 			case 'Medium': return 'mdi:alert';
 			case 'Low': return 'mdi:information';
 			case 'Very Low': return 'mdi:check-circle';
@@ -198,7 +280,6 @@
 		return 'text-green-600';
 	}
 
-
 	// Format property value for display (convert fire_station -> Fire Station)
 	function formatPropertyValue(value) {
 		if (!value || typeof value !== 'string') return value;
@@ -207,6 +288,27 @@
 			.split('_')
 			.map(word => word.charAt(0).toUpperCase() + word.slice(1))
 			.join(' ');
+	}
+
+	// Get progress bar color based on progress percentage
+	function getProgressBarColor(progress) {
+		if (progress < 30) return 'bg-blue-400';
+		if (progress < 60) return 'bg-blue-500';
+		if (progress < 90) return 'bg-blue-600';
+		return 'bg-green-500';
+	}
+
+	// Format progress percentage for display
+	function formatProgress(progress) {
+		return Math.round(progress) + '%';
+	}
+
+	// Format elapsed time for display
+	function formatElapsedTime() {
+		if (!predictingStartTime) return '';
+		
+		const elapsedSeconds = Math.floor((Date.now() - predictingStartTime) / 1000);
+		return `${elapsedSeconds}s`;
 	}
 
 	// Extract readable property info from facility properties
@@ -440,6 +542,19 @@
 		const ratio = (probability / threshold) * 100;
 		return ratio.toFixed(2) + '%';
 	}
+	
+	// Format depth value to show only if it has a value
+	function formatDepth(depthCm) {
+		if (!depthCm && depthCm !== 0) return null;
+		
+		// Convert cm to inches
+		const inches = depthCm / 2.54;
+		
+		return {
+			cm: Math.round(depthCm * 10) / 10,
+			inches: Math.round(inches * 10) / 10
+		};
+	}
 </script>
 
 <div class="info-tab">
@@ -459,44 +574,29 @@
 			Get Flood Prediction
 		</h3>
 
-		<div class="flex flex-wrap items-stretch gap-2 md:flex-nowrap">
-			<div class="w-full md:flex-1">
-				<label for="model-select" class="mb-1 block text-sm font-medium text-gray-700">
-					Model
-				</label>
-				<select
-					id="model-select"
-					bind:value={selectedModel}
-					class="block w-full rounded-md border border-gray-300 bg-white px-2 py-1.5 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500 focus:outline-none"
-					disabled={isPredicting || !$selectedLocation.lat}
-				>
-					{#each modelOptions as option}
-						<option value={option.value}>{option.label}</option>
-					{/each}
-				</select>
-			</div>
-
-			<div class="flex w-full flex-col md:w-auto">
-				<label class="mb-1 text-sm font-medium whitespace-nowrap text-gray-700" for="predict-button"> Action </label>
-				<button
-					id="predict-button"
-					on:click={predictFlood}
-					disabled={isPredicting || !$selectedLocation.lat || locationLoadingState}
-					class="flex flex-1 items-center justify-center rounded-md bg-[#0c3143] px-4 py-1.5 text-sm text-white shadow-sm transition duration-150 hover:bg-[#1a4a5a] focus:ring-2 focus:ring-[#0c3143] focus:ring-offset-2 focus:outline-none disabled:opacity-50"
-				>
-					{#if isPredicting}
-						<span class="mr-1.5 inline-block animate-spin">
-							<Icon icon="eos-icons:loading" width="16" />
-						</span>
-						Predicting...
-					{:else}
-						<span class="mr-1.5">
-							<Icon icon="mdi:weather-flood" width="16" />
-						</span>
-						Predict Flooding
-					{/if}
-				</button>
-			</div>
+		<div class="flex items-center justify-between">
+			<p class="text-sm text-gray-600">
+				<Icon icon="mdi:information-outline" class="mr-1 inline-block" width="14" />
+				Uses combined RF & LSTM models
+			</p>
+			
+			<button
+				on:click={predictFlood}
+				disabled={isPredicting || !$selectedLocation.lat || locationLoadingState}
+				class="flex items-center justify-center rounded-md bg-[#0c3143] px-4 py-1.5 text-sm text-white shadow-sm transition duration-150 hover:bg-[#1a4a5a] focus:ring-2 focus:ring-[#0c3143] focus:ring-offset-2 focus:outline-none disabled:opacity-50"
+			>
+				{#if isPredicting}
+					<span class="mr-1.5 inline-block animate-spin">
+						<Icon icon="eos-icons:loading" width="16" />
+					</span>
+					Predicting...
+				{:else}
+					<span class="mr-1.5">
+						<Icon icon="mdi:weather-flood" width="16" />
+					</span>
+					Predict Flooding
+				{/if}
+			</button>
 		</div>
 
 		{#if predictionError}
@@ -509,14 +609,46 @@
 
 	<!-- Prediction Results: Redesigned cards -->
 	{#if isPredicting}
-		<!-- Loading indicator for prediction -->
+		<!-- Loading indicator with progress bar for prediction -->
 		<div class="mb-2 rounded-lg border border-blue-200 bg-blue-50 p-3">
-			<div class="flex items-center justify-center">
-				<Icon icon="eos-icons:loading" class="mr-2 animate-spin text-blue-500" width="20" />
-				<p class="text-sm text-blue-700">Processing prediction data...</p>
+			<div class="mb-2 flex items-center justify-between">
+				<div class="flex items-center">
+					<Icon icon="eos-icons:loading" class="mr-2 animate-spin text-blue-500" width="20" />
+					<p class="text-sm text-blue-700">Processing prediction data...</p>
+				</div>
+				<span class="text-xs text-blue-600">{formatElapsedTime()}</span>
+			</div>
+			
+			<!-- Progress bar -->
+			<div class="relative h-4 w-full overflow-hidden rounded-full bg-gray-200">
+				<div 
+					class={`absolute left-0 top-0 h-full transition-all duration-300 ease-out ${getProgressBarColor(fakeProgress)}`}
+					style={`width: ${fakeProgress}%;`}
+				></div>
+			</div>
+			
+			<!-- Progress percentage -->
+			<div class="mt-1 flex justify-between text-xs text-gray-600">
+				<span>Analyzing terrain, weather, and hydrological data...</span>
+				<span class="font-medium">{formatProgress(fakeProgress)}</span>
+			</div>
+			
+			<!-- Prediction stages based on progress -->
+			<div class="mt-2 text-xs text-gray-600">
+				{#if fakeProgress < 30}
+					<p>• Gathering location, elevation and water proximity data</p>
+				{:else if fakeProgress < 60}
+					<p>• Processing terrain and weather variables</p>
+					<p>• Analyzing historical precipitation patterns</p>
+				{:else if fakeProgress < 90}
+					<p>• Running Random Forest and LSTM prediction models</p>
+					<p>• Calculating flood probability and risk level</p>
+				{:else}
+					<p>• Finalizing results and generating forecast</p>
+				{/if}
 			</div>
 		</div>
-	{:else if floodPrediction && Array.isArray(floodPrediction.predictions) && floodPrediction.predictions.length > 0}
+	{:else if floodPrediction && floodPrediction.daily_predictions && floodPrediction.daily_predictions.length > 0}
 		<!-- Results display with improved card layout -->
 		<div class="mb-2">
 			<div class="mb-2 flex items-center justify-between">
@@ -525,219 +657,417 @@
 					Flood Prediction Results
 				</h3>
 				<span class="rounded-full bg-blue-100 px-1.5 py-0.5 text-xs text-blue-800">
-					{floodPrediction.request_details?.request_time?.split(' ')[0] || 'Next 5 Days'}
+					{floodPrediction.request_details?.request_timestamp ? 
+						formatHeaderDate(floodPrediction.request_details.request_timestamp.split(' ')[0]) : 
+						'Next 5 Days'}
 				</span>
 			</div>
 
-			<div
-				class="mb-2 flex flex-wrap justify-between rounded border border-gray-200 bg-gray-50 p-2 text-xs text-gray-500"
-			>
+			<div class="mb-2 flex flex-wrap justify-between rounded border border-gray-200 bg-gray-50 p-2 text-xs text-gray-500">
 				<div>
 					<span class="font-medium text-gray-600">Model:</span>
-					<span class="ml-1">{floodPrediction.request_details?.model_used || selectedModel}</span>
+					<span class="ml-1">{floodPrediction.request_details?.model_configuration || 'RF & LSTM Combined'}</span>
 				</div>
 				<div>
-					<span class="font-medium text-gray-600">Prediction Time:</span>
-					<span class="ml-1">{floodPrediction.request_details?.request_time || 'N/A'}</span>
+					<span class="font-medium text-gray-600">Processing Time:</span>
+					<span class="ml-1">{floodPrediction.request_details?.processing_duration_seconds || 'N/A'} sec</span>
 				</div>
 			</div>
-
-			<!-- Prediction cards in a grid -->
-			<div class="grid grid-cols-1 gap-2">
-				{#each floodPrediction.predictions as day, index}
-					<div
-						class={`rounded-md border p-2.5 shadow-sm ${getPredictionCardStyle(day.prediction_label, day.risk_level)}`}
-					>
-						<!-- Header with date and prediction -->
-						<div class="mb-2 flex items-start">
-							<div>
-								<h4 class="flex items-center text-base font-medium">
-									<Icon icon="mdi:calendar" class="mr-1.5" width="16" />
-									{formatDate(day.date)}
-								</h4>
-								
-								<!-- Prediction with risk level -->
-								<div class="mt-0.5 flex flex-wrap items-center gap-2">
-									<p
-										class={`${getPredictionColor(day.prediction_label, day.risk_level)} flex items-center text-sm`}
-									>
-										<Icon
-											icon={getPredictionIcon(day.prediction_label, day.risk_level)}
-											class="mr-1.5"
-											width="16"
-										/>
-										{day.prediction_label}
-									</p>
+			
+				<!-- Check if location is on water - if so, display only a single message -->
+			{#if floodPrediction.request_details?.input_point_context_type || floodPrediction.daily_predictions[0]?.is_flooded_prediction_rf === "LOCATION_ON_WATER"}
+				<div class="rounded-md border border-blue-200 bg-blue-50 p-4 text-blue-800 shadow-sm">
+					<div class="flex items-start">
+						<Icon icon="mdi:water" class="mr-3 mt-0.5 flex-shrink-0 text-blue-600" width="22" />
+						<div>
+							<h4 class="mb-1 text-base font-medium">
+								Location on {floodPrediction.request_details?.input_point_context_type || "water"}
+							</h4>
+							<p class="text-sm">
+								{floodPrediction.request_details?.input_point_context_message || 
+								floodPrediction.daily_predictions[0]?.context_message || 
+								"This location appears to be on water. Flood predictions for land areas are not applicable here."}
+							</p>
+						</div>
+					</div>
+				</div>
+			{:else}
+				<!-- Prediction cards in a grid - only for land-based predictions -->
+				<div class="grid grid-cols-1 gap-2">
+					{#each floodPrediction.daily_predictions as day, index}
+						<!-- Regular prediction card -->
+						<div class={`rounded-md border p-3 shadow-sm ${getPredictionCardStyle(day.is_flooded_prediction_rf, day.flood_risk_level)}`}>
+							<!-- Header with date and prediction -->
+							<div class="mb-2 flex items-start justify-between">
+								<div>
+									<h4 class="flex items-center text-base font-medium">
+										<Icon icon="mdi:calendar" class="mr-1.5" width="16" />
+										{formatDate(day.date)}
+									</h4>
 									
-									<!-- Risk level badge -->
-									<span class={`flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${getRiskLevelBadgeStyle(day.risk_level)}`}>
-										<Icon icon="mdi:trending-up" class="mr-0.5" width="12" />
-										{day.risk_level} Risk
-									</span>
-									<div class="text-left">
-										{#if day.predicted_depth_inches}
-											<div
-												class="flex items-center rounded-md bg-red-100 px-2 py-1 text-xs text-red-800"
-											>
-												<Icon icon="mdi:water" class="mr-1.5" width="16" />
-												<span class="font-medium"
-													>Up to {(day.predicted_depth_inches).toFixed(2)} inches deep</span
-												>
+									<!-- Prediction with risk level -->
+									<div class="mt-1 flex flex-wrap items-center gap-2">
+										<p class={`${getPredictionColor(day.is_flooded_prediction_rf)} flex items-center text-sm`}>
+											<Icon
+												icon={getPredictionIcon(day.is_flooded_prediction_rf, day.flood_risk_level)}
+												class="mr-1.5"
+												width="16"
+											/>
+											{day.is_flooded_prediction_rf === "NOT FLOODED" ? "NOT FLOODED" : "FLOODED"}
+										</p>
+										
+										<!-- Risk level badge -->
+										<span class={`flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${getRiskLevelBadgeStyle(day.flood_risk_level)}`}>
+											<Icon icon="mdi:trending-up" class="mr-0.5" width="12" />
+											{day.flood_risk_level} Risk
+										</span>
+									</div>
+									
+									<!-- Depth information if available -->
+									{#if day.average_predicted_depth_cm}
+										{@const depth = formatDepth(day.average_predicted_depth_cm)}
+										{#if depth}
+											<div class="mt-1 flex items-center text-sm font-medium text-red-700">
+												<Icon icon="mdi:water" class="mr-1" width="16" />
+												Predicted depth: {depth.cm} cm ({depth.inches} in)
 											</div>
 										{/if}
-									</div>
-								</div>
-								
-								<!-- Model probability info -->
-								<p class="mt-1 text-xs text-gray-500 flex flex-wrap gap-x-2">
-									<span class="whitespace-nowrap">
-										<span class="font-medium">Model confidence:</span> {formatRawProbability(day.probability_flood)}
-									</span>
+									{/if}
 									
-									{#if day.threshold_used}
-										<span class="whitespace-nowrap">
-											<span class="font-medium">Threshold:</span> {formatRawProbability(day.threshold_used)}
+									<!-- Model probability info -->
+									<p class="mt-1 text-xs text-gray-600">
+										<span class="font-medium">Probability:</span> 
+										<span class={getFloodProbabilityColor(day.is_flooded_probability_rf, day.is_flooded_prediction_rf)}>
+											{formatRawProbability(day.is_flooded_probability_rf)}
 										</span>
 										
-										<span class="whitespace-nowrap">
-											<span class="font-medium">Ratio:</span> {formatThresholdRatio(day.probability_flood, day.threshold_used)}
-											<span class="text-2xs ml-1 italic">of threshold</span>
-										</span>
-									{/if}
-								</p>
+										{#if day.rf_threshold_applied}
+											<span class="ml-2">
+												<span class="font-medium">Threshold:</span> {formatRawProbability(day.rf_threshold_applied)}
+											</span>
+											<span class="ml-2">
+												({formatRelativeProbability(day.is_flooded_probability_rf, day.rf_threshold_applied)})
+											</span>
+										{/if}
+									</p>
+								</div>
 							</div>
-							
-							
-						</div>
 
-						<!-- Key Weather Indicators: Redesigned with better layout -->
-						<div class="mb-2 grid grid-cols-2 gap-2">
-							{#if hasValidValue(day.features_used.Precip_mm_Today)}
-								<div class="flex items-center rounded bg-white p-2 text-sm shadow-md">
-									<Icon icon="mdi:weather-pouring" class="mr-1.5 text-blue-500" width="16" />
-									<div class="flex-1">
-										<div class="flex justify-between">
-											<span class="text-gray-700">Rainfall:</span>
-											<span class="font-medium"
-												>{formatValue('Precip_mm_Today', day.features_used.Precip_mm_Today)} mm</span
-											>
+							<!-- Key Weather Indicators for today -->
+							{#if day.features_assembled_for_this_day}
+								<div class="mb-2 grid grid-cols-2 gap-2">
+									{#if hasValidValue(day.features_assembled_for_this_day.Precip_mm_Today)}
+										<div class="flex items-center rounded bg-white p-2 text-sm shadow-sm">
+											<Icon icon="mdi:weather-pouring" class="mr-1.5 text-blue-500" width="16" />
+											<div class="flex-1">
+												<div class="flex justify-between">
+													<span class="text-gray-700">Rainfall:</span>
+													<span class="font-medium">
+														{formatValue('Precip_mm_Today', day.features_assembled_for_this_day.Precip_mm_Today)} mm
+													</span>
+												</div>
+											</div>
 										</div>
-									</div>
+									{/if}
+									
+									{#if hasValidValue(day.features_assembled_for_this_day.Precipitation_Hours_Today)}
+										<div class="flex items-center rounded bg-white p-2 text-sm shadow-sm">
+											<Icon icon="mdi:clock-outline" class="mr-1.5 text-blue-500" width="16" />
+											<div class="flex-1">
+												<div class="flex justify-between">
+													<span class="text-gray-700">Rain Hours:</span>
+													<span class="font-medium">
+														{formatValue('Precipitation_Hours_Today', 
+														day.features_assembled_for_this_day.Precipitation_Hours_Today)} hrs
+													</span>
+												</div>
+											</div>
+										</div>
+									{/if}
+									
+									{#if hasValidValue(day.features_assembled_for_this_day.Total_Precip_Last_3Days_mm)}
+										<div class="flex items-center rounded bg-white p-2 text-sm shadow-sm">
+											<Icon icon="mdi:history" class="mr-1.5 text-blue-500" width="16" />
+											<div class="flex-1">
+												<div class="flex justify-between">
+													<span class="text-gray-700">3-Day Rain:</span>
+													<span class="font-medium">
+														{formatValue('Total_Precip_Last_3Days_mm', 
+														day.features_assembled_for_this_day.Total_Precip_Last_3Days_mm)} mm
+													</span>
+												</div>
+											</div>
+										</div>
+									{/if}
+									
+									{#if hasValidValue(day.features_assembled_for_this_day.Soil_Moisture_0_to_7cm_m3m3_Today)}
+										<div class="flex items-center rounded bg-white p-2 text-sm shadow-sm">
+											<Icon icon="mdi:terrain" class="mr-1.5 text-blue-500" width="16" />
+											<div class="flex-1">
+												<div class="flex justify-between">
+													<span class="text-gray-700">Soil Moisture:</span>
+													<span class="font-medium">
+														{formatValue('Soil_Moisture_0_to_7cm_m3m3_Today', 
+														day.features_assembled_for_this_day.Soil_Moisture_0_to_7cm_m3m3_Today)} m³/m³
+													</span>
+												</div>
+											</div>
+										</div>
+									{/if}
 								</div>
 							{/if}
-							{#if hasValidValue(day.features_used.Precipitation_Hours_Today)}
-								<div class="flex items-center rounded bg-white p-2 text-sm shadow-md">
-									<Icon icon="mdi:clock-outline" class="mr-1.5 text-blue-500" width="16" />
-									<div class="flex-1">
-										<div class="flex justify-between">
-											<span class="text-gray-700">Rain Hours:</span>
-											<span class="font-medium"
-												>{formatValue(
-													'Precipitation_Hours_Today',
-													day.features_used.Precipitation_Hours_Today
-												)} hrs</span
-											>
-										</div>
-									</div>
-								</div>
-							{/if}
-							{#if hasValidValue(day.features_used.Total_Precip_Last3Days_mm)}
-								<div class="flex items-center rounded bg-white p-2 text-sm shadow-md">
-									<Icon icon="mdi:history" class="mr-1.5 text-blue-500" width="16" />
-									<div class="flex-1">
-										<div class="flex justify-between">
-											<span class="text-gray-700">3-Day Rain:</span>
-											<span class="font-medium"
-												>{formatValue(
-													'Total_Precip_Last3Days_mm',
-													day.features_used.Total_Precip_Last3Days_mm
-												)} mm</span
-											>
-										</div>
-									</div>
-								</div>
-							{/if}
-							{#if hasValidValue(day.features_used.Soil_Moisture_0_to_7cm_m3m3_Today)}
-								<div class="flex items-center rounded bg-white p-2 text-sm shadow-md">
-									<Icon icon="mdi:terrain" class="mr-1.5 text-blue-500" width="16" />
-									<div class="flex-1">
-										<div class="flex justify-between">
-											<span class="text-gray-700">Soil Moisture:</span>
-											<span class="font-medium"
-												>{formatValue(
-													'Soil_Moisture_0_to_7cm_m3m3_Today',
-													day.features_used.Soil_Moisture_0_to_7cm_m3m3_Today
-												)} m³/m³</span
-											>
-										</div>
-									</div>
-								</div>
-							{/if}
-						</div>
 
-						<!-- Expand/Collapse Button -->
-						<button
-							on:click={() => toggleExpand(day.date)}
-							class="flex w-full items-center justify-center rounded-md border border-blue-200 px-2 py-1 text-sm text-blue-600 transition-colors duration-150 hover:bg-blue-50 hover:text-blue-800 focus:outline-none"
-						>
-							<Icon
-								icon={expandedPredictions[day.date] ? 'mdi:chevron-up' : 'mdi:chevron-down'}
-								width="16"
-								class="mr-1.5"
-							/>
-							{expandedPredictions[day.date] ? 'Hide detailed data' : 'Show detailed data'}
-						</button>
+							<!-- Expand/Collapse Button for details -->
+							<button
+								on:click={() => toggleExpand(day.date)}
+								class="flex w-full items-center justify-center rounded-md border border-blue-200 px-2 py-1 text-sm text-blue-600 transition-colors duration-150 hover:bg-blue-50 hover:text-blue-800 focus:outline-none"
+							>
+								<Icon
+									icon={expandedPredictions[day.date] ? 'mdi:chevron-up' : 'mdi:chevron-down'}
+									width="16"
+									class="mr-1.5"
+								/>
+								{expandedPredictions[day.date] ? 'Hide detailed data' : 'Show detailed data'}
+							</button>
 
-						<!-- Expanded Details: Improved layout for features -->
-						{#if expandedPredictions[day.date] && day.features_used}
-							<div class="mt-2 grid grid-cols-1 gap-2 md:grid-cols-2">
-								<!-- Feature groups displayed in a better layout -->
-								{#each Object.entries(groupFeatures(day.features_used)) as [groupName, groupKeys]}
-									<div class="rounded border border-gray-200 bg-gray-50 p-2">
-										<h5 class="mb-1 flex items-center text-xs font-medium text-gray-700">
-											<Icon 
-												icon={
-													groupName === 'Location' ? 'mdi:map-marker' : 
-													groupName === 'Current Day' ? 'mdi:weather-partly-cloudy' :
-													groupName === 'Previous Days' ? 'mdi:history' :
-													groupName === 'Accumulated Precipitation' ? 'mdi:water-percent' :
-													'mdi:information-outline'
-												} 
-												class="mr-1 text-gray-600" 
-												width="14" 
-											/>
-											{groupName}
-										</h5>
-										<div class="space-y-0.5 text-2xs">
-											{#each groupKeys as key}
-												{#if hasValidValue(day.features_used[key])}
-													<div class="flex items-baseline justify-between overflow-hidden">
-														<span class="text-gray-500 truncate pr-2" title={getFeatureDisplayName(key)}>
-															{getFeatureDisplayName(key).replace(/ \([^)]+\)/, '')}: 
-														</span>
-														<div class="flex-shrink-0 font-medium text-right">
-															{formatValue(key, day.features_used[key])}
-															<span class="text-gray-400 ml-0.5">
-																{key.includes('C_') ? '°C' : 
-																key.includes('mm') ? 'mm' : 
-																key.includes('kmh') ? 'km/h' : 
-																key.includes('m3m3') ? 'm³/m³' : 
-																key.includes('m') ? 'm' : 
-																key.includes('Hours') ? 'hrs' : 
-																key.includes('%') ? '%' : ''}
+							<!-- Expanded Details: Feature data breakdown -->
+							{#if expandedPredictions[day.date] && day.features_assembled_for_this_day}
+								<div class="mt-2 grid grid-cols-1 gap-2 md:grid-cols-2">
+									{#if day.features_assembled_for_this_day}
+										<!-- Depth predictions from different models -->
+										{#if day.rf_predicted_depth_cm || day.lstm_predicted_depth_cm}
+											<div class="col-span-full rounded border border-blue-200 bg-blue-50 p-2">
+												<h5 class="mb-1 flex items-center text-xs font-medium text-blue-700">
+													<Icon icon="mdi:water" class="mr-1" width="14" />
+													Model Depth Predictions
+												</h5>
+												<div class="grid grid-cols-3 gap-2 text-xs">
+													{#if day.rf_predicted_depth_cm !== null}
+														<div class="rounded bg-white p-2 text-center">
+															<div class="font-medium text-gray-600">RF Model</div>
+															<div class="text-blue-700">{formatValue('depth', day.rf_predicted_depth_cm)} cm</div>
+														</div>
+													{/if}
+													{#if day.lstm_predicted_depth_cm !== null}
+														<div class="rounded bg-white p-2 text-center">
+															<div class="font-medium text-gray-600">LSTM Model</div>
+															<div class="text-blue-700">{formatValue('depth', day.lstm_predicted_depth_cm)} cm</div>
+														</div>
+													{/if}
+													{#if day.average_predicted_depth_cm !== null}
+														<div class="rounded bg-white p-2 text-center">
+															<div class="font-medium text-gray-600">Average</div>
+															<div class="text-blue-700">{formatValue('depth', day.average_predicted_depth_cm)} cm</div>
+														</div>
+													{/if}
+												</div>
+											</div>
+										{/if}
+										
+										<!-- Water stations information -->
+										{#if day.features_assembled_for_this_day.S1_WL_Today_m || 
+											day.features_assembled_for_this_day.S2_WL_Today_m || 
+											day.features_assembled_for_this_day.S3_WL_Today_m}
+											<div class="col-span-full rounded border border-blue-200 bg-blue-50 p-2">
+												<h5 class="mb-1 flex items-center text-xs font-medium text-blue-700">
+													<Icon icon="mdi:water-percent" class="mr-1" width="14" />
+													Nearby Water Station Levels
+												</h5>
+												<div class="grid grid-cols-3 gap-2 text-xs">
+													{#if day.features_assembled_for_this_day.S1_WL_Today_m !== null}
+														<div class="rounded bg-white p-2">
+															<div class="font-medium text-gray-600">Station 1 ({day.features_assembled_for_this_day.S1_ID})</div>
+															<div class="flex justify-between">
+																<span>Current:</span>
+																<span class="text-blue-700">{formatValue('level', day.features_assembled_for_this_day.S1_WL_Today_m)} m</span>
+															</div>
+															<div class="flex justify-between">
+																<span>Change:</span>
+																<span class={day.features_assembled_for_this_day.S1_WL_Change_Last_24h_m > 0 ? 'text-red-600' : 'text-green-600'}>
+																	{formatValue('change', day.features_assembled_for_this_day.S1_WL_Change_Last_24h_m)} m
+																</span>
+															</div>
+															<div class="flex justify-between">
+																<span>Distance:</span>
+																<span>{formatValue('distance', day.features_assembled_for_this_day.S1_Distance_m)} m</span>
+															</div>
+														</div>
+													{/if}
+													{#if day.features_assembled_for_this_day.S2_WL_Today_m !== null}
+														<div class="rounded bg-white p-2">
+															<div class="font-medium text-gray-600">Station 2 ({day.features_assembled_for_this_day.S2_ID})</div>
+															<div class="flex justify-between">
+																<span>Current:</span>
+																<span class="text-blue-700">{formatValue('level', day.features_assembled_for_this_day.S2_WL_Today_m)} m</span>
+															</div>
+															<div class="flex justify-between">
+																<span>Change:</span>
+																<span class={day.features_assembled_for_this_day.S2_WL_Change_Last_24h_m > 0 ? 'text-red-600' : 'text-green-600'}>
+																	{formatValue('change', day.features_assembled_for_this_day.S2_WL_Change_Last_24h_m)} m
+																</span>
+															</div>
+															<div class="flex justify-between">
+																<span>Distance:</span>
+																<span>{formatValue('distance', day.features_assembled_for_this_day.S2_Distance_m)} m</span>
+															</div>
+														</div>
+													{/if}
+													{#if day.features_assembled_for_this_day.S3_WL_Today_m !== null}
+														<div class="rounded bg-white p-2">
+															<div class="font-medium text-gray-600">Station 3 ({day.features_assembled_for_this_day.S3_ID})</div>
+															<div class="flex justify-between">
+																<span>Current:</span>
+																<span class="text-blue-700">{formatValue('level', day.features_assembled_for_this_day.S3_WL_Today_m)} m</span>
+															</div>
+															<div class="flex justify-between">
+																<span>Change:</span>
+																<span class={day.features_assembled_for_this_day.S3_WL_Change_Last_24h_m > 0 ? 'text-red-600' : 'text-green-600'}>
+																	{formatValue('change', day.features_assembled_for_this_day.S3_WL_Change_Last_24h_m)} m
+																</span>
+															</div>
+															<div class="flex justify-between">
+																<span>Distance:</span>
+																<span>{formatValue('distance', day.features_assembled_for_this_day.S3_Distance_m)} m</span>
+															</div>
+														</div>
+													{/if}
+												</div>
+											</div>
+										{/if}
+										
+										<!-- Location Features -->
+										
+										<div class="rounded border border-gray-200 bg-gray-50 p-2">
+											<h5 class="mb-1 flex items-center text-xs font-medium text-gray-700">
+												<Icon icon="mdi:map-marker" class="mr-1 text-gray-600" width="14" />
+												Location Features
+											</h5>
+											<div class="space-y-0.5 text-2xs">
+												{#each ['Latitude', 'Longitude', 'Elevation_m', 'Distance_to_Nearest_Waterway_m', 'Distance_to_Nearest_River_m', 'Distance_to_Nearest_Stream_m', 'Distance_to_Drain_Canal_m'] as key}
+													{#if hasValidValue(day.features_assembled_for_this_day[key])}
+														<div class="flex items-baseline justify-between overflow-hidden">
+															<span class="truncate pr-2 text-gray-500" title={getFeatureDisplayName(key)}>
+																{getFeatureDisplayName(key).replace(/ \([^)]+\)/, '')}: 
 															</span>
+															<div class="flex-shrink-0 text-right font-medium">
+																{formatValue(key, day.features_assembled_for_this_day[key])}
+																<span class="ml-0.5 text-gray-400">
+																	{key.includes('m') && !key.includes('Latitude') && !key.includes('Longitude') ? 'm' : ''}
+																</span>
+															</div>
+														</div>
+													{/if}
+												{/each}
+											</div>
+										</div>
+										
+										<!-- Weather Today -->
+										<div class="rounded border border-gray-200 bg-gray-50 p-2">
+											<h5 class="mb-1 flex items-center text-xs font-medium text-gray-700">
+												<Icon icon="mdi:weather-partly-cloudy" class="mr-1 text-gray-600" width="14" />
+												Today's Weather
+											</h5>
+											<div class="space-y-0.5 text-2xs">
+												{#each Object.keys(day.features_assembled_for_this_day).filter(k => k.includes('_Today')) as key}
+													{#if hasValidValue(day.features_assembled_for_this_day[key])}
+														<div class="flex items-baseline justify-between overflow-hidden">
+															<span class="truncate pr-2 text-gray-500" title={getFeatureDisplayName(key)}>
+																{getFeatureDisplayName(key).replace(/ \([^)]+\)/, '')}: 
+															</span>
+															<div class="flex-shrink-0 text-right font-medium">
+																{formatValue(key, day.features_assembled_for_this_day[key])}
+																<span class="ml-0.5 text-gray-400">
+																	{key.includes('C_') ? '°C' : 
+																	key.includes('mm') ? 'mm' : 
+																	key.includes('kmh') ? 'km/h' : 
+																	key.includes('m3m3') ? 'm³/m³' : 
+																	key.includes('Hours') ? 'hrs' : 
+																	key.includes('%') ? '%' : ''}
+																</span>
+															</div>
+														</div>
+													{/if}
+												{/each}
+											</div>
+										</div>
+										
+										<!-- Previous Days Weather -->
+										<div class="rounded border border-gray-200 bg-gray-50 p-2">
+											<h5 class="mb-1 flex items-center text-xs font-medium text-gray-700">
+												<Icon icon="mdi:history" class="mr-1 text-gray-600" width="14" />
+												Previous Days
+											</h5>
+											<div class="space-y-0.5 text-2xs">
+												{#each Object.keys(day.features_assembled_for_this_day).filter(k => k.includes('_Lag')) as key}
+													{#if hasValidValue(day.features_assembled_for_this_day[key])}
+														<div class="flex items-baseline justify-between overflow-hidden">
+															<span class="truncate pr-2 text-gray-500" title={getFeatureDisplayName(key)}>
+																{getFeatureDisplayName(key).replace(/ \([^)]+\)/, '')}: 
+															</span>
+															<div class="flex-shrink-0 text-right font-medium">
+																{formatValue(key, day.features_assembled_for_this_day[key])}
+																<span class="ml-0.5 text-gray-400">
+																	{key.includes('C_') ? '°C' : 
+																	key.includes('mm') ? 'mm' : 
+																	key.includes('kmh') ? 'km/h' : 
+																	key.includes('m3m3') ? 'm³/m³' : 
+																	key.includes('Hours') ? 'hrs' : 
+																	key.includes('%') ? '%' : ''}
+																</span>
+															</div>
+														</div>
+													{/if}
+												{/each}
+											</div>
+										</div>
+										
+										<!-- Accumulated Precipitation -->
+										<div class="rounded border border-gray-200 bg-gray-50 p-2">
+											<h5 class="mb-1 flex items-center text-xs font-medium text-gray-700">
+												<Icon icon="mdi:water-percent" class="mr-1 text-gray-600" width="14" />
+												Accumulated Precipitation
+											</h5>
+											<div class="space-y-0.5 text-2xs">
+												{#each Object.keys(day.features_assembled_for_this_day).filter(k => k.includes('Total_Precip_Last') || k.includes('API_k')) as key}
+													{#if hasValidValue(day.features_assembled_for_this_day[key])}
+														<div class="flex items-baseline justify-between overflow-hidden">
+															<span class="truncate pr-2 text-gray-500" title={getFeatureDisplayName(key)}>
+																{getFeatureDisplayName(key).replace(/ \([^)]+\)/, '')}: 
+															</span>
+															<div class="flex-shrink-0 text-right font-medium">
+																{formatValue(key, day.features_assembled_for_this_day[key])}
+																<span class="ml-0.5 text-gray-400">mm</span>
+															</div>
+														</div>
+													{/if}
+												{/each}
+												
+												{#if hasValidValue(day.features_assembled_for_this_day['Consecutive_Dry_Days_Before_Today'])}
+													<div class="flex items-baseline justify-between overflow-hidden">
+														<span class="truncate pr-2 text-gray-500">Consecutive Dry Days:</span>
+														<div class="flex-shrink-0 text-right font-medium">
+															{day.features_assembled_for_this_day['Consecutive_Dry_Days_Before_Today']}
 														</div>
 													</div>
 												{/if}
-											{/each}
+												
+												{#if hasValidValue(day.features_assembled_for_this_day['Consecutive_Wet_Days_Before_Today'])}
+													<div class="flex items-baseline justify-between overflow-hidden">
+														<span class="truncate pr-2 text-gray-500">Consecutive Wet Days:</span>
+														<div class="flex-shrink-0 text-right font-medium">
+															{day.features_assembled_for_this_day['Consecutive_Wet_Days_Before_Today']}
+														</div>
+													</div>
+												{/if}
+											</div>
 										</div>
-									</div>
-								{/each}
-							</div>
-						{/if}
-					</div>
-				{/each}
-			</div>
+									{/if}
+								</div>
+							{/if}
+						</div>
+						{/each}
+				</div>
+			{/if}
 		</div>
 	{/if}
 
@@ -986,21 +1316,21 @@
 					class="mr-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-blue-100 text-blue-800"
 					>2</span
 				>
-				<span>Choose prediction model</span>
+				<span>Click "Predict Flooding" button</span>
 			</div>
 			<div class="flex flex-1 items-center rounded-md bg-gray-50 p-1.5 text-sm">
 				<span
 					class="mr-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-blue-100 text-blue-800"
 					>3</span
 				>
-				<span>Click "Predict Flooding" button</span>
+				<span>View 5-day flood risk prediction results</span>
 			</div>
 			<div class="flex flex-1 items-center rounded-md bg-gray-50 p-1.5 text-sm">
 				<span
 					class="mr-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-blue-100 text-blue-800"
 					>4</span
 				>
-				<span>View 5-day flood risk prediction results</span>
+				<span>Use "Show detailed data" to see all factors</span>
 			</div>
 		</div>
 	</div>
