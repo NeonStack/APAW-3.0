@@ -51,6 +51,7 @@ export async function GET({ request }) {
     // Process and sanitize the data
     const processedData = data
       .map(station => ({
+        obscd: station.obscd,
         obsnm: station.obsnm,
         lon: station.lon,
         lat: station.lat,

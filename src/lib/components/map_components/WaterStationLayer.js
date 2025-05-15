@@ -53,13 +53,50 @@ export function createWaterIcon(L, alertStatus = 'normal') {
 }
 
 export function createWaterStationPopup(station) {
-  return `
-    <b>${station.name || 'Water Station'}</b><br>
-    Water Level: ${station.wl || 'N/A'} m<br>
-    <hr style="margin: 3px 0;">
-    ${!isNaN(parseFloat(station.alertwl)) ? `Alert: <span class="alert-threshold">${station.alertwl} m</span><br>` : ''}
-    ${!isNaN(parseFloat(station.alarmwl)) ? `Alarm: <span class="alarm-threshold">${station.alarmwl} m</span><br>` : ''}
-    ${!isNaN(parseFloat(station.criticalwl)) ? `Critical: <span class="critical-threshold">${station.criticalwl} m</span><br>` : ''}
-    Status: <span class="status status-${getStationAlertInfo(station).status}">${getStationAlertInfo(station).status.charAt(0).toUpperCase() + getStationAlertInfo(station).status.slice(1)}</span>
-  `;
+  let content = '';
+
+  console.log(station)
+  
+  // Add station name at the top of popup
+  if (station.obsnm) {
+    content += `<h3 style="font-weight: bold; font-size: 1.1em; margin-bottom: 5px; color: #0c3143;">${station.obsnm} Station</h3>`;
+  }
+  
+  // Station ID
+  content += `<b>ID:</b> ${station.obscd || 'N/A'}<br>`;
+  
+  // Current water level
+  content += `<b>Water Level:</b> ${station.wl || 'N/A'} m<br>`;
+  
+  // Water level change
+  if (station.wlchange && station.wlchange !== '-') {
+    const changeClass = parseFloat(station.wlchange) > 0 ? 'color: #ff4757;' : 'color: #2ed573;';
+    content += `<b>Change:</b> <span style="${changeClass}">${station.wlchange} m</span><br>`;
+  }
+  
+  // Last update time
+  if (station.timestr) {
+    content += `<b>Last Updated:</b> ${station.timestr}<br>`;
+  }
+  
+  // Alert thresholds
+  content += '<div style="margin-top: 8px;">';
+  if (station.alertwl) {
+    content += `<div><b>Alert:</b> <span class="alert-threshold">${station.alertwl} m</span></div>`;
+  }
+  if (station.alarmwl) {
+    content += `<div><b>Alarm:</b> <span class="alarm-threshold">${station.alarmwl} m</span></div>`;
+  }
+  if (station.criticalwl) {
+    content += `<div><b>Critical:</b> <span class="critical-threshold">${station.criticalwl} m</span></div>`;
+  }
+  content += '</div>';
+  
+  // Status indicator
+  const { status, statusText } = getStationAlertInfo(station);
+  if (status) {
+    content += `<div style="margin-top: 5px;"><span class="status status-${getStationAlertInfo(station).status}">${getStationAlertInfo(station).status.charAt(0).toUpperCase() + getStationAlertInfo(station).status.slice(1)}</span></div>`;
+  }
+  
+  return content;
 }
