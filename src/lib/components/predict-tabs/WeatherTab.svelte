@@ -413,14 +413,14 @@
 				Refresh
 			</button>
 
-			<!-- <button
+			<button
 				class="flex items-center gap-1 rounded bg-blue-600 px-2 py-1 text-sm text-white transition-colors hover:bg-blue-700"
 				on:click={updateWeatherFromAccuweather}
 				disabled={weatherDataValue.loading}
 			>
 				<Icon icon="mdi:cloud-download" />
 				Update Forecast
-			</button> -->
+			</button>
 			
 			<!-- Add filter toggle button -->
 			<button
