@@ -7,9 +7,9 @@
 		getCurrentPosition,
 		setLocationLoading,
 		nearestFacilities,
-		facilitiesLayerActive // Import the new store
+		facilitiesLayerActive
 	} from '$lib/stores/locationStore.js';
-	import { waterStations } from '$lib/stores/waterStationStore.js';
+	import { waterStations, focusedWaterStation } from '$lib/stores/waterStationStore.js';
 	import { get } from 'svelte/store';
 	import Icon from '@iconify/svelte';
 	import MapSearchBar from './MapSearchBar.svelte';
@@ -51,6 +51,7 @@
 	let waterStationMarkers = [];
 	let L;
 	let waterStationSubscription;
+	let focusedWaterStationSubscription;
 	let layerControl;
 	let isSelectingLocation = false;
 	let strictNcrBounds = null;
@@ -232,6 +233,37 @@
 		});
 		
 		return new RecenterControl();
+	}
+
+	// Function to focus on a water station by finding its marker and opening the popup
+	function focusOnWaterStation(station) {
+		if (!map || !waterStationMarkers.length || !station || !station.lat || !station.lon) return;
+		
+		// Find the marker for this station
+		const stationMarker = waterStationMarkers.find(marker => {
+			const markerLatLng = marker.getLatLng();
+			const stationLat = parseFloat(station.lat);
+			const stationLon = parseFloat(station.lon);
+			
+			// Compare with small tolerance for floating point errors
+			return Math.abs(markerLatLng.lat - stationLat) < 0.0001 && 
+				Math.abs(markerLatLng.lng - stationLon) < 0.0001;
+		});
+		
+		if (stationMarker) {
+			// Pan to the marker and open its popup
+			map.panTo(stationMarker.getLatLng());
+			stationMarker.openPopup();
+			
+			// Add brief highlighting animation
+			const icon = stationMarker.getElement();
+			if (icon) {
+				icon.classList.add('highlight-station');
+				setTimeout(() => {
+					icon.classList.remove('highlight-station');
+				}, 2000);
+			}
+		}
 	}
 
 	onMount(async () => {
@@ -500,6 +532,15 @@
 			}
 		});
 
+		// Subscribe to focused water station changes
+		focusedWaterStationSubscription = focusedWaterStation.subscribe(station => {
+			if (station) {
+				focusOnWaterStation(station);
+				// Reset after focusing to allow reselecting the same station
+				setTimeout(() => focusedWaterStation.set(null), 100);
+			}
+		});
+
 		const currentStations = get(waterStations);
 		if (!currentStations.loading && currentStations.data && currentStations.data.length > 0) {
 			waterStations.set(currentStations);
@@ -513,6 +554,9 @@
 			}
 			if (waterStationSubscription) {
 				waterStationSubscription();
+			}
+			if (focusedWaterStationSubscription) {
+				focusedWaterStationSubscription();
 			}
 			waterStationMarkers.forEach((m) => {
 				try {
@@ -552,6 +596,9 @@
 	onDestroy(() => {
 		if (waterStationSubscription) {
 			waterStationSubscription();
+		}
+		if (focusedWaterStationSubscription) {
+			focusedWaterStationSubscription();
 		}
 		if (map) {
 			try {
@@ -898,5 +945,17 @@
 		:global(.leaflet-control-layers) {
 			margin-right: 0 !important;
 		}
+	}
+
+	/* Add animation for the highlighted water station */
+	@keyframes highlight-pulse {
+		0% { transform: scale(1); opacity: 1; }
+		50% { transform: scale(1.3); opacity: 0.8; }
+		100% { transform: scale(1); opacity: 1; }
+	}
+
+	:global(.highlight-station) {
+		animation: highlight-pulse 0.8s ease-in-out 2;
+		z-index: 1000 !important;
 	}
 </style>

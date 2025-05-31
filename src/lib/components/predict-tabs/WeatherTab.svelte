@@ -294,7 +294,7 @@
 		try {
 			weatherData.update((current) => ({ ...current, loading: true, error: null }));
 
-			// Change to use the new endpoint
+			// Manual update from website (no API key needed, uses referer check)
 			const response = await fetch('/api/weather/update', {
 				method: 'POST',
 				headers: {
@@ -413,14 +413,14 @@
 				Refresh
 			</button>
 
-			<!-- <button
+			<button
 				class="flex items-center gap-1 rounded bg-blue-600 px-2 py-1 text-sm text-white transition-colors hover:bg-blue-700"
 				on:click={updateWeatherFromAccuweather}
 				disabled={weatherDataValue.loading}
 			>
 				<Icon icon="mdi:cloud-download" />
 				Update Forecast
-			</button> -->
+			</button>
 			
 			<!-- Add filter toggle button -->
 			<button

@@ -291,7 +291,7 @@
 
 	// Format probability relative to threshold
 	function formatRelativeProbability(probability, threshold) {
-		if (!probability || !threshold) return '';
+		if (probability === null || probability === undefined || threshold === null || threshold === undefined) return '';
 		
 		const ratio = probability / threshold;
 		if (ratio >= 1) return 'exceeds threshold';

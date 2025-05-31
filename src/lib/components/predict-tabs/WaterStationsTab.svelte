@@ -1,5 +1,5 @@
 <script>
-  import { waterStations } from '$lib/stores/waterStationStore.js';
+  import { waterStations, focusedWaterStation } from '$lib/stores/waterStationStore.js';
   import Icon from '@iconify/svelte';
   
   // Helper function to determine water station status
@@ -150,6 +150,11 @@
 
   // Add filter visibility toggle
   let showFilters = $state(false);
+
+  // Add function to show a station on the map
+  function showStationOnMap(station) {
+    focusedWaterStation.set(station);
+  }
 </script>
 
 <div class="water-stations-tab h-full flex flex-col">
@@ -270,6 +275,16 @@
                     {status.text}
                   </div>
                 </div>
+                
+                <!-- Add Show on Map button -->
+                <button 
+                  class="text-xs flex items-center gap-1 text-blue-600 hover:text-blue-800 hover:bg-blue-50 p-1 rounded transition-colors"
+                  on:click={() => showStationOnMap(station)}
+                  title="Show on map"
+                >
+                  <Icon icon="mdi:map-marker" />
+                  <span>Show on Map</span>
+                </button>
               </div>
               <!-- Add date and time on its own line with smaller text -->
               <div class="text-xs text-gray-500">

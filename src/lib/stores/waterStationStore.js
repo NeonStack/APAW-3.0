@@ -8,3 +8,6 @@ export const waterStations = writable({
 
 // Store for nearest water station
 export const nearestWaterStation = writable(null);
+
+// Store for the water station to focus on the map
+export const focusedWaterStation = writable(null);

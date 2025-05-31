@@ -1,0 +1,90 @@
+name: Automated Weather Update
+
+on:
+  schedule:
+    # Run at 4:00 AM and 4:00 PM UTC+8 (Philippine Time)
+    # This translates to 8:00 PM and 8:00 AM UTC
+    - cron: '0 20 * * *'  # 4:00 AM PHT (8:00 PM UTC previous day)
+    - cron: '0 8 * * *'   # 4:00 PM PHT (8:00 AM UTC)
+  
+  # Allow manual triggering
+  workflow_dispatch:
+    inputs:
+      batch_size:
+        description: 'Batch size (0 for all cities)'
+        required: false
+        default: '0'
+      skip_cleanup:
+        description: 'Skip database cleanup'
+        required: false
+        default: 'false'
+        type: boolean
+
+jobs:
+  update-weather:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    
+    steps:
+      - name: Update Weather Data
+        run: |
+          echo "Starting weather update at $(date)"
+          
+          # Set batch size and cleanup option
+          BATCH_SIZE="${{ github.event.inputs.batch_size || '0' }}"
+          SKIP_CLEANUP="${{ github.event.inputs.skip_cleanup || 'false' }}"
+          
+          # Construct API URL with parameters
+          API_URL="${{ secrets.WEATHER_UPDATE_URL }}"
+          if [ "$BATCH_SIZE" != "0" ] || [ "$SKIP_CLEANUP" = "true" ]; then
+            API_URL="${API_URL}?"
+            [ "$BATCH_SIZE" != "0" ] && API_URL="${API_URL}batchSize=${BATCH_SIZE}&"
+            [ "$SKIP_CLEANUP" = "true" ] && API_URL="${API_URL}skipCleanup=true&"
+            API_URL="${API_URL%&}"  # Remove trailing &
+          fi
+          
+          echo "Calling API: $API_URL"
+          
+          # Make the API call
+          response=$(curl -s -w "HTTPSTATUS:%{http_code}" \
+            -X POST \
+            -H "Authorization: Bearer ${{ secrets.WEATHER_UPDATE_API_KEY }}" \
+            -H "Content-Type: application/json" \
+            -H "User-Agent: GitHub-Actions-Weather-Updater/1.0" \
+            --max-time 300 \
+            "$API_URL")
+          
+          # Extract HTTP status and body
+          http_status=$(echo $response | tr -d '\n' | sed -e 's/.*HTTPSTATUS://')
+          body=$(echo $response | sed -e 's/HTTPSTATUS:.*//g')
+          
+          echo "HTTP Status: $http_status"
+          echo "Response: $body"
+          
+          # Check if request was successful
+          if [ $http_status -eq 200 ]; then
+            echo "✅ Weather update successful!"
+            
+            # Parse and display results if JSON
+            if command -v jq &> /dev/null; then
+              echo "📊 Update Summary:"
+              echo "$body" | jq -r '
+                "Cities processed: \(.totalProcessed // "N/A")",
+                "Records inserted: \(.totalInserted // "N/A")",
+                "Records updated: \(.totalUpdated // "N/A")",
+                "Time elapsed: \(.timeElapsed // "N/A")s",
+                "Successful cities: \(.successful // [] | join(", "))",
+                "Failed cities: \(.failed // [] | map(.city + " (" + .error + ")") | join(", "))"
+              '
+            fi
+          else
+            echo "❌ Weather update failed with status $http_status"
+            echo "Response: $body"
+            exit 1
+          fi
+
+      - name: Notify on Failure
+        if: failure()
+        run: |
+          echo "Weather update job failed at $(date)"
+          # You can add notification logic here (email, Slack, etc.)

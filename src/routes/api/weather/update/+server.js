@@ -6,6 +6,8 @@ import moment from 'moment-timezone'; // Import moment-timezone directly
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 const accuWeatherApiKey = import.meta.env.VITE_ACCUWEATHER_API_KEY;
+// Add API key for automated updates
+const updateApiKey = import.meta.env.VITE_WEATHER_UPDATE_API_KEY;
 
 // Initialize Supabase client
 const supabase = createClient(supabaseUrl, supabaseKey);
@@ -124,14 +126,28 @@ function calculateDailyAverages(hourlyData) {
 
 // POST endpoint - fetches weather data from external APIs and updates Supabase
 export async function POST({ request, url }) {
-	// Basic security check - verify request is from our own site
-	const referer = request.headers.get('referer');
-	const host = request.headers.get('host');
-
-	// Only allow requests from our own website
-	if (!referer || !referer.includes(host)) {
-		console.warn('Potential unauthorized Weather API update attempt');
-		return json({ error: 'Unauthorized access' }, { status: 403 });
+	// Check for API key first (for automated requests)
+	const authHeader = request.headers.get('authorization');
+	const providedApiKey = authHeader?.replace('Bearer ', '');
+	
+	// If API key is provided, validate it
+	if (providedApiKey) {
+		if (!updateApiKey || providedApiKey !== updateApiKey) {
+			console.warn('Invalid API key provided for weather update');
+			return json({ error: 'Invalid API key' }, { status: 401 });
+		}
+		console.log('Valid API key provided - allowing automated update');
+	} else {
+		// Fallback to referer check for manual requests from the website
+		const referer = request.headers.get('referer');
+		const host = request.headers.get('host');
+		
+		// Only allow requests from our own website if no API key
+		if (!referer || !referer.includes(host)) {
+			console.warn('Potential unauthorized Weather API update attempt - no API key and invalid referer');
+			return json({ error: 'Unauthorized access' }, { status: 403 });
+		}
+		console.log('Valid referer provided - allowing manual update from website');
 	}
 
 	// Extract query parameters for optimization

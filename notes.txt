@@ -14,3 +14,6 @@ ADD "UP Resilience Institute" AS SHAPEFILE PROVIDER FOR CRITICAL FACILITIES AND 
 
 UPDATE CONTACT US email and number..
 
+UPDATE THE APAW LINK... SEARCH FOR Advanced Flood Prediction Philippines and change it to Advanced Predictive Analysis of Water-related Flood Risk... and then the picture as well
+
+Followw the bing webmaster errors... 
