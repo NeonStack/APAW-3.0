@@ -4,7 +4,7 @@
   
   // Helper function to determine water station status
   function getStationStatus(station) {
-    if (!station.wl) return { level: 'unknown', color: 'gray', text: 'Unknown' };
+    if (!station.wl) return { level: 'unknown', color: 'gray', text: 'Unknown', icon: 'mdi:help-circle' };
     
     const currentWL = parseFloat(station.wl);
     const alertWL = station.alertwl ? parseFloat(station.alertwl) : null;
@@ -12,13 +12,13 @@
     const criticalWL = station.criticalwl ? parseFloat(station.criticalwl) : null;
     
     if (criticalWL && currentWL >= criticalWL) {
-      return { level: 'critical', color: 'red', text: 'Critical' };
+      return { level: 'critical', color: 'red', text: 'Critical', icon: 'mdi:alert-octagon' };
     } else if (alarmWL && currentWL >= alarmWL) {
-      return { level: 'alarm', color: 'orange', text: 'Alarm' };
+      return { level: 'alarm', color: 'orange', text: 'Alarm', icon: 'mdi:alert' };
     } else if (alertWL && currentWL >= alertWL) {
-      return { level: 'alert', color: 'yellow', text: 'Alert' };
+      return { level: 'alert', color: 'yellow', text: 'Alert', icon: 'mdi:alert-circle' };
     } else {
-      return { level: 'normal', color: 'green', text: 'Normal' };
+      return { level: 'normal', color: 'green', text: 'Normal', icon: 'mdi:check-circle' };
     }
   }
   
@@ -302,9 +302,9 @@
               <div class="mb-3 flex flex-wrap md:items-center justify-between gap-2">
                 <!-- Left: Current level and change -->
                 <div class="flex items-center gap-3">
-                  <!-- Water level icon/indicator -->
-                  <div class="flex h-12 w-12 items-center justify-center text-blue-500">
-                    <Icon icon="mdi:waves" width="40" />
+                  <!-- Water level icon/indicator - Updated to use status-specific icons -->
+                  <div class="flex h-12 w-12 items-center justify-center" style="color: {status.color === 'green' ? '#16a34a' : status.color === 'yellow' ? '#eab308' : status.color === 'orange' ? '#ea580c' : status.color === 'red' ? '#dc2626' : '#6b7280'};">
+                    <Icon icon={status.icon} width="40" />
                   </div>
 
                   <!-- Water level data -->
