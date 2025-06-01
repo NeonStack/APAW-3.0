@@ -12,13 +12,13 @@
     const criticalWL = station.criticalwl ? parseFloat(station.criticalwl) : null;
     
     if (criticalWL && currentWL >= criticalWL) {
-      return { level: 'critical', color: 'red', text: 'Critical', icon: 'mdi:alert-octagon' };
+      return { level: 'critical', color: 'red', text: 'Critical', icon: 'mdi:waves-arrow-up' };
     } else if (alarmWL && currentWL >= alarmWL) {
-      return { level: 'alarm', color: 'orange', text: 'Alarm', icon: 'mdi:alert' };
+      return { level: 'alarm', color: 'orange', text: 'Alarm', icon: 'mdi:wave' };
     } else if (alertWL && currentWL >= alertWL) {
-      return { level: 'alert', color: 'yellow', text: 'Alert', icon: 'mdi:alert-circle' };
+      return { level: 'alert', color: 'yellow', text: 'Alert', icon: 'mdi:water-plus' };
     } else {
-      return { level: 'normal', color: 'green', text: 'Normal', icon: 'mdi:check-circle' };
+      return { level: 'normal', color: 'green', text: 'Normal', icon: 'mdi:water-check' };
     }
   }
   
