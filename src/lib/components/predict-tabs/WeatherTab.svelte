@@ -403,7 +403,7 @@
 	<div class="mb-2 flex items-center justify-between flex-wrap gap-2">
 		<h2 class="text-xl font-semibold text-gray-800">Metro Manila Weather</h2>
 
-		<div class="flex space-x-2">
+		<div class="flex gap-2">
 			<button
 				class="flex items-center gap-1 rounded bg-gray-100 px-2 py-1 text-sm text-gray-600 transition-colors hover:bg-gray-200 hover:text-gray-900"
 				on:click={fetchWeatherData}
@@ -412,17 +412,8 @@
 				<Icon icon="mdi:refresh" />
 				Refresh
 			</button>
-
-			<button
-				class="flex items-center gap-1 rounded bg-blue-600 px-2 py-1 text-sm text-white transition-colors hover:bg-blue-700"
-				on:click={updateWeatherFromAccuweather}
-				disabled={weatherDataValue.loading}
-			>
-				<Icon icon="mdi:cloud-download" />
-				Update Forecast
-			</button>
 			
-			<!-- Add filter toggle button -->
+			<!-- Filter toggle button -->
 			<button
 				class="flex items-center gap-1 rounded bg-gray-100 px-2 py-1 text-sm text-gray-600 transition-colors hover:bg-gray-200 hover:text-gray-900"
 				on:click={() => showFilters = !showFilters}

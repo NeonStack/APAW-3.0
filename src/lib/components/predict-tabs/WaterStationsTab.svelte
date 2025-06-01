@@ -169,9 +169,9 @@
         Refresh
       </button>
       
-      <!-- Add filter toggle button -->
+      <!-- Updated filter toggle button to match WeatherTab -->
       <button 
-        class="text-sm flex items-center gap-1 text-gray-600 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 py-1 px-2 rounded transition-colors"
+        class="flex items-center gap-1 rounded bg-gray-100 px-2 py-1 text-sm text-gray-600 transition-colors hover:bg-gray-200 hover:text-gray-900"
         on:click={() => showFilters = !showFilters}
       >
         <Icon icon={showFilters ? "mdi:filter-off" : "mdi:filter"} />
@@ -180,7 +180,7 @@
     </div>
   </div>
 
-  <!-- Collapsible filter section and legend -->
+  <!-- Updated filter section to match WeatherTab layout exactly -->
   {#if showFilters}
     <div class="mb-2 bg-gray-50 p-2 rounded-md border border-gray-200 transition-all">
       <div class="flex flex-wrap gap-3 text-xs">
@@ -214,8 +214,8 @@
           </select>
         </div>
         
-        <div class="ml-auto text-gray-500 self-end text-right">
-          Showing: {filteredStations.length} of {waterStationsValue.data.length} stations
+        <div class="ml-auto text-right text-xs text-gray-500 self-end">
+          <div>Showing {filteredStations.length} of {waterStationsValue.data.length} stations</div>
         </div>
       </div>
       
@@ -265,18 +265,18 @@
           {@const status = getStationStatus(station)}
           {@const change = calculateWaterChange(station)}
           
-          <div class="bg-white border border-gray-200 rounded shadow-sm transition-all mb-5">
-            <!-- Station header - Updated to show full date and time -->
-            <div class="flex flex-col p-2 border-l-3" style="border-left-color: {status.color};">
-              <div class="flex items-center justify-between mb-1">
+          <div class="mb-5 rounded border border-gray-200 bg-white shadow-sm transition-all">
+            <!-- Station header - Updated to match WeatherTab structure -->
+            <div class="flex flex-col border-l-3 border-l-blue-500 p-2">
+              <div class="mb-1 flex items-center justify-between">
                 <div class="flex items-center gap-1.5">
-                  <h3 class="font-medium text-gray-800 text-sm">{station.obsnm}</h3>
-                  <div class="px-1 py-0.5 rounded-sm text-xs font-medium text-white" style="background-color: {status.color};">
+                  <h3 class="font-medium text-gray-800">{station.obsnm}</h3>
+                  <div class="rounded-sm px-1.5 py-0.5 text-xs font-medium text-gray-600" style="background-color: {status.color === 'green' ? '#dcfce7' : status.color === 'yellow' ? '#fef3c7' : status.color === 'orange' ? '#fed7aa' : status.color === 'red' ? '#fecaca' : '#f3f4f6'}; color: {status.color === 'green' ? '#166534' : status.color === 'yellow' ? '#a16207' : status.color === 'orange' ? '#c2410c' : status.color === 'red' ? '#dc2626' : '#4b5563'};">
                     {status.text}
                   </div>
                 </div>
                 
-                <!-- Add Show on Map button -->
+                <!-- Show on Map button -->
                 <button 
                   class="text-xs flex items-center gap-1 text-blue-600 hover:text-blue-800 hover:bg-blue-50 p-1 rounded transition-colors"
                   on:click={() => showStationOnMap(station)}
@@ -286,74 +286,151 @@
                   <span>Show on Map</span>
                 </button>
               </div>
-              <!-- Add date and time on its own line with smaller text -->
-              <div class="text-xs text-gray-500">
-                <Icon icon="mdi:clock-outline" class="inline-block mr-0.5 text-xs" /> 
-                {station.timestr}
+              
+              <!-- Date and time -->
+              <div class="flex flex-col text-xs text-gray-500">
+                <div>
+                  <Icon icon="mdi:clock-outline" class="mr-0.5 inline-block text-xs" />
+                  <span class="font-medium">{station.timestr}</span>
+                </div>
               </div>
             </div>
-            
-            <!-- Water level info - Compact design -->
-            <div class="px-2 py-1.5 border-t border-gray-100 flex items-center justify-between">
-              <!-- Left side: Current level & change indicator -->
-              <div class="flex items-center gap-2">
-                <!-- Current level -->
-                <div class="flex flex-col justify-center">
-                  <span class="text-xs text-gray-500">Current</span>
-                  <span class="font-bold text-gray-900">{station.wl || 'N/A'} m</span>
+
+            <!-- Main content section - Updated to match WeatherTab layout -->
+            <div class="border-t border-gray-100 p-3">
+              <!-- Water level summary - matching WeatherTab structure -->
+              <div class="mb-3 flex flex-wrap md:items-center justify-between gap-2">
+                <!-- Left: Current level and change -->
+                <div class="flex items-center gap-3">
+                  <!-- Water level icon/indicator -->
+                  <div class="flex h-12 w-12 items-center justify-center text-blue-500">
+                    <Icon icon="mdi:waves" width="40" />
+                  </div>
+
+                  <!-- Water level data -->
+                  <div>
+                    <div class="flex items-baseline">
+                      <span class="text-2xl font-bold">{station.wl || 'N/A'}</span>
+                      <span class="ml-1 text-sm text-gray-500">meters</span>
+                    </div>
+                    <div class="text-sm">{status.text} Level</div>
+                    <div class="text-xs text-gray-600 flex items-center" style="color: {change.color === 'gray' ? '#6B7280' : change.color === 'red' ? '#DC2626' : change.color === 'orange' ? '#EA580C' : change.color === 'blue' ? '#2563EB' : '#6B7280'}">
+                      <Icon icon={change.icon} class="mr-0.5" />
+                      {change.text}
+                    </div>
+                  </div>
                 </div>
-                
-                <!-- Change indicator -->
-                <div class="flex items-center text-xs" style="color: {change.color === 'gray' ? '#6B7280' : change.color === 'red' ? '#DC2626' : change.color === 'orange' ? '#EA580C' : change.color === 'blue' ? '#2563EB' : '#6B7280'}">
-                  <Icon icon={change.icon} class="mr-0.5" />
-                  <span class="whitespace-nowrap">{change.text}</span>
+
+                <!-- Right: Status indicator -->
+                <div class="flex flex-col">
+                  <div class="flex items-center">
+                    <div class="h-3 w-3 rounded-full mr-2" style="background-color: {status.color === 'green' ? '#16a34a' : status.color === 'yellow' ? '#eab308' : status.color === 'orange' ? '#ea580c' : status.color === 'red' ? '#dc2626' : '#6b7280'};"></div>
+                    <span class="font-medium">
+                      {status.text} Status
+                    </span>
+                  </div>
                 </div>
               </div>
-              
-              <!-- Right side: Threshold badges - FIXED: full words instead of abbreviations -->
-              <div class="flex gap-1">
+
+              <!-- Key metrics - matching WeatherTab grid layout -->
+              <div class="mb-4 grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
+                <div class="rounded border border-blue-100 bg-blue-50 p-2">
+                  <div class="text-blue-700">Current Level</div>
+                  <div class="font-medium">{station.wl || 'N/A'} m</div>
+                </div>
+                <div class="rounded bg-gray-50 p-2 border">
+                  <div class="text-gray-500">10m Ago</div>
+                  <div class="font-medium">{station.wl10m || 'N/A'} m</div>
+                </div>
+                <div class="rounded bg-gray-50 p-2 border">
+                  <div class="text-gray-500">30m Ago</div>
+                  <div class="font-medium">{station.wl30m || 'N/A'} m</div>
+                </div>
+                <div class="rounded bg-gray-50 p-2 border">
+                  <div class="text-gray-500">1h Ago</div>
+                  <div class="font-medium">{station.wl1h || 'N/A'} m</div>
+                </div>
+              </div>
+
+              <!-- Threshold levels - matching WeatherTab additional metrics -->
+              <div class="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm mb-3">
                 {#if station.alertwl}
-                  <div class="bg-yellow-100 text-yellow-800 px-1 py-0.5 rounded-sm text-xs whitespace-nowrap">
-                    Alert:{station.alertwl}
+                  <div class="rounded border border-yellow-100 bg-yellow-50 p-2">
+                    <div class="text-yellow-700">Alert Level</div>
+                    <div class="font-medium">{station.alertwl} m</div>
                   </div>
                 {/if}
                 {#if station.alarmwl}
-                  <div class="bg-orange-100 text-orange-800 px-1 py-0.5 rounded-sm text-xs whitespace-nowrap">
-                    Alarm:{station.alarmwl}
+                  <div class="rounded border border-orange-100 bg-orange-50 p-2">
+                    <div class="text-orange-700">Alarm Level</div>
+                    <div class="font-medium">{station.alarmwl} m</div>
                   </div>
                 {/if}
                 {#if station.criticalwl}
-                  <div class="bg-red-100 text-red-800 px-1 py-0.5 rounded-sm text-xs whitespace-nowrap">
-                    Critical:{station.criticalwl}
+                  <div class="rounded border border-red-100 bg-red-50 p-2">
+                    <div class="text-red-700">Critical Level</div>
+                    <div class="font-medium">{station.criticalwl} m</div>
                   </div>
                 {/if}
               </div>
+
+              <!-- Detailed data accordion - matching WeatherTab structure -->
+              <details class="border rounded mb-2">
+                <summary class="cursor-pointer px-3 py-2 bg-gray-50 text-sm font-medium">
+                  Detailed Station Data
+                </summary>
+                <div class="p-3">
+                  <!-- Historical readings grid -->
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                    <!-- Historical readings -->
+                    <div class="rounded border bg-white p-2">
+                      <h4 class="mb-1 font-medium text-gray-700">Historical Readings</h4>
+                      <div class="space-y-1">
+                        <div class="flex justify-between">
+                          <span>Current:</span>
+                          <span class="font-medium">{station.wl || 'N/A'} m</span>
+                        </div>
+                        <div class="flex justify-between">
+                          <span>10 min ago:</span>
+                          <span class="font-medium">{station.wl10m || 'N/A'} m</span>
+                        </div>
+                        <div class="flex justify-between">
+                          <span>30 min ago:</span>
+                          <span class="font-medium">{station.wl30m || 'N/A'} m</span>
+                        </div>
+                        <div class="flex justify-between">
+                          <span>1 hour ago:</span>
+                          <span class="font-medium">{station.wl1h || 'N/A'} m</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Threshold levels -->
+                    <div class="rounded border bg-white p-2">
+                      <h4 class="mb-1 font-medium text-gray-700">Warning Levels</h4>
+                      <div class="space-y-1">
+                        <div class="flex justify-between">
+                          <span>Alert Level:</span>
+                          <span class="font-medium">{station.alertwl || 'Not set'} m</span>
+                        </div>
+                        <div class="flex justify-between">
+                          <span>Alarm Level:</span>
+                          <span class="font-medium">{station.alarmwl || 'Not set'} m</span>
+                        </div>
+                        <div class="flex justify-between">
+                          <span>Critical Level:</span>
+                          <span class="font-medium">{station.criticalwl || 'Not set'} m</span>
+                        </div>
+                        <div class="flex justify-between">
+                          <span>Current Status:</span>
+                          <span class="font-medium" style="color: {status.color === 'green' ? '#16a34a' : status.color === 'yellow' ? '#eab308' : status.color === 'orange' ? '#ea580c' : status.color === 'red' ? '#dc2626' : '#6b7280'};">{status.text}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </details>
             </div>
-            
-            <!-- Historical readings - More compact inline format -->
-            <details class="text-sm border-t border-gray-100">
-              <summary class="cursor-pointer bg-gray-50 px-2 py-1 text-gray-600 hover:text-gray-900 text-xs flex items-center">
-                <Icon icon="mdi:history" class="mr-1 text-xs" /> Historical
-              </summary>
-              <div class="flex justify-between px-2 py-1.5 bg-gray-50 text-xs">
-                <div>
-                  <span class="text-gray-500">Current:</span>
-                  <span class="font-medium text-gray-800">{station.wl || 'N/A'} m</span>
-                </div>
-                <div>
-                  <span class="text-gray-500">10m:</span>
-                  <span class="font-medium text-gray-800">{station.wl10m || 'N/A'} m</span>
-                </div>
-                <div>
-                  <span class="text-gray-500">30m:</span>
-                  <span class="font-medium text-gray-800">{station.wl30m || 'N/A'} m</span>
-                </div>
-                <div>
-                  <span class="text-gray-500">1h:</span>
-                  <span class="font-medium text-gray-800">{station.wl1h || 'N/A'} m</span>
-                </div>
-              </div>
-            </details>
           </div>
         {/each}
       </div>
