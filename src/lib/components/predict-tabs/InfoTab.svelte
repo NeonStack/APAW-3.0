@@ -723,132 +723,68 @@
 					</div>
 				</div>
 			{:else}
-				<!-- Compact Prediction Cards -->
+				<!-- Ultra-Compact Prediction Cards -->
 				<div class="space-y-2">
 					{#each floodPrediction.daily_predictions as day, index}
 						<div class={`rounded-lg border shadow-sm ${getPredictionCardStyle(day.is_flooded_prediction_rf, day.flood_risk_level)}`}>
-							<!-- Compact Card Header -->
+							<!-- Ultra-Compact Card Header -->
 							<div class="p-3">
+								<!-- Date and Main Status Row -->
 								<div class="mb-2">
-									<h4 class="flex items-center text-sm font-bold text-gray-800">
+									<h4 class="flex items-center text-sm font-bold text-gray-800 mb-1">
 										<Icon icon="mdi:calendar" class="mr-1.5" width="14" />
 										{formatDate(day.date)}
 									</h4>
-								</div>
-								
-								<!-- Compact Prediction Status -->
-								<div class="mb-2 flex flex-wrap items-center gap-2">
-									<div class={`flex items-center text-sm font-bold ${getPredictionColor(day.is_flooded_prediction_rf)}`}>
-										<Icon
-											icon={getPredictionIcon(day.is_flooded_prediction_rf, day.flood_risk_level)}
-											class="mr-1"
-											width="14"
-										/>
-										{day.is_flooded_prediction_rf === "NOT FLOODED" ? "NOT FLOODED" : "FLOODED"}
-									</div>
 									
-									<span class={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${getRiskLevelBadgeStyle(day.flood_risk_level)}`}>
-										{day.flood_risk_level} Risk
-									</span>
+									<!-- Status and Risk Level Row -->
+									<div class="flex items-center justify-between">
+										<div class={`flex items-center text-sm font-bold ${getPredictionColor(day.is_flooded_prediction_rf)}`}>
+											<Icon
+												icon={getPredictionIcon(day.is_flooded_prediction_rf, day.flood_risk_level)}
+												class="mr-1"
+												width="14"
+											/>
+											{day.is_flooded_prediction_rf === "NOT FLOODED" ? "NOT FLOODED" : "FLOODED"}
+										</div>
+										
+										<span class={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${getRiskLevelBadgeStyle(day.flood_risk_level)}`}>
+											{day.flood_risk_level} Risk
+										</span>
+									</div>
 								</div>
 								
-								<!-- Compact Depth Information -->
+								<!-- Probability Info Row -->
+								<div class="rounded bg-white/70 p-2 text-xs space-y-1">
+									<div class="flex items-center justify-between">
+										<span class="font-medium text-gray-600">Probability:</span>
+										<span class={`font-mono font-bold ${getFloodProbabilityColor(day.is_flooded_probability_rf, day.is_flooded_prediction_rf)}`}>
+											{formatRawProbability(day.is_flooded_probability_rf)}
+										</span>
+									</div>
+									{#if day.rf_threshold_applied}
+										<div class="flex items-center justify-between">
+											<span class="text-gray-500">vs Threshold ({formatRawProbability(day.rf_threshold_applied)}):</span>
+											<span class="font-mono text-xs">{formatRelativeProbability(day.is_flooded_probability_rf, day.rf_threshold_applied)}</span>
+										</div>
+									{/if}
+								</div>
+								
+								<!-- Compact Depth Information (if significant) -->
 								{#if day.average_predicted_depth_cm}
 									{@const depth = formatDepth(day.average_predicted_depth_cm)}
 									{#if depth}
-										<div class="mb-2 flex items-center rounded bg-red-50 border border-red-200 p-2">
+										<div class="mt-2 flex items-center rounded bg-red-50 border border-red-200 p-2">
 											<Icon icon="mdi:water" class="mr-1.5 text-red-600" width="14" />
 											<div class="text-xs">
-												<span class="font-semibold text-red-800">Depth:</span>
+												<span class="font-semibold text-red-800">Predicted Depth:</span>
 												<span class="ml-1 text-red-700 font-mono">{depth.cm}cm ({depth.inches}in)</span>
 											</div>
 										</div>
 									{/if}
 								{/if}
-								
-								<!-- Compact Probability Information -->
-								<div class="rounded bg-white/70 p-2 text-xs">
-									<div class="space-y-1">
-										<div class="flex justify-between">
-											<span class="font-medium text-gray-600">Probability:</span>
-											<span class={`font-mono font-bold ${getFloodProbabilityColor(day.is_flooded_probability_rf, day.is_flooded_prediction_rf)}`}>
-												{formatRawProbability(day.is_flooded_probability_rf)}
-											</span>
-										</div>
-										{#if day.rf_threshold_applied}
-											<div class="flex justify-between">
-												<span class="font-medium text-gray-600">Threshold:</span>
-												<span class="font-mono">{formatRawProbability(day.rf_threshold_applied)}</span>
-											</div>
-											<div class="flex justify-between">
-												<span class="font-medium text-gray-600">Relative:</span>
-												<span class="font-mono text-xs">{formatRelativeProbability(day.is_flooded_probability_rf, day.rf_threshold_applied)}</span>
-											</div>
-										{/if}
-									</div>
-								</div>
 							</div>
 
-							<!-- Compact Weather Indicators -->
-							{#if day.features_assembled_for_this_day}
-								<div class="border-t border-gray-200/50 bg-white/30 p-3">
-									<h5 class="mb-2 flex items-center text-xs font-semibold text-gray-700">
-										<Icon icon="mdi:weather-partly-cloudy" class="mr-1" width="12" />
-										Key Indicators
-									</h5>
-									<div class="space-y-1">
-										{#if hasValidValue(day.features_assembled_for_this_day.Precip_mm_Today)}
-											<div class="flex items-center justify-between rounded bg-white border border-gray-200 px-2 py-1">
-												<div class="flex items-center">
-													<Icon icon="mdi:weather-pouring" class="mr-1.5 text-blue-500" width="12" />
-													<span class="text-xs text-gray-600">Rainfall:</span>
-												</div>
-												<span class="text-xs font-bold text-gray-800">
-													{formatValue('Precip_mm_Today', day.features_assembled_for_this_day.Precip_mm_Today)} mm
-												</span>
-											</div>
-										{/if}
-										
-										{#if hasValidValue(day.features_assembled_for_this_day.Precipitation_Hours_Today)}
-											<div class="flex items-center justify-between rounded bg-white border border-gray-200 px-2 py-1">
-												<div class="flex items-center">
-													<Icon icon="mdi:clock-outline" class="mr-1.5 text-blue-500" width="12" />
-													<span class="text-xs text-gray-600">Duration:</span>
-												</div>
-												<span class="text-xs font-bold text-gray-800">
-													{formatValue('Precipitation_Hours_Today', day.features_assembled_for_this_day.Precipitation_Hours_Today)} hrs
-												</span>
-											</div>
-										{/if}
-										
-										{#if hasValidValue(day.features_assembled_for_this_day.Total_Precip_Last_3Days_mm)}
-											<div class="flex items-center justify-between rounded bg-white border border-gray-200 px-2 py-1">
-												<div class="flex items-center">
-													<Icon icon="mdi:history" class="mr-1.5 text-blue-500" width="12" />
-													<span class="text-xs text-gray-600">3-Day:</span>
-												</div>
-												<span class="text-xs font-bold text-gray-800">
-													{formatValue('Total_Precip_Last_3Days_mm', day.features_assembled_for_this_day.Total_Precip_Last_3Days_mm)} mm
-												</span>
-											</div>
-										{/if}
-										
-										{#if hasValidValue(day.features_assembled_for_this_day.Soil_Moisture_0_to_7cm_m3m3_Today)}
-											<div class="flex items-center justify-between rounded bg-white border border-gray-200 px-2 py-1">
-												<div class="flex items-center">
-													<Icon icon="mdi:terrain" class="mr-1.5 text-blue-500" width="12" />
-													<span class="text-xs text-gray-600">Soil:</span>
-												</div>
-												<span class="text-xs font-bold text-gray-800">
-													{formatValue('Soil_Moisture_0_to_7cm_m3m3_Today', day.features_assembled_for_this_day.Soil_Moisture_0_to_7cm_m3m3_Today)}
-												</span>
-											</div>
-										{/if}
-									</div>
-								</div>
-							{/if}
-
-							<!-- Compact Expand/Collapse Section -->
+							<!-- Ultra-Compact Expand/Collapse Section -->
 							<div class="border-t border-gray-200/50 bg-white/50 p-2">
 								<button
 									on:click={() => toggleExpand(day.date)}
@@ -866,29 +802,86 @@
 							<!-- Compact Expanded Details -->
 							{#if expandedPredictions[day.date] && day.features_assembled_for_this_day}
 								<div class="border-t border-gray-200 bg-gray-50 p-3 space-y-3">
+									<!-- Key Weather Indicators (Moved Here) -->
+									<div class="rounded border border-blue-200 bg-blue-50 p-2">
+										<h6 class="mb-2 flex items-center text-xs font-bold text-blue-800">
+											<Icon icon="mdi:weather-partly-cloudy" class="mr-1" width="12" />
+											Key Weather Indicators
+										</h6>
+										<div class="space-y-1">
+											{#if hasValidValue(day.features_assembled_for_this_day.Precip_mm_Today)}
+												<div class="flex items-center justify-between rounded bg-white border border-gray-200 px-2 py-1">
+													<div class="flex items-center">
+														<Icon icon="mdi:weather-pouring" class="mr-1.5 text-blue-500" width="12" />
+														<span class="text-xs text-gray-600">Rainfall:</span>
+													</div>
+													<span class="text-xs font-bold text-gray-800">
+														{formatValue('Precip_mm_Today', day.features_assembled_for_this_day.Precip_mm_Today)} mm
+													</span>
+												</div>
+											{/if}
+											
+											{#if hasValidValue(day.features_assembled_for_this_day.Precipitation_Hours_Today)}
+												<div class="flex items-center justify-between rounded bg-white border border-gray-200 px-2 py-1">
+													<div class="flex items-center">
+														<Icon icon="mdi:clock-outline" class="mr-1.5 text-blue-500" width="12" />
+														<span class="text-xs text-gray-600">Duration:</span>
+													</div>
+													<span class="text-xs font-bold text-gray-800">
+														{formatValue('Precipitation_Hours_Today', day.features_assembled_for_this_day.Precipitation_Hours_Today)} hrs
+													</span>
+												</div>
+											{/if}
+											
+											{#if hasValidValue(day.features_assembled_for_this_day.Total_Precip_Last_3Days_mm)}
+												<div class="flex items-center justify-between rounded bg-white border border-gray-200 px-2 py-1">
+													<div class="flex items-center">
+														<Icon icon="mdi:history" class="mr-1.5 text-blue-500" width="12" />
+														<span class="text-xs text-gray-600">3-Day Total:</span>
+													</div>
+													<span class="text-xs font-bold text-gray-800">
+														{formatValue('Total_Precip_Last_3Days_mm', day.features_assembled_for_this_day.Total_Precip_Last_3Days_mm)} mm
+													</span>
+												</div>
+											{/if}
+											
+											{#if hasValidValue(day.features_assembled_for_this_day.Soil_Moisture_0_to_7cm_m3m3_Today)}
+												<div class="flex items-center justify-between rounded bg-white border border-gray-200 px-2 py-1">
+													<div class="flex items-center">
+														<Icon icon="mdi:terrain" class="mr-1.5 text-blue-500" width="12" />
+														<span class="text-xs text-gray-600">Soil Moisture:</span>
+													</div>
+													<span class="text-xs font-bold text-gray-800">
+														{formatValue('Soil_Moisture_0_to_7cm_m3m3_Today', day.features_assembled_for_this_day.Soil_Moisture_0_to_7cm_m3m3_Today)}
+													</span>
+												</div>
+											{/if}
+										</div>
+									</div>
+
 									<!-- Compact Model Depths -->
 									{#if day.rf_predicted_depth_cm || day.lstm_predicted_depth_cm}
 										<div class="rounded border border-blue-200 bg-blue-50 p-2">
 											<h6 class="mb-1 flex items-center text-xs font-bold text-blue-800">
 												<Icon icon="mdi:water" class="mr-1" width="12" />
-												Model Depths
+												Model Depth Predictions
 											</h6>
 											<div class="space-y-1">
 												{#if day.rf_predicted_depth_cm !== null}
 													<div class="flex justify-between text-xs">
-														<span class="text-gray-600">RF Model:</span>
+														<span class="text-gray-600">Random Forest:</span>
 														<span class="font-bold text-blue-700">{formatValue('depth', day.rf_predicted_depth_cm)} cm</span>
 													</div>
 												{/if}
 												{#if day.lstm_predicted_depth_cm !== null}
 													<div class="flex justify-between text-xs">
-														<span class="text-gray-600">LSTM Model:</span>
+														<span class="text-gray-600">LSTM Neural Net:</span>
 														<span class="font-bold text-blue-700">{formatValue('depth', day.lstm_predicted_depth_cm)} cm</span>
 													</div>
 												{/if}
 												{#if day.average_predicted_depth_cm !== null}
-													<div class="flex justify-between text-xs">
-														<span class="text-gray-600">Average:</span>
+													<div class="flex justify-between text-xs border-t border-blue-200 pt-1">
+														<span class="text-gray-600 font-semibold">Combined Average:</span>
 														<span class="font-bold text-blue-700">{formatValue('depth', day.average_predicted_depth_cm)} cm</span>
 													</div>
 												{/if}
@@ -901,7 +894,7 @@
 										<div class="rounded border border-blue-200 bg-blue-50 p-2">
 											<h6 class="mb-1 flex items-center text-xs font-bold text-blue-800">
 												<Icon icon="mdi:water-percent" class="mr-1" width="12" />
-												Water Stations
+												Nearby Water Station Data
 											</h6>
 											<div class="space-y-2">
 												{#if day.features_assembled_for_this_day.S1_WL_Today_m !== null}
@@ -911,11 +904,11 @@
 														</div>
 														<div class="space-y-0.5 text-xs">
 															<div class="flex justify-between">
-																<span class="text-gray-500">Level:</span>
+																<span class="text-gray-500">Current Level:</span>
 																<span class="font-bold text-blue-700">{formatValue('level', day.features_assembled_for_this_day.S1_WL_Today_m)} m</span>
 															</div>
 															<div class="flex justify-between">
-																<span class="text-gray-500">Change:</span>
+																<span class="text-gray-500">24h Change:</span>
 																<span class={`font-bold ${day.features_assembled_for_this_day.S1_WL_Change_Last_24h_m > 0 ? 'text-red-600' : 'text-green-600'}`}>
 																	{formatValue('change', day.features_assembled_for_this_day.S1_WL_Change_Last_24h_m)} m
 																</span>
@@ -927,7 +920,6 @@
 														</div>
 													</div>
 												{/if}
-												<!-- Similar compact design for S2 and S3... -->
 												{#if day.features_assembled_for_this_day.S2_WL_Today_m !== null}
 													<div class="rounded bg-white border border-gray-200 p-1.5">
 														<div class="text-xs font-semibold text-gray-600 mb-1">
@@ -935,11 +927,11 @@
 														</div>
 														<div class="space-y-0.5 text-xs">
 															<div class="flex justify-between">
-																<span class="text-gray-500">Level:</span>
+																<span class="text-gray-500">Current Level:</span>
 																<span class="font-bold text-blue-700">{formatValue('level', day.features_assembled_for_this_day.S2_WL_Today_m)} m</span>
 															</div>
 															<div class="flex justify-between">
-																<span class="text-gray-500">Change:</span>
+																<span class="text-gray-500">24h Change:</span>
 																<span class={`font-bold ${day.features_assembled_for_this_day.S2_WL_Change_Last_24h_m > 0 ? 'text-red-600' : 'text-green-600'}`}>
 																	{formatValue('change', day.features_assembled_for_this_day.S2_WL_Change_Last_24h_m)} m
 																</span>
@@ -958,11 +950,11 @@
 														</div>
 														<div class="space-y-0.5 text-xs">
 															<div class="flex justify-between">
-																<span class="text-gray-500">Level:</span>
+																<span class="text-gray-500">Current Level:</span>
 																<span class="font-bold text-blue-700">{formatValue('level', day.features_assembled_for_this_day.S3_WL_Today_m)} m</span>
 															</div>
 															<div class="flex justify-between">
-																<span class="text-gray-500">Change:</span>
+																<span class="text-gray-500">24h Change:</span>
 																<span class={`font-bold ${day.features_assembled_for_this_day.S3_WL_Change_Last_24h_m > 0 ? 'text-red-600' : 'text-green-600'}`}>
 																	{formatValue('change', day.features_assembled_for_this_day.S3_WL_Change_Last_24h_m)} m
 																</span>
@@ -984,7 +976,7 @@
 										<div class="rounded border border-gray-300 bg-white p-2">
 											<h6 class="mb-1 flex items-center text-xs font-bold text-gray-800">
 												<Icon icon="mdi:map-marker" class="mr-1 text-gray-600" width="12" />
-												Location
+												Location Features
 											</h6>
 											<div class="space-y-0.5">
 												{#each ['Latitude', 'Longitude', 'Elevation_m', 'Distance_to_Nearest_Waterway_m', 'Distance_to_Nearest_River_m', 'Distance_to_Nearest_Stream_m', 'Distance_to_Drain_Canal_m'] as key}
@@ -1007,7 +999,7 @@
 										<div class="rounded border border-gray-300 bg-white p-2">
 											<h6 class="mb-1 flex items-center text-xs font-bold text-gray-800">
 												<Icon icon="mdi:weather-partly-cloudy" class="mr-1 text-gray-600" width="12" />
-												Today's Weather
+												Complete Weather Data
 											</h6>
 											<div class="space-y-0.5">
 												{#each Object.keys(day.features_assembled_for_this_day).filter(k => k.includes('_Today')) as key}
@@ -1035,7 +1027,7 @@
 										<div class="rounded border border-gray-300 bg-white p-2">
 											<h6 class="mb-1 flex items-center text-xs font-bold text-gray-800">
 												<Icon icon="mdi:history" class="mr-1 text-gray-600" width="12" />
-												Previous Days
+												Historical Weather Data
 											</h6>
 											<div class="space-y-0.5">
 												{#each Object.keys(day.features_assembled_for_this_day).filter(k => k.includes('_Lag')) as key}
@@ -1063,7 +1055,7 @@
 										<div class="rounded border border-gray-300 bg-white p-2">
 											<h6 class="mb-1 flex items-center text-xs font-bold text-gray-800">
 												<Icon icon="mdi:water-percent" class="mr-1 text-gray-600" width="12" />
-												Accumulated Rain
+												Accumulated Precipitation
 											</h6>
 											<div class="space-y-0.5">
 												{#each Object.keys(day.features_assembled_for_this_day).filter(k => k.includes('Total_Precip_Last') || k.includes('API_k')) as key}
