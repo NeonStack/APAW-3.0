@@ -297,7 +297,7 @@
 				</div>
 
 				<!-- Contact Us Section - Right side -->
-				<div class="md:col-span-4 lg:col-span-4">
+				<!-- <div class="md:col-span-4 lg:col-span-4">
 					<h3 class="mb-4 text-lg font-bold text-white">Contact Us</h3>
 					<ul class="space-y-3">
 						<li>
@@ -319,7 +319,7 @@
 							</a>
 						</li>
 					</ul>
-				</div>
+				</div> -->
 			</div>
 
 			<!-- Footer Bottom Section - Simplified -->

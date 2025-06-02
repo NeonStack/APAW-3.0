@@ -157,314 +157,402 @@
   }
 </script>
 
-<div class="water-stations-tab h-full flex flex-col">
-  <div class="flex justify-between items-center mb-2">
-    <h2 class="text-xl font-semibold text-gray-800">Water Level Stations</h2>
-    <div class="flex gap-2">
+<div class="water-stations-tab space-y-3">
+  <!-- Compact Header -->
+  <div class="flex items-center space-x-2">
+    <div class="rounded-md bg-gradient-to-br from-[#0c3143] to-[#1a4a5a] p-1.5">
+      <Icon icon="mdi:water" class="text-white" width="18" />
+    </div>
+    <h2 class="text-lg font-bold text-[#0c3143]">Water Level Stations</h2>
+    
+    <!-- Action buttons aligned to the right -->
+    <div class="ml-auto flex gap-2">
       <button 
-        class="text-sm flex items-center gap-1 text-gray-600 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 py-1 px-2 rounded transition-colors"
+        class="flex items-center gap-1 rounded bg-gray-100 px-2 py-1 text-xs text-gray-600 transition-colors hover:bg-gray-200 hover:text-gray-900"
         on:click={refreshWaterStations}
       >
-        <Icon icon="mdi:refresh" />
+        <Icon icon="mdi:refresh" width="12" />
         Refresh
       </button>
       
-      <!-- Updated filter toggle button to match WeatherTab -->
       <button 
-        class="flex items-center gap-1 rounded bg-gray-100 px-2 py-1 text-sm text-gray-600 transition-colors hover:bg-gray-200 hover:text-gray-900"
+        class="flex items-center gap-1 rounded bg-gray-100 px-2 py-1 text-xs text-gray-600 transition-colors hover:bg-gray-200 hover:text-gray-900"
         on:click={() => showFilters = !showFilters}
       >
-        <Icon icon={showFilters ? "mdi:filter-off" : "mdi:filter"} />
-        {showFilters ? 'Hide Filters' : 'Show Filters'}
+        <Icon icon={showFilters ? "mdi:filter-off" : "mdi:filter"} width="12" />
+        {showFilters ? 'Hide' : 'Filters'}
       </button>
     </div>
   </div>
 
-  <!-- Updated filter section to match WeatherTab layout exactly -->
+  <!-- Compact Filter Section -->
   {#if showFilters}
-    <div class="mb-2 bg-gray-50 p-2 rounded-md border border-gray-200 transition-all">
-      <div class="flex flex-wrap gap-3 text-xs">
-        <div class="filter-group">
-          <div class="font-medium mb-1 text-gray-700">Status</div>
-          <select bind:value={statusFilter} class="rounded border bg-white px-2 py-1.5 text-xs w-full">
-            {#each statusOptions as option}
-              <option value={option.value}>{option.label}</option>
-            {/each}
-          </select>
+    <div class="rounded-lg border border-gray-200 bg-gray-50 p-3 shadow-sm">
+      <div class="mb-2 flex items-center space-x-2">
+        <div class="rounded bg-[#0c3143] p-1">
+          <Icon icon="mdi:filter" class="text-white" width="12" />
         </div>
+        <h3 class="text-sm font-semibold text-[#0c3143]">Filter & Sort</h3>
+      </div>
 
-        <div class="filter-group">
-          <div class="font-medium mb-1 text-gray-700">Sort by</div>
-          <select bind:value={sortOption} class="rounded border bg-white px-2 py-1.5 text-xs w-full">
-            <optgroup label="Name">
-              {#each sortOptions.filter(o => o.value.includes('name')) as option}
+      <div class="space-y-2">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <!-- Status Filter -->
+          <div>
+            <label class="block text-xs font-medium text-gray-600 mb-1">Filter by Status</label>
+            <select bind:value={statusFilter} class="w-full rounded border border-gray-300 bg-white px-2 py-1.5 text-xs focus:border-blue-500 focus:outline-none">
+              {#each statusOptions as option}
                 <option value={option.value}>{option.label}</option>
               {/each}
-            </optgroup>
-            <optgroup label="Water Level">
-              {#each sortOptions.filter(o => o.value.includes('level')) as option}
-                <option value={option.value}>{option.label}</option>
-              {/each}
-            </optgroup>
-            <optgroup label="Change Rate">
-              {#each sortOptions.filter(o => o.value.includes('change')) as option}
-                <option value={option.value}>{option.label}</option>
-              {/each}
-            </optgroup>
-          </select>
+            </select>
+          </div>
+
+          <!-- Sort Options -->
+          <div>
+            <label class="block text-xs font-medium text-gray-600 mb-1">Sort by</label>
+            <select bind:value={sortOption} class="w-full rounded border border-gray-300 bg-white px-2 py-1.5 text-xs focus:border-blue-500 focus:outline-none">
+              <optgroup label="Name">
+                {#each sortOptions.filter(o => o.value.includes('name')) as option}
+                  <option value={option.value}>{option.label}</option>
+                {/each}
+              </optgroup>
+              <optgroup label="Water Level">
+                {#each sortOptions.filter(o => o.value.includes('level')) as option}
+                  <option value={option.value}>{option.label}</option>
+                {/each}
+              </optgroup>
+              <optgroup label="Change Rate">
+                {#each sortOptions.filter(o => o.value.includes('change')) as option}
+                  <option value={option.value}>{option.label}</option>
+                {/each}
+              </optgroup>
+            </select>
+          </div>
         </div>
         
-        <div class="ml-auto text-right text-xs text-gray-500 self-end">
-          <div>Showing {filteredStations.length} of {waterStationsValue.data.length} stations</div>
-        </div>
-      </div>
-      
-      <!-- Status legend - now inside the filter box -->
-      <div class="mt-2 pt-2 border-t border-gray-200 text-xs flex justify-between items-center">
-        <div class="flex gap-3">
-          <div class="flex items-center"><span class="h-2 w-2 bg-green-600 rounded-full mr-1"></span>Normal</div>
-          <div class="flex items-center"><span class="h-2 w-2 bg-yellow-500 rounded-full mr-1"></span>Alert</div>
-          <div class="flex items-center"><span class="h-2 w-2 bg-orange-500 rounded-full mr-1"></span>Alarm</div>
-          <div class="flex items-center"><span class="h-2 w-2 bg-red-600 rounded-full mr-1"></span>Critical</div>
+        <!-- Status Legend and Count -->
+        <div class="flex items-center justify-between pt-2 border-t border-gray-200">
+          <div class="flex flex-wrap gap-3 text-xs">
+            <div class="flex items-center">
+              <span class="h-2 w-2 bg-green-600 rounded-full mr-1"></span>
+              <span>Normal</span>
+            </div>
+            <div class="flex items-center">
+              <span class="h-2 w-2 bg-yellow-500 rounded-full mr-1"></span>
+              <span>Alert</span>
+            </div>
+            <div class="flex items-center">
+              <span class="h-2 w-2 bg-orange-500 rounded-full mr-1"></span>
+              <span>Alarm</span>
+            </div>
+            <div class="flex items-center">
+              <span class="h-2 w-2 bg-red-600 rounded-full mr-1"></span>
+              <span>Critical</span>
+            </div>
+          </div>
+          
+          <div class="text-xs text-gray-500">
+            Showing {filteredStations.length} of {waterStationsValue.data.length} stations
+          </div>
         </div>
       </div>
     </div>
   {/if}
 
-  <!-- Content wrapper - Main scrollable area -->
-  <div class="flex-1 overflow-auto">
-    {#if $waterStations.loading}
-      <div class="flex flex-col items-center justify-center h-36">
-        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-        <p class="mt-2 text-gray-600 text-sm">Loading data...</p>
+  <!-- Loading State -->
+  {#if $waterStations.loading}
+    <div class="rounded-lg border border-blue-200 bg-blue-50 p-6">
+      <div class="flex items-center justify-center">
+        <Icon icon="eos-icons:loading" class="mr-2 animate-spin text-blue-600" width="20" />
+        <div>
+          <p class="text-sm font-semibold text-blue-800">Loading Water Stations</p>
+          <p class="text-xs text-blue-600">Fetching latest data...</p>
+        </div>
       </div>
-    {:else if $waterStations.error}
-      <div class="bg-gray-50 border border-gray-200 rounded p-3 text-center">
-        <Icon icon="mdi:alert-circle" class="text-red-600 text-lg" />
-        <p class="text-gray-700 text-sm mt-1">{$waterStations.error}</p>
-        <button 
-          class="mt-2 px-3 py-1 bg-blue-600 text-white rounded text-xs"
-          on:click={refreshWaterStations}
-        >Try Again</button>
+    </div>
+  {:else if $waterStations.error}
+    <!-- Error State -->
+    <div class="rounded-lg border border-red-200 bg-red-50 p-4">
+      <div class="flex items-start">
+        <Icon icon="mdi:alert-circle" class="mr-2 mt-0.5 flex-shrink-0 text-red-500" width="18" />
+        <div>
+          <h4 class="text-sm font-bold text-red-900">Error Loading Data</h4>
+          <p class="text-xs text-red-700 mt-1">{$waterStations.error}</p>
+          <button 
+            class="mt-2 flex items-center gap-1 rounded bg-red-100 px-2 py-1 text-xs font-medium text-red-800 transition-colors hover:bg-red-200"
+            on:click={refreshWaterStations}
+          >
+            <Icon icon="mdi:refresh" width="12" />
+            Try Again
+          </button>
+        </div>
       </div>
-    {:else if $waterStations.data.length === 0}
-      <div class="bg-gray-50 border border-gray-200 rounded p-4 text-center">
-        <p class="text-gray-600">No water station data available.</p>
-      </div>
-    {:else if filteredStations.length === 0}
-      <div class="bg-gray-50 border border-gray-200 rounded p-4 text-center">
-        <p class="text-gray-600">No stations found with the selected filters.</p>
-        <button 
-          class="mt-2 px-3 py-1 bg-blue-600 text-white rounded text-xs"
-          on:click={() => statusFilter = 'all'}
-        >Show All Stations</button>
-      </div>
-    {:else}
-      <div class="space-y-1 pb-4">
-        {#each filteredStations as station (station.obsnm)}
-          {@const status = getStationStatus(station)}
-          {@const change = calculateWaterChange(station)}
-          
-          <div class="mb-5 rounded border border-gray-200 bg-white shadow-sm transition-all">
-            <!-- Station header - Updated to match WeatherTab structure -->
-            <div class="flex flex-col border-l-3 border-l-blue-500 p-2">
-              <div class="mb-1 flex items-center justify-between">
-                <div class="flex items-center gap-1.5">
-                  <h3 class="font-medium text-gray-800">{station.obsnm}</h3>
-                  <div class="rounded-sm px-1.5 py-0.5 text-xs font-medium text-gray-600" style="background-color: {status.color === 'green' ? '#dcfce7' : status.color === 'yellow' ? '#fef3c7' : status.color === 'orange' ? '#fed7aa' : status.color === 'red' ? '#fecaca' : '#f3f4f6'}; color: {status.color === 'green' ? '#166534' : status.color === 'yellow' ? '#a16207' : status.color === 'orange' ? '#c2410c' : status.color === 'red' ? '#dc2626' : '#4b5563'};">
-                    {status.text}
-                  </div>
-                </div>
+    </div>
+  {:else if $waterStations.data.length === 0}
+    <!-- No Data State -->
+    <div class="rounded-lg border border-gray-200 bg-gray-50 p-6 text-center">
+      <Icon icon="mdi:database-off" class="mx-auto mb-2 text-gray-400" width="24" />
+      <p class="text-sm text-gray-600">No water station data available</p>
+    </div>
+  {:else if filteredStations.length === 0}
+    <!-- No Results State -->
+    <div class="rounded-lg border border-yellow-200 bg-yellow-50 p-4 text-center">
+      <Icon icon="mdi:filter-off" class="mx-auto mb-2 text-yellow-600" width="20" />
+      <p class="text-sm text-gray-700">No stations match your filters</p>
+      <button 
+        class="mt-2 flex items-center gap-1 mx-auto rounded bg-yellow-100 px-2 py-1 text-xs font-medium text-yellow-800 transition-colors hover:bg-yellow-200"
+        on:click={() => statusFilter = 'all'}
+      >
+        <Icon icon="mdi:filter-remove" width="12" />
+        Clear Filters
+      </button>
+    </div>
+  {:else}
+    <!-- Compact Water Station Cards -->
+    <div class="space-y-2">
+      {#each filteredStations as station (station.obsnm)}
+        {@const status = getStationStatus(station)}
+        {@const change = calculateWaterChange(station)}
+        
+        <div class="rounded-lg border shadow-sm bg-white">
+          <!-- Compact Station Header -->
+          <div class="p-3">
+            <div class="mb-2">
+              <div class="flex items-center justify-between mb-1">
+                <h4 class="flex items-center text-sm font-bold text-gray-800">
+                  <Icon icon="mdi:water-check" class="mr-1.5 text-blue-600" width="14" />
+                  {station.obsnm}
+                </h4>
                 
                 <!-- Show on Map button -->
                 <button 
-                  class="text-xs flex items-center gap-1 text-blue-600 hover:text-blue-800 hover:bg-blue-50 p-1 rounded transition-colors"
+                  class="flex items-center gap-1 rounded bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 transition-colors hover:bg-blue-100"
                   on:click={() => showStationOnMap(station)}
-                  title="Show on map"
                 >
-                  <Icon icon="mdi:map-marker" />
-                  <span>Show on Map</span>
+                  <Icon icon="mdi:map-marker" width="12" />
+                  Show on Map
                 </button>
               </div>
               
-              <!-- Date and time -->
-              <div class="flex flex-col text-xs text-gray-500">
-                <div>
-                  <Icon icon="mdi:clock-outline" class="mr-0.5 inline-block text-xs" />
-                  <span class="font-medium">{station.timestr}</span>
+              <!-- Status and Time Row -->
+              <div class="flex items-center justify-between">
+                <span class={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${
+                  status.color === 'green' ? 'bg-green-100 text-green-800' :
+                  status.color === 'yellow' ? 'bg-yellow-100 text-yellow-800' :
+                  status.color === 'orange' ? 'bg-orange-100 text-orange-800' :
+                  status.color === 'red' ? 'bg-red-100 text-red-800' :
+                  'bg-gray-100 text-gray-800'
+                }`}>
+                  <Icon icon={status.icon} class="mr-1" width="12" />
+                  {status.text}
+                </span>
+                
+                <div class="flex items-center text-xs text-gray-500">
+                  <Icon icon="mdi:clock-outline" class="mr-1" width="12" />
+                  {station.timestr}
                 </div>
               </div>
             </div>
-
-            <!-- Main content section - Updated to match WeatherTab layout -->
-            <div class="border-t border-gray-100 p-3">
-              <!-- Water level summary - matching WeatherTab structure -->
-              <div class="mb-3 flex flex-wrap md:items-center justify-between gap-2">
-                <!-- Left: Current level and change -->
-                <div class="flex items-center gap-3">
-                  <!-- Water level icon/indicator - Updated to use status-specific icons -->
-                  <div class="flex h-12 w-12 items-center justify-center" style="color: {status.color === 'green' ? '#16a34a' : status.color === 'yellow' ? '#eab308' : status.color === 'orange' ? '#ea580c' : status.color === 'red' ? '#dc2626' : '#6b7280'};">
-                    <Icon icon={status.icon} width="40" />
-                  </div>
-
-                  <!-- Water level data -->
+            
+            <!-- Water Level Display -->
+            <div class="rounded bg-white/70 p-3 border border-gray-200">
+              <div class="flex items-center justify-between mb-2">
+                <div class="flex items-center">
+                  <Icon icon="mdi:water" class={`mr-2 ${
+                    status.color === 'green' ? 'text-green-600' :
+                    status.color === 'yellow' ? 'text-yellow-600' :
+                    status.color === 'orange' ? 'text-orange-600' :
+                    status.color === 'red' ? 'text-red-600' :
+                    'text-gray-600'
+                  }`} width="20" />
                   <div>
                     <div class="flex items-baseline">
-                      <span class="text-2xl font-bold">{station.wl || 'N/A'}</span>
-                      <span class="ml-1 text-sm text-gray-500">meters</span>
+                      <span class="text-lg font-bold text-gray-800">{station.wl || 'N/A'}</span>
+                      <span class="ml-1 text-xs text-gray-500">meters</span>
                     </div>
-                    <div class="text-sm">{status.text} Level</div>
-                    <div class="text-xs text-gray-600 flex items-center" style="color: {change.color === 'gray' ? '#6B7280' : change.color === 'red' ? '#DC2626' : change.color === 'orange' ? '#EA580C' : change.color === 'blue' ? '#2563EB' : '#6B7280'}">
-                      <Icon icon={change.icon} class="mr-0.5" />
-                      {change.text}
-                    </div>
+                    <div class="text-xs text-gray-600">Current Level</div>
                   </div>
                 </div>
-
-                <!-- Right: Status indicator -->
-                <div class="flex flex-col">
-                  <div class="flex items-center">
-                    <div class="h-3 w-3 rounded-full mr-2" style="background-color: {status.color === 'green' ? '#16a34a' : status.color === 'yellow' ? '#eab308' : status.color === 'orange' ? '#ea580c' : status.color === 'red' ? '#dc2626' : '#6b7280'};"></div>
-                    <span class="font-medium">
-                      {status.text} Status
-                    </span>
+                
+                <div class="text-right">
+                  <div class={`flex items-center text-xs font-medium ${
+                    change.color === 'red' ? 'text-red-600' :
+                    change.color === 'orange' ? 'text-orange-600' :
+                    change.color === 'blue' ? 'text-blue-600' :
+                    'text-gray-600'
+                  }`}>
+                    <Icon icon={change.icon} class="mr-1" width="12" />
+                    {change.text}
                   </div>
+                  <div class="text-xs text-gray-500">vs 10m ago</div>
                 </div>
               </div>
-
-              <!-- Key metrics - matching WeatherTab grid layout -->
-              <div class="mb-4 grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
-                <div class="rounded border border-blue-100 bg-blue-50 p-2">
-                  <div class="text-blue-700">Current Level</div>
-                  <div class="font-medium">{station.wl || 'N/A'} m</div>
+              
+              <!-- Historical Readings Row -->
+              <div class="grid grid-cols-3 gap-2 text-xs">
+                <div class="text-center">
+                  <div class="font-medium text-gray-700">{station.wl10m || 'N/A'}</div>
+                  <div class="text-gray-500">10m ago</div>
                 </div>
-                <div class="rounded bg-gray-50 p-2 border">
-                  <div class="text-gray-500">10m Ago</div>
-                  <div class="font-medium">{station.wl10m || 'N/A'} m</div>
+                <div class="text-center">
+                  <div class="font-medium text-gray-700">{station.wl30m || 'N/A'}</div>
+                  <div class="text-gray-500">30m ago</div>
                 </div>
-                <div class="rounded bg-gray-50 p-2 border">
-                  <div class="text-gray-500">30m Ago</div>
-                  <div class="font-medium">{station.wl30m || 'N/A'} m</div>
-                </div>
-                <div class="rounded bg-gray-50 p-2 border">
-                  <div class="text-gray-500">1h Ago</div>
-                  <div class="font-medium">{station.wl1h || 'N/A'} m</div>
+                <div class="text-center">
+                  <div class="font-medium text-gray-700">{station.wl1h || 'N/A'}</div>
+                  <div class="text-gray-500">1h ago</div>
                 </div>
               </div>
-
-              <!-- Threshold levels - matching WeatherTab additional metrics -->
-              <div class="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm mb-3">
-                {#if station.alertwl}
-                  <div class="rounded border border-yellow-100 bg-yellow-50 p-2">
-                    <div class="text-yellow-700">Alert Level</div>
-                    <div class="font-medium">{station.alertwl} m</div>
-                  </div>
-                {/if}
-                {#if station.alarmwl}
-                  <div class="rounded border border-orange-100 bg-orange-50 p-2">
-                    <div class="text-orange-700">Alarm Level</div>
-                    <div class="font-medium">{station.alarmwl} m</div>
-                  </div>
-                {/if}
-                {#if station.criticalwl}
-                  <div class="rounded border border-red-100 bg-red-50 p-2">
-                    <div class="text-red-700">Critical Level</div>
-                    <div class="font-medium">{station.criticalwl} m</div>
-                  </div>
-                {/if}
-              </div>
-
-              <!-- Detailed data accordion - matching WeatherTab structure -->
-              <details class="border rounded mb-2">
-                <summary class="cursor-pointer px-3 py-2 bg-gray-50 text-sm font-medium">
-                  Detailed Station Data
-                </summary>
-                <div class="p-3">
-                  <!-- Historical readings grid -->
-                  <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
-                    <!-- Historical readings -->
-                    <div class="rounded border bg-white p-2">
-                      <h4 class="mb-1 font-medium text-gray-700">Historical Readings</h4>
-                      <div class="space-y-1">
-                        <div class="flex justify-between">
-                          <span>Current:</span>
-                          <span class="font-medium">{station.wl || 'N/A'} m</span>
-                        </div>
-                        <div class="flex justify-between">
-                          <span>10 min ago:</span>
-                          <span class="font-medium">{station.wl10m || 'N/A'} m</span>
-                        </div>
-                        <div class="flex justify-between">
-                          <span>30 min ago:</span>
-                          <span class="font-medium">{station.wl30m || 'N/A'} m</span>
-                        </div>
-                        <div class="flex justify-between">
-                          <span>1 hour ago:</span>
-                          <span class="font-medium">{station.wl1h || 'N/A'} m</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <!-- Threshold levels -->
-                    <div class="rounded border bg-white p-2">
-                      <h4 class="mb-1 font-medium text-gray-700">Warning Levels</h4>
-                      <div class="space-y-1">
-                        <div class="flex justify-between">
-                          <span>Alert Level:</span>
-                          <span class="font-medium">{station.alertwl || 'Not set'} m</span>
-                        </div>
-                        <div class="flex justify-between">
-                          <span>Alarm Level:</span>
-                          <span class="font-medium">{station.alarmwl || 'Not set'} m</span>
-                        </div>
-                        <div class="flex justify-between">
-                          <span>Critical Level:</span>
-                          <span class="font-medium">{station.criticalwl || 'Not set'} m</span>
-                        </div>
-                        <div class="flex justify-between">
-                          <span>Current Status:</span>
-                          <span class="font-medium" style="color: {status.color === 'green' ? '#16a34a' : status.color === 'yellow' ? '#eab308' : status.color === 'orange' ? '#ea580c' : status.color === 'red' ? '#dc2626' : '#6b7280'};">{status.text}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </details>
             </div>
+            
+            <!-- Warning Levels (if any are set) -->
+            {#if station.alertwl || station.alarmwl || station.criticalwl}
+              <div class="mt-2 rounded bg-gray-50 border border-gray-200 p-2">
+                <div class="mb-1 text-xs font-semibold text-gray-700">Warning Levels</div>
+                <div class="grid grid-cols-3 gap-2 text-xs">
+                  {#if station.alertwl}
+                    <div class="text-center">
+                      <div class="font-medium text-yellow-700">{station.alertwl}m</div>
+                      <div class="text-yellow-600">Alert</div>
+                    </div>
+                  {/if}
+                  {#if station.alarmwl}
+                    <div class="text-center">
+                      <div class="font-medium text-orange-700">{station.alarmwl}m</div>
+                      <div class="text-orange-600">Alarm</div>
+                    </div>
+                  {/if}
+                  {#if station.criticalwl}
+                    <div class="text-center">
+                      <div class="font-medium text-red-700">{station.criticalwl}m</div>
+                      <div class="text-red-600">Critical</div>
+                    </div>
+                  {/if}
+                </div>
+              </div>
+            {/if}
           </div>
-        {/each}
-      </div>
-    {/if}
-  </div>
+
+          <!-- Compact Expand/Collapse Section -->
+          <div class="border-t border-gray-200/50 bg-white/50 p-2">
+            <details class="group">
+              <summary class="flex w-full cursor-pointer items-center justify-center rounded border border-dashed border-blue-300 bg-blue-50/50 px-2 py-1.5 text-xs font-medium text-blue-700 transition-all duration-200 hover:bg-blue-100">
+                <Icon icon="mdi:chart-line" class="mr-1" width="14" />
+                <span class="group-open:hidden">Show Detailed Data</span>
+                <span class="hidden group-open:inline">Hide Detailed Data</span>
+                <Icon icon="mdi:chevron-down" class="ml-1 transition-transform group-open:rotate-180" width="14" />
+              </summary>
+              
+              <!-- Detailed Data Section -->
+              <div class="mt-2 space-y-2 p-2">
+                <!-- Historical Readings -->
+                <div class="rounded border border-blue-200 bg-blue-50 p-2">
+                  <h6 class="mb-2 flex items-center text-xs font-bold text-blue-800">
+                    <Icon icon="mdi:history" class="mr-1" width="12" />
+                    Historical Readings
+                  </h6>
+                  <div class="space-y-1">
+                    <div class="flex items-center justify-between rounded bg-white border border-gray-200 px-2 py-1">
+                      <span class="text-xs text-gray-600">Current Level:</span>
+                      <span class="text-xs font-bold text-gray-800">{station.wl || 'N/A'} m</span>
+                    </div>
+                    <div class="flex items-center justify-between rounded bg-white border border-gray-200 px-2 py-1">
+                      <span class="text-xs text-gray-600">10 minutes ago:</span>
+                      <span class="text-xs font-bold text-gray-800">{station.wl10m || 'N/A'} m</span>
+                    </div>
+                    <div class="flex items-center justify-between rounded bg-white border border-gray-200 px-2 py-1">
+                      <span class="text-xs text-gray-600">30 minutes ago:</span>
+                      <span class="text-xs font-bold text-gray-800">{station.wl30m || 'N/A'} m</span>
+                    </div>
+                    <div class="flex items-center justify-between rounded bg-white border border-gray-200 px-2 py-1">
+                      <span class="text-xs text-gray-600">1 hour ago:</span>
+                      <span class="text-xs font-bold text-gray-800">{station.wl1h || 'N/A'} m</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Warning Thresholds -->
+                <div class="rounded border border-blue-200 bg-blue-50 p-2">
+                  <h6 class="mb-2 flex items-center text-xs font-bold text-blue-800">
+                    <Icon icon="mdi:alert" class="mr-1" width="12" />
+                    Warning Thresholds
+                  </h6>
+                  <div class="space-y-1">
+                    <div class="flex items-center justify-between rounded bg-white border border-gray-200 px-2 py-1">
+                      <span class="text-xs text-gray-600">Alert Level:</span>
+                      <span class="text-xs font-bold text-yellow-700">{station.alertwl || 'Not set'} m</span>
+                    </div>
+                    <div class="flex items-center justify-between rounded bg-white border border-gray-200 px-2 py-1">
+                      <span class="text-xs text-gray-600">Alarm Level:</span>
+                      <span class="text-xs font-bold text-orange-700">{station.alarmwl || 'Not set'} m</span>
+                    </div>
+                    <div class="flex items-center justify-between rounded bg-white border border-gray-200 px-2 py-1">
+                      <span class="text-xs text-gray-600">Critical Level:</span>
+                      <span class="text-xs font-bold text-red-700">{station.criticalwl || 'Not set'} m</span>
+                    </div>
+                    <div class="flex items-center justify-between rounded bg-white border border-gray-200 px-2 py-1">
+                      <span class="text-xs text-gray-600">Current Status:</span>
+                      <span class={`text-xs font-bold ${
+                        status.color === 'green' ? 'text-green-700' :
+                        status.color === 'yellow' ? 'text-yellow-700' :
+                        status.color === 'orange' ? 'text-orange-700' :
+                        status.color === 'red' ? 'text-red-700' :
+                        'text-gray-700'
+                      }`}>{status.text}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </details>
+          </div>
+        </div>
+      {/each}
+    </div>
+  {/if}
 </div>
 
 <style>
-  /* Add custom border width */
-  .border-l-3 {
-    border-left-width: 3px;
-  }
-
-  /* Add styles for filter layout */
-  .filter-group {
-    display: flex;
-    flex-direction: column;
-    min-width: 150px;
-    flex: 1;
-    max-width: 220px;
+  /* Enhanced styles for narrow containers */
+  .text-2xs {
+    font-size: 0.625rem;
+    line-height: 0.875rem;
   }
   
-  /* Prevent filters from becoming too large on wide screens */
-  @media (min-width: 1200px) {
-    .filter-group {
-      max-width: 200px;
-    }
+  /* Smooth transitions */
+  .water-stations-tab button {
+    transition: all 0.2s ease-in-out;
   }
   
-  /* Adjust for very small screens */
-  @media (max-width: 480px) {
-    .filter-group {
-      min-width: 100%;
-      max-width: 100%;
-    }
+  /* Compact hover effects */
+  .water-stations-tab button:hover:not(:disabled) {
+    transform: translateY(-0.5px);
+  }
+  
+  /* Better focus states */
+  .water-stations-tab button:focus-visible {
+    outline: 2px solid #0c3143;
+    outline-offset: 1px;
+  }
+  
+  /* Details/summary styling */
+  details summary {
+    list-style: none;
+  }
+  
+  details summary::-webkit-details-marker {
+    display: none;
+  }
+  
+  /* Compact spacing for narrow layouts */
+  .space-y-3 > :not([hidden]) ~ :not([hidden]) {
+    margin-top: 0.75rem;
+  }
+  
+  .space-y-2 > :not([hidden]) ~ :not([hidden]) {
+    margin-top: 0.5rem;
+  }
+  
+  .space-y-1 > :not([hidden]) ~ :not([hidden]) {
+    margin-top: 0.25rem;
   }
 </style>
