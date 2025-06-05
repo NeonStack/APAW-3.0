@@ -1,0 +1,54 @@
+1. based on the backend model or in our google colab testing...
+in confusion matrix,
+Classification Report:
+              precision    recall  f1-score   support
+
+           0       0.94      0.90      0.92        88
+           1       0.93      0.96      0.94       120
+
+    accuracy                           0.93       208
+   macro avg       0.93      0.93      0.93       208
+weighted avg       0.93      0.93      0.93       208
+
+for regression, we have:
+--- Regressor Evaluation ---
+Mean Absolute Error (MAE): 12.3375 cm
+Mean Squared Error (MSE): 324.7100 cm^2
+Root Mean Squared Error (RMSE): 18.0197 cm
+R-squared (R²): 0.4190
+
+for regression on lstm, we have:
+--- LSTM Regressor Evaluation (on Is_Flooded==1 test data) ---
+Test MAE: 13.7596 cm
+Test Loss (MSE): 340.3425 cm^2
+Test RMSE: 18.3124 cm
+Test R-squared (R²): 0.2807
+
+
+2. we have separate metrics but we primarily used random forest as the dataset is small and we wanted to avoid overfitting. we tried lstm but it was not performing well so we just added it on regression. so random forest for classification and lstm and random forest for regression (how deep the flood is).
+
+3. we already said on number 1
+
+4. we just split our dataset into train and test sets, and we used the train set to train our models. 
+
+5-7. We create this as part of our capstone project. We are group of 4 students from Our Lady of Fatima University, taking up Bachelor of Science in Information Technology. We are currently on our 3rd year which ended yesterday, so we are incoming 4th year now. As per the subject IT CAPSTONE PROJECT 1, we need to build a 80% of the system and continue it on the 4th year. And yes, we are responding to a problem in NCR/Metro Manila, since flooding is common problem in our area. It is very hard to find an online public platform that can help us determine if a certain area is flooded or not, so we created this system to help people in our area. This approach is very different from the existing systems since we are using machine learning to determine if a certain area is flooded or not, and how deep the flood is, and we also implement a flood forecasting that can predict 5 days ahead of time which is not available in other systems. Of course, we are not perfect and we are still learning, so we are open to suggestions and improvements. We are also planning to add more features in the future since this system is not yet complete, but is working and functional now.
+
+8. We captured around 500 flood events in NCR/Metro Manila, but we also populate it with something around 300 non-flooded events to balance the dataset.
+
+9. All cities in NCR/Metro Manila are included, but we are still working on the data collection to make it more comprehensive.
+
+10. News reports, Department of Public Works and Highways (DPWH) reports, and other online sources were used to collect the data. We also used Google Maps to verify the locations of the flood events as well as its latitude and longitude. This is because we tried to request data from different agencies but they are just passing us around, and some of them doesnt have data so they are just passing us to other agencies/departments and we are losing time so we just decided to collect the data ourselves.
+
+11. I do not want to say the name of my members maybe because of privacy concern and website is not done yet, including our research paper which needs to continue in our 4th year, but I can say that we are a group of 4 students from Our Lady of Fatima University, taking up Bachelor of Science in Information Technology. We are currently on our 3rd year which ended yesterday, so we are incoming 4th year now.
+
+12. BSIT - Bachelor of Science in Information Technology
+
+13. We cannot say the name of the advisor, privacy reasons. But we will definitely ask him in the future.
+
+14. They help collect dataset, potential datasources like where can we find weather data, and they also help us in our research paper. 
+
+15. I already said the technical challenge which is finding dataset since it is very hard to find a public dataset because of availability.
+
+16. There are still many algorithms that we can try like XGBoost which seems promising and we can even add more features in our dataset to expand and improve our model.
+
+17. Last week, it was 30-60 seconds but we optimized it to 5-15 seconds now. We are still working on it to make it faster, but we are satisfied with the current performance for now.

@@ -152,3 +152,16 @@
     },...
   ]
 }
+
+//risk levels:
+if pd.isna(probability):
+        return "Unknown"
+    if probability >= threshold_config["Very High"]:
+        return "Very High"
+    if probability >= threshold_config["High"]:
+        return "High"
+    if probability >= threshold_config["Moderate"]:
+        return "Moderate"
+    if probability >= threshold_config["Low"]:
+        return "Low"
+    return "Very Low"

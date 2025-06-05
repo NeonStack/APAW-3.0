@@ -84,12 +84,8 @@
 					<h1
 						class="text-primary mb-2 text-3xl leading-tight font-bold tracking-tight md:mb-3 md:text-5xl lg:text-6xl"
 					>
-						Advanced Predictive Analysis
-					</h1>
-					<h1
-						class="text-primary-light text-3xl leading-tight font-bold tracking-tight md:text-5xl lg:text-6xl"
-					>
-						of Water-Related Flood Risk
+						Advanced Predictive Analysis<br />
+						<span class="text-primary-light">of Water-Related Flood Risk</span>
 					</h1>
 					<!-- Subtle accent line -->
 					<div
@@ -108,13 +104,13 @@
 			<div class="mt-8 flex flex-col items-center justify-center gap-5 sm:flex-row">
 				<a
 					href="/predict"
-					class="bg-primary-light w-48 transform rounded-lg px-8 py-3 text-center font-medium text-white shadow-md transition-all duration-300 hover:-translate-y-1 hover:bg-[#2d8fb3] hover:shadow-lg sm:w-auto sm:min-w-[180px]"
+					class="bg-primary-light w-48 transform rounded-lg px-8 py-3 text-center font-medium text-white shadow-md transition-all duration-300 hover:-translate-y-1 hover:bg-[#2d8fb3] hover:shadow-lg sm:w-48"
 				>
 					View Predictions
 				</a>
 				<a
 					href="/about"
-					class="text-primary w-48 transform rounded-lg border border-gray-300 bg-white px-8 py-3 text-center font-medium shadow-md transition-all duration-300 hover:-translate-y-1 hover:bg-gray-50 hover:shadow-lg sm:w-auto sm:min-w-[180px]"
+					class="text-primary w-48 transform rounded-lg border border-gray-300 bg-white px-8 py-3 text-center font-medium shadow-md transition-all duration-300 hover:-translate-y-1 hover:bg-gray-50 hover:shadow-lg sm:w-48"
 				>
 					Learn More
 				</a>
