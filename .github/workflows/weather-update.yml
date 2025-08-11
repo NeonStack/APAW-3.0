@@ -87,4 +87,4 @@ jobs:
         if: failure()
         run: |
           echo "Weather update job failed at $(date)"
-          # You can add notification logic here (email, Slack, etc.)
+          # You can add notification logic here or email, Slack, etc.
