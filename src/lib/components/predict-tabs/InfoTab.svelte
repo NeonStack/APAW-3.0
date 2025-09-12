@@ -240,58 +240,75 @@
 	function getRiskLevelColor(riskLevel) {
 		switch (riskLevel) {
 			case 'Very High':
-				return 'text-red-800 font-bold';
-			case 'High':
-				return 'text-orange-700 font-bold';
-			case 'Moderate':
-				return 'text-amber-600 font-medium';
-			case 'Low':
-				return 'text-yellow-600 font-medium';
-			case 'Very Low':
-				return 'text-green-600';
-			default:
-				return 'text-gray-600';
-		}
-	}
+                return 'text-red-600 font-bold';
+            case 'High':
+                return 'text-orange-600 font-bold';
+            case 'Moderate':
+                return 'text-yellow-600 font-medium';
+            case 'Low':
+                return 'text-blue-600 font-medium';
+            case 'Very Low':
+                return 'text-green-600';
+            default:
+                return 'text-gray-600';
+        }
+    }
 
-	// Get background color for prediction card based on risk level
-	function getPredictionCardStyle(prediction, riskLevel) {
-		if (prediction === 'FLOODED') return 'bg-red-50 border-red-200';
-		if (prediction === 'LOCATION_ON_WATER') return 'bg-blue-50 border-blue-200';
+    // Get background color for prediction card based on risk level
+    function getPredictionCardStyle(prediction, riskLevel) {
+        if (prediction === 'LOCATION_ON_WATER') return 'bg-blue-50 border-blue-200';
 
-		switch (riskLevel) {
-			case 'Very High':
-				return 'bg-red-100 border-red-300';
-			case 'High':
-				return 'bg-orange-50 border-orange-200';
-			case 'Moderate':
-				return 'bg-amber-50 border-amber-200';
-			case 'Low':
-				return 'bg-yellow-50 border-yellow-200';
-			case 'Very Low':
-				return 'bg-green-50 border-green-200';
-			default:
-				return 'bg-gray-50 border-gray-200';
-		}
-	}
+        switch (riskLevel) {
+            case 'Very High':
+                return 'bg-red-50 border-red-400';
+            case 'High':
+                return 'bg-orange-50 border-orange-400';
+            case 'Moderate':
+                return 'bg-yellow-50 border-yellow-400';
+            case 'Low':
+                return 'bg-blue-50 border-blue-400';
+            case 'Very Low':
+                return 'bg-green-50 border-green-400';
+            default:
+                return 'bg-gray-50 border-gray-200';
+        }
+    }
 
-	// Get risk level badge style
-	function getRiskLevelBadgeStyle(riskLevel) {
-		switch (riskLevel) {
-			case 'Very High':
-				return 'bg-red-200 text-red-900';
-			case 'High':
-				return 'bg-orange-100 text-orange-800';
-			case 'Moderate':
-				return 'bg-amber-100 text-amber-800';
-			case 'Low':
-				return 'bg-yellow-100 text-yellow-800';
-			case 'Very Low':
-				return 'bg-green-100 text-green-800';
-			default:
-				return 'bg-gray-100 text-gray-800';
-		}
-	}
+    // Get risk level badge style
+    function getRiskLevelBadgeStyle(riskLevel) {
+        switch (riskLevel) {
+            case 'Very High':
+                return 'bg-red-100 text-red-800 border border-red-300';
+            case 'High':
+                return 'bg-orange-100 text-orange-800 border border-orange-300';
+            case 'Moderate':
+                return 'bg-yellow-100 text-yellow-800 border border-yellow-300';
+            case 'Low':
+                return 'bg-blue-100 text-blue-800 border border-blue-300';
+            case 'Very Low':
+                return 'bg-green-100 text-green-800 border border-green-300';
+            default:
+                return 'bg-gray-100 text-gray-800 border border-gray-300';
+        }
+    }
+
+    // Get color based on flood probability
+    function getFloodProbabilityColor(prediction, riskLevel) {
+        switch (riskLevel) {
+            case 'Very High':
+                return 'text-red-600 font-bold';
+            case 'High':
+                return 'text-orange-600 font-bold';
+            case 'Moderate':
+                return 'text-yellow-600 font-medium';
+            case 'Low':
+                return 'text-blue-600 font-medium';
+            case 'Very Low':
+                return 'text-green-600';
+            default:
+                return 'text-gray-600';
+        }
+    }
 
 	// Get icon for prediction
 	function getPredictionIcon(prediction, riskLevel) {
@@ -311,24 +328,6 @@
 				return 'mdi:check-circle';
 			default:
 				return 'mdi:check-circle';
-		}
-	}
-
-	// Get color based on flood probability
-	function getFloodProbabilityColor(prediction, riskLevel) {
-		switch (riskLevel) {
-			case 'Very High':
-				return 'text-red-800 font-bold';
-			case 'High':
-				return 'text-orange-700 font-bold';
-			case 'Moderate':
-				return 'text-amber-600 font-medium';
-			case 'Low':
-				return 'text-yellow-600 font-medium';
-			case 'Very Low':
-				return 'text-green-600';
-			default:
-				return 'text-gray-600';
 		}
 	}
 
