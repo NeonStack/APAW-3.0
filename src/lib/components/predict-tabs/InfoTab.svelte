@@ -784,9 +784,9 @@
 								<!-- Improved Risk Level & Probability Row -->
 								<div class="mb-2 flex flex-col space-y-2">
 									<!-- Risk Level Badge -->
-									<div class="flex items-center justify-between">
+									<div class="flex flex-col md:flex-row items-center justify-between gap-1">
 										<p
-											class={`flex items-center gap-3 rounded-full px-2 py-0.5 text-sm font-semibold ${getRiskLevelBadgeStyle(day.flood_risk_level)}`}
+											class={`flex items-center gap-3 rounded-full px-2 py-0.5 text-xs lg:textsm font-semibold ${getRiskLevelBadgeStyle(day.flood_risk_level)}`}
 										>
 											<Icon
 												icon={getPredictionIcon(day.is_flooded_prediction_rf, day.flood_risk_level)}
@@ -796,7 +796,7 @@
 											{day.flood_risk_level} Flood Probability
 										</p>
 										<p
-											class={`font-mono font-bold ${getFloodProbabilityColor(day.is_flooded_prediction_rf, day.flood_risk_level)}`}
+											class={`font-bold text-sm ${getFloodProbabilityColor(day.is_flooded_prediction_rf, day.flood_risk_level)}`}
 										>
 											{formatRawProbability(day.is_flooded_probability_rf)} chance
 										</p>
