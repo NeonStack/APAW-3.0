@@ -129,7 +129,7 @@ export async function POST({ request, url }) {
 	// Check for API key first (for automated requests)
 	const authHeader = request.headers.get('authorization');
 	const providedApiKey = authHeader?.replace('Bearer ', '');
-	
+
 	// If API key is provided, validate it
 	if (providedApiKey) {
 		if (!updateApiKey || providedApiKey !== updateApiKey) {
@@ -141,10 +141,12 @@ export async function POST({ request, url }) {
 		// Fallback to referer check for manual requests from the website
 		const referer = request.headers.get('referer');
 		const host = request.headers.get('host');
-		
+
 		// Only allow requests from our own website if no API key
 		if (!referer || !referer.includes(host)) {
-			console.warn('Potential unauthorized Weather API update attempt - no API key and invalid referer');
+			console.warn(
+				'Potential unauthorized Weather API update attempt - no API key and invalid referer'
+			);
 			return json({ error: 'Unauthorized access' }, { status: 403 });
 		}
 		console.log('Valid referer provided - allowing manual update from website');
@@ -222,8 +224,13 @@ export async function POST({ request, url }) {
 				console.log(`--- Processing ${city.name} (ID: ${city.id}) ---`);
 
 				// 1. Fetch AccuWeather Data
-				const accuWeatherUrl = `http://dataservice.accuweather.com/forecasts/v1/daily/5day/${city.id}?apikey=${accuWeatherApiKey}&language=en-us&details=true&metric=true`;
-				const weatherResponse = await fetch(accuWeatherUrl);
+				const accuWeatherUrl = `https://dataservice.accuweather.com/forecasts/v1/daily/5day/${city.id}?language=en-us&details=true&metric=true`;
+				const weatherResponse = await fetch(accuWeatherUrl, {
+					method: 'GET',
+					headers: {
+						Authorization: `Bearer ${accuWeatherApiKey}`
+					}
+				});
 				if (!weatherResponse.ok) {
 					throw new Error(
 						`AccuWeather API error: ${weatherResponse.status} ${weatherResponse.statusText}`
@@ -393,28 +400,37 @@ export async function POST({ request, url }) {
 									(get(forecast, 'Night.WetBulbTemperature.Average.Value', 0) ?? 0)) /
 								2,
 
-								// WBGT data
-							min_wbgt_c: Math.min(
-								get(forecast, 'Day.WetBulbGlobeTemperature.Minimum.Value', 999) ?? 999,
-								get(forecast, 'Night.WetBulbGlobeTemperature.Minimum.Value', 999) ?? 999
-							) === 999 ? null : Math.min(
-								get(forecast, 'Day.WetBulbGlobeTemperature.Minimum.Value', 999) ?? 999,
-								get(forecast, 'Night.WetBulbGlobeTemperature.Minimum.Value', 999) ?? 999
-							),
-							max_wbgt_c: Math.max(
-								get(forecast, 'Day.WetBulbGlobeTemperature.Maximum.Value', -999) ?? -999,
-								get(forecast, 'Night.WetBulbGlobeTemperature.Maximum.Value', -999) ?? -999
-							) === -999 ? null : Math.max(
-								get(forecast, 'Day.WetBulbGlobeTemperature.Maximum.Value', -999) ?? -999,
-								get(forecast, 'Night.WetBulbGlobeTemperature.Maximum.Value', -999) ?? -999
-							),
+							// WBGT data
+							min_wbgt_c:
+								Math.min(
+									get(forecast, 'Day.WetBulbGlobeTemperature.Minimum.Value', 999) ?? 999,
+									get(forecast, 'Night.WetBulbGlobeTemperature.Minimum.Value', 999) ?? 999
+								) === 999
+									? null
+									: Math.min(
+											get(forecast, 'Day.WetBulbGlobeTemperature.Minimum.Value', 999) ?? 999,
+											get(forecast, 'Night.WetBulbGlobeTemperature.Minimum.Value', 999) ?? 999
+										),
+							max_wbgt_c:
+								Math.max(
+									get(forecast, 'Day.WetBulbGlobeTemperature.Maximum.Value', -999) ?? -999,
+									get(forecast, 'Night.WetBulbGlobeTemperature.Maximum.Value', -999) ?? -999
+								) === -999
+									? null
+									: Math.max(
+											get(forecast, 'Day.WetBulbGlobeTemperature.Maximum.Value', -999) ?? -999,
+											get(forecast, 'Night.WetBulbGlobeTemperature.Maximum.Value', -999) ?? -999
+										),
 							avg_wbgt_c:
-								(get(forecast, 'Day.WetBulbGlobeTemperature.Average.Value') === null && 
-								 get(forecast, 'Night.WetBulbGlobeTemperature.Average.Value') === null) ? null :
-								((get(forecast, 'Day.WetBulbGlobeTemperature.Average.Value', 0) ?? 0) +
-									(get(forecast, 'Night.WetBulbGlobeTemperature.Average.Value', 0) ?? 0)) /
-								(((get(forecast, 'Day.WetBulbGlobeTemperature.Average.Value') !== null) ? 1 : 0) + 
-								 ((get(forecast, 'Night.WetBulbGlobeTemperature.Average.Value') !== null) ? 1 : 0) || 1),
+								get(forecast, 'Day.WetBulbGlobeTemperature.Average.Value') === null &&
+								get(forecast, 'Night.WetBulbGlobeTemperature.Average.Value') === null
+									? null
+									: ((get(forecast, 'Day.WetBulbGlobeTemperature.Average.Value', 0) ?? 0) +
+											(get(forecast, 'Night.WetBulbGlobeTemperature.Average.Value', 0) ?? 0)) /
+										((get(forecast, 'Day.WetBulbGlobeTemperature.Average.Value') !== null ? 1 : 0) +
+											(get(forecast, 'Night.WetBulbGlobeTemperature.Average.Value') !== null
+												? 1
+												: 0) || 1),
 
 							// Day weather condition data
 							day_icon: get(forecast, 'Day.Icon'),
@@ -433,14 +449,16 @@ export async function POST({ request, url }) {
 							night_has_precipitation: get(forecast, 'Night.HasPrecipitation'),
 
 							// Headline data from AccuWeather
-							headline_effective_date: get(weatherData, 'Headline.EffectiveDate') ? 
-								moment(get(weatherData, 'Headline.EffectiveDate')).toISOString() : null,
-							headline_end_date: get(weatherData, 'Headline.EndDate') ? 
-								moment(get(weatherData, 'Headline.EndDate')).toISOString() : null,
+							headline_effective_date: get(weatherData, 'Headline.EffectiveDate')
+								? moment(get(weatherData, 'Headline.EffectiveDate')).toISOString()
+								: null,
+							headline_end_date: get(weatherData, 'Headline.EndDate')
+								? moment(get(weatherData, 'Headline.EndDate')).toISOString()
+								: null,
 							headline_severity: get(weatherData, 'Headline.Severity'),
 							headline_text: get(weatherData, 'Headline.Text'),
 							headline_category: get(weatherData, 'Headline.Category'),
-							
+
 							// Additional fields
 							hours_of_sun: get(forecast, 'HoursOfSun'),
 							link: get(forecast, 'Link'),
