@@ -405,12 +405,12 @@
 		<div class="rounded-md bg-gradient-to-br from-[#0c3143] to-[#1a4a5a] p-1.5">
 			<Icon icon="mdi:weather-partly-cloudy" class="text-white" width="18" />
 		</div>
-		<h2 class="text-lg font-bold text-[#0c3143]">Metro Manila Weather</h2>
+		<h2 class="text-xs xl:text-lg font-bold text-[#0c3143]">Metro Manila Weather</h2>
 		
 		<!-- Action buttons aligned to the right -->
 		<div class="ml-auto flex gap-2">
 			<button
-				class="flex items-center gap-1 rounded bg-gray-100 px-2 py-1 text-xs text-gray-600 transition-colors hover:bg-gray-200 hover:text-gray-900"
+				class="flex items-center gap-1 rounded bg-gray-100 px-2 py-1 text-xs text-gray-600 transition-colors hover:bg-gray-200 hover:text-gray-900 cursor-pointer"
 				on:click={fetchWeatherData}
 				disabled={weatherDataValue.loading}
 			>
@@ -419,7 +419,7 @@
 			</button>
 			
 			<button
-				class="flex items-center gap-1 rounded bg-gray-100 px-2 py-1 text-xs text-gray-600 transition-colors hover:bg-gray-200 hover:text-gray-900"
+				class="flex items-center gap-1 rounded bg-gray-100 px-2 py-1 text-xs text-gray-600 transition-colors hover:bg-gray-200 hover:text-gray-900 cursor-pointer"
 				on:click={() => showFilters = !showFilters}
 			>
 				<Icon icon={showFilters ? "mdi:filter-off" : "mdi:filter"} width="12" />
@@ -443,7 +443,7 @@
 					<!-- Date Filter -->
 					<div>
 						<label class="block text-xs font-medium text-gray-600 mb-1">Select Date</label>
-						<select bind:value={selectedDate} class="w-full rounded border border-gray-300 bg-white px-2 py-1.5 text-xs focus:border-blue-500 focus:outline-none">
+						<select bind:value={selectedDate} class="w-full rounded border border-gray-300 bg-white px-2 py-1.5 text-xs focus:border-blue-500 focus:outline-none cursor-pointer">
 							{#each availableDates as date}
 								<option value={date}>{formatDateWithLabel(date)}</option>
 							{/each}
@@ -453,7 +453,7 @@
 					<!-- District Filter -->
 					<div>
 						<label class="block text-xs font-medium text-gray-600 mb-1">Filter by District</label>
-						<select bind:value={selectedDistrict} class="w-full rounded border border-gray-300 bg-white px-2 py-1.5 text-xs focus:border-blue-500 focus:outline-none">
+						<select bind:value={selectedDistrict} class="w-full rounded border border-gray-300 bg-white px-2 py-1.5 text-xs focus:border-blue-500 focus:outline-none cursor-pointer">
 							{#each districts as district}
 								<option value={district}>{district === 'all' ? 'All Districts' : district}</option>
 							{/each}
@@ -463,7 +463,7 @@
 					<!-- Sort Options -->
 					<div>
 						<label class="block text-xs font-medium text-gray-600 mb-1">Sort by</label>
-						<select bind:value={sortOption} class="w-full rounded border border-gray-300 bg-white px-2 py-1.5 text-xs focus:border-blue-500 focus:outline-none">
+						<select bind:value={sortOption} class="w-full rounded border border-gray-300 bg-white px-2 py-1.5 text-xs focus:border-blue-500 focus:outline-none cursor-pointer">
 							<optgroup label="Name">
 								{#each sortOptions.filter(o => o.value.includes('name')) as option}
 									<option value={option.value}>{option.label}</option>
@@ -613,11 +613,11 @@
 								<div class="flex items-center justify-between mb-2">
 									<div class="flex items-center">
 										<div class="mr-3 flex h-16 w-16 items-center justify-center text-blue-500">
-											<Icon icon={getWeatherIcon(forecast.day_icon)} width="48" />
+											<Icon icon={getWeatherIcon(forecast.day_icon)} width="35" />
 										</div>
 										<div>
 											<div class="flex items-baseline">
-												<span class="text-2xl font-bold text-gray-800">{Math.round(forecast.max_temp_c)}°C</span>
+												<span class="text-sm font-bold text-gray-800">{Math.round(forecast.max_temp_c)}°C</span>
 												<span class="ml-1 text-sm text-gray-500">/ {Math.round(forecast.min_temp_c)}°C</span>
 											</div>
 											<div class="text-sm font-medium text-gray-700">{forecast.day_icon_phrase}</div>

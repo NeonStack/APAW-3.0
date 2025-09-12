@@ -54,16 +54,14 @@
   </div>
 
   <div class="px-3 pt-3 pb-1">
-    <div class="flex flex-wrap gap-1 bg-gray-100 p-1 rounded-lg">
-      
+    <div class="flex nowrap gap-1 bg-gray-100 p-1 rounded-lg">
       {#each tabs as tab}
         <button
-          class="py-1.5 px-3 text-sm font-medium rounded-md flex items-center justify-center cursor-pointer transition-all duration-200 ease-out flex-grow min-w-[120px] 
-                 {activeTab === tab.id ? 'bg-white text-[#0c3143] shadow-sm' : 'text-gray-600 hover:text-gray-800 hover:bg-gray-200'}"
+          class="py-1.5 px-3 text-sm font-medium rounded-md flex items-center justify-center gap-1.5 cursor-pointer transition-all duration-200 ease-out flex-grow {activeTab === tab.id ? 'bg-white text-[#0c3143] shadow-sm' : 'text-gray-600 hover:text-gray-800 hover:bg-gray-200'}"
           on:click={() => setActiveTab(tab.id)}
         >
-          <Icon icon={tab.icon} class="mr-1.5" width="16" />
-          <span class="truncate">{tab.name}</span>
+          <Icon icon={tab.icon} width="16" />
+            <span class="hidden xl:inline truncate">{tab.name}</span>
         </button>
       {/each}
     </div>

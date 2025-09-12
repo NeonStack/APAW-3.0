@@ -859,7 +859,7 @@
 							<div class="border-t border-gray-200/50 bg-white/50 p-2">
 								<button
 									on:click={() => toggleExpand(day.date)}
-									class="flex w-full items-center justify-center rounded border border-dashed border-blue-300 bg-blue-50/50 px-2 py-1.5 text-xs font-medium text-blue-700 transition-all duration-200 hover:bg-blue-100 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+									class="flex w-full items-center justify-center rounded border border-dashed border-blue-300 bg-blue-50/50 px-2 py-1.5 text-xs font-medium text-blue-700 transition-all duration-200 hover:bg-blue-100 focus:ring-1 focus:ring-blue-500 focus:outline-none cursor-pointer"
 								>
 									<Icon
 										icon={expandedPredictions[day.date] ? 'mdi:chevron-up' : 'mdi:chevron-down'}
@@ -1428,7 +1428,7 @@
 						<div class="rounded border border-gray-300 bg-white">
 							<button
 								on:click={() => toggleFacilityDetails(facility.id)}
-								class="flex w-full items-center p-2 transition-colors duration-150 hover:bg-gray-50"
+								class="flex w-full items-center p-2 transition-colors duration-150 hover:bg-gray-50 cursor-pointer"
 							>
 								<Icon
 									icon={facility.icon || 'mdi:map-marker'}

@@ -163,12 +163,12 @@
     <div class="rounded-md bg-gradient-to-br from-[#0c3143] to-[#1a4a5a] p-1.5">
       <Icon icon="mdi:water" class="text-white" width="18" />
     </div>
-    <h2 class="text-lg font-bold text-[#0c3143]">Water Level Stations</h2>
+    <h2 class="text-xs xl:text-lg font-bold text-[#0c3143]">Water Level Stations</h2>
     
     <!-- Action buttons aligned to the right -->
     <div class="ml-auto flex gap-2">
       <button 
-        class="flex items-center gap-1 rounded bg-gray-100 px-2 py-1 text-xs text-gray-600 transition-colors hover:bg-gray-200 hover:text-gray-900"
+        class="flex items-center gap-1 rounded bg-gray-100 px-2 py-1 text-xs text-gray-600 transition-colors hover:bg-gray-200 hover:text-gray-900 cursor-pointer"
         on:click={refreshWaterStations}
       >
         <Icon icon="mdi:refresh" width="12" />
@@ -176,7 +176,7 @@
       </button>
       
       <button 
-        class="flex items-center gap-1 rounded bg-gray-100 px-2 py-1 text-xs text-gray-600 transition-colors hover:bg-gray-200 hover:text-gray-900"
+        class="flex items-center gap-1 rounded bg-gray-100 px-2 py-1 text-xs text-gray-600 transition-colors hover:bg-gray-200 hover:text-gray-900 cursor-pointer"
         on:click={() => showFilters = !showFilters}
       >
         <Icon icon={showFilters ? "mdi:filter-off" : "mdi:filter"} width="12" />
@@ -200,7 +200,7 @@
           <!-- Status Filter -->
           <div>
             <label class="block text-xs font-medium text-gray-600 mb-1">Filter by Status</label>
-            <select bind:value={statusFilter} class="w-full rounded border border-gray-300 bg-white px-2 py-1.5 text-xs focus:border-blue-500 focus:outline-none">
+            <select bind:value={statusFilter} class="w-full rounded border border-gray-300 bg-white px-2 py-1.5 text-xs focus:border-blue-500 focus:outline-none cursor-pointer">
               {#each statusOptions as option}
                 <option value={option.value}>{option.label}</option>
               {/each}
@@ -210,7 +210,7 @@
           <!-- Sort Options -->
           <div>
             <label class="block text-xs font-medium text-gray-600 mb-1">Sort by</label>
-            <select bind:value={sortOption} class="w-full rounded border border-gray-300 bg-white px-2 py-1.5 text-xs focus:border-blue-500 focus:outline-none">
+            <select bind:value={sortOption} class="w-full rounded border border-gray-300 bg-white px-2 py-1.5 text-xs focus:border-blue-500 focus:outline-none cursor-pointer">
               <optgroup label="Name">
                 {#each sortOptions.filter(o => o.value.includes('name')) as option}
                   <option value={option.value}>{option.label}</option>
