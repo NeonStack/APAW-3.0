@@ -636,7 +636,7 @@
 			<button
 				on:click={predictFlood}
 				disabled={isPredicting || !$selectedLocation.lat || locationLoadingState}
-				class={`flex w-full items-center justify-center rounded-md bg-[#0c3143] px-3 py-2 text-sm font-medium text-white shadow transition-all duration-200 hover:bg-[#1a4a5a] focus:ring-2 focus:ring-[#0c3143]/20 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50`}
+				class={`flex w-full items-center justify-center rounded-md bg-[#0c3143] px-3 py-2 text-sm font-medium text-white shadow transition-all duration-200 hover:bg-[#1a4a5a] focus:ring-2 focus:ring-[#0c3143]/20 focus:outline-none cursor-pointer disabled:cursor-not-allowed disabled:opacity-50`}
 			>
 				{#if isPredicting}
 					<Icon icon="eos-icons:loading" class="mr-1.5 animate-spin" width="14" />
