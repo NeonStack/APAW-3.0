@@ -61,9 +61,6 @@
 	let loadedGeojsonData = {};
 	let activeLeafletLayers = {};
 
-	// Remove local state variable and use the store instead
-	// let isFacilitiesLayerActive = false;
-
 	async function handleLocateUser() {
 		if (isSelectingLocation) {
 			console.log('Location selection already in progress, ignoring locate request');
@@ -71,7 +68,7 @@
 		}
 		
 		try {
-			isSelectingLocation = true; // Set flag before starting
+			isSelectingLocation = true;
 			dispatch('locationSelectionStart', { message: 'Getting your location...' });
 			const position = await getCurrentPosition();
 			const locationName = await getLocationName(position.lat, position.lng);
@@ -82,7 +79,7 @@
 			setLocationLoading(false);
 			dispatch('locationSelectionComplete', { error: error.message });
 		} finally {
-			isSelectingLocation = false; // Always reset flag when done
+			isSelectingLocation = false;
 		}
 	}
 
@@ -103,11 +100,9 @@
 
 		console.log('Updating nearby facilities with center:', centerLat, centerLng);
 
-		// Check if facilities layer is active
 		if (isFacilitiesLayerActive) {
 			const layerGroup = facilityLayers[facilitiesConfig.id];
 			
-			// Make sure layer is on the map if active
 			if (layerGroup && !map.hasLayer(layerGroup)) {
 				map.addLayer(layerGroup);
 			}
@@ -121,44 +116,39 @@
 					L, 
 					facilityLayers, 
 					loadedGeojsonData
-					);
-					
-					// Update the nearest facilities list as well
-					updateNearestFacilitiesList(map, nearestFacilities, loadedGeojsonData);
-				} else if (layerGroup) {
-					// Try to load the data if not available
-					handleLayerToggle(
-						facilitiesConfig,
-						true,
-						false,
-						map,
-						L,
-						facilityLayers,
-						loadedGeojsonData,
-						activeLeafletLayers,
-						layerControl
-					);
-				}
-			} else {
-				// Clear facilities if layer is not active
-				if (facilityLayers[facilitiesConfig.id]) {
-					facilityLayers[facilitiesConfig.id].clearLayers();
-				}
-				nearestFacilities.set([]);
+				);
+				
+				updateNearestFacilitiesList(map, nearestFacilities, loadedGeojsonData);
+			} else if (layerGroup) {
+				handleLayerToggle(
+					facilitiesConfig,
+					true,
+					false,
+					map,
+					L,
+					facilityLayers,
+					loadedGeojsonData,
+					activeLeafletLayers,
+					layerControl
+				);
 			}
+		} else {
+			if (facilityLayers[facilitiesConfig.id]) {
+				facilityLayers[facilitiesConfig.id].clearLayers();
+			}
+			nearestFacilities.set([]);
 		}
+	}
 
 	function handleSearchLocation(event) {
-		// Also prevent search location if already selecting
 		if (isSelectingLocation) {
 			console.log('Location selection already in progress, ignoring search');
 			return;
 		}
 		
 		const { lat, lng, name } = event.detail;
-		isSelectingLocation = true; // Set flag before starting
+		isSelectingLocation = true;
 		
-		// Show immediate loading marker for search results too
 		if (marker && map) {
 			try {
 				map.removeLayer(marker);
@@ -168,7 +158,6 @@
 			}
 		}
 		
-		// Create loading indicator marker
 		const loadingIcon = L.divIcon({
 			html: `<div class="loading-marker-wrapper">
 				<div class="loading-marker-inner"></div>
@@ -178,7 +167,6 @@
 			iconAnchor: [20, 20]
 		});
 		
-		// Add temporary marker
 		const tempMarker = L.marker([lat, lng], { icon: loadingIcon }).addTo(map);
 		map.panTo([lat, lng]);
 		
@@ -187,9 +175,8 @@
 				if (newMarker) marker = newMarker;
 			})
 			.finally(() => {
-				isSelectingLocation = false; // Always reset flag when done
+				isSelectingLocation = false;
 				
-				// Clean up temp marker if still exists
 				if (tempMarker && map.hasLayer(tempMarker)) {
 					map.removeLayer(tempMarker);
 				}
@@ -197,7 +184,6 @@
 	}
 
 	function createRecenterControl() {
-		// Create a custom control for re-centering on marker
 		const RecenterControl = L.Control.extend({
 			options: {
 				position: 'bottomleft'
@@ -206,7 +192,6 @@
 			onAdd: function() {
 				const container = L.DomUtil.create('div', 'leaflet-bar leaflet-control leaflet-control-recenter');
 				
-	
 				container.innerHTML = `
 					<a href="#" title="Re-center map on selected location" class="recenter-button">
 						<div class="icon-container">
@@ -215,9 +200,7 @@
 					</a>
 				`;
 				
-				// Prevent clicks from propagating to the map
 				L.DomEvent.disableClickPropagation(container);
-				// Also disable scroll propagation for good measure
 				L.DomEvent.disableScrollPropagation(container);
 				
 				L.DomEvent.on(container, 'click', function(e) {
@@ -235,27 +218,22 @@
 		return new RecenterControl();
 	}
 
-	// Function to focus on a water station by finding its marker and opening the popup
 	function focusOnWaterStation(station) {
 		if (!map || !waterStationMarkers.length || !station || !station.lat || !station.lon) return;
 		
-		// Find the marker for this station
 		const stationMarker = waterStationMarkers.find(marker => {
 			const markerLatLng = marker.getLatLng();
 			const stationLat = parseFloat(station.lat);
 			const stationLon = parseFloat(station.lon);
 			
-			// Compare with small tolerance for floating point errors
 			return Math.abs(markerLatLng.lat - stationLat) < 0.0001 && 
 				Math.abs(markerLatLng.lng - stationLon) < 0.0001;
 		});
 		
 		if (stationMarker) {
-			// Pan to the marker and open its popup
 			map.panTo(stationMarker.getLatLng());
 			stationMarker.openPopup();
 			
-			// Add brief highlighting animation
 			const icon = stationMarker.getElement();
 			if (icon) {
 				icon.classList.add('highlight-station');
@@ -299,43 +277,44 @@
 		const standard = L.tileLayer(baseMaps.standard, {
 			attribution: '© OpenStreetMap contributors',
 			maxZoom: 19
-		});
+		}).addTo(map);
+
 		const topographic = L.tileLayer(baseMaps.topographic, {
 			attribution: 'Map data © OpenTopoMap contributors',
 			maxZoom: 19
 		});
+
 		const satellite = L.tileLayer(baseMaps.satellite, {
 			attribution: 'Imagery © Esri',
 			maxZoom: 19
 		});
+
 		const osmHot = L.tileLayer(baseMaps.osmHot, {
 			attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, Tiles style by <a href="https://www.hotosm.org/" target="_blank">Humanitarian OpenStreetMap Team</a> hosted by <a href="https://openstreetmap.fr/" target="_blank">OpenStreetMap France</a>',
 			maxZoom: 19
 		});
+
 		const positron = L.tileLayer(baseMaps.positron, {
-			attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO',
+			attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
 			subdomains: 'abcd',
 			maxZoom: 20
 		});
+
 		const darkMatter = L.tileLayer(baseMaps.darkMatter, {
-			attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO',
+			attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
 			subdomains: 'abcd',
 			maxZoom: 20
 		});
+
 		const esriStreet = L.tileLayer(baseMaps.esriStreet, {
 			attribution: 'Tiles &copy; Esri',
 			maxZoom: 19
 		});
-		
-			// Only keep Esri Topo which works well
+
 		const esriTopo = L.tileLayer(baseMaps.esriTopo, {
 			attribution: mapAttributions.esriTopo,
 			maxZoom: 19
 		});
-		
-		// Removed: stamenTerrain, thunderforestOutdoors, thunderforestLandscape, esriTerrain
-
-		standard.addTo(map);
 
 		const baseLayers = {
 			'Standard': standard,
@@ -345,16 +324,13 @@
 			'Positron (Light)': positron,
 			'Dark Matter': darkMatter,
 			'Esri Street': esriStreet,
-				// Only keep the working 3D-like option
 			'Topographic (Esri)': esriTopo
-			// Removed: 'Terrain (Stamen)', 'Outdoors', 'Landscape', 'Terrain (Esri)'
 		};
 
 		layerControl = setupLayerControl(L, map, baseLayers, facilityLayers, floodHazardLayers);
 
 		L.control.zoom({ position: 'bottomleft' }).addTo(map);
 		
-		// Add the custom re-center control after the zoom control
 		if (L) {
 			createRecenterControl().addTo(map);
 		}
@@ -374,7 +350,6 @@
 		}
 
 		map.on('click', async (e) => {
-			// Prevent multiple clicks while fetching data
 			if (isSelectingLocation) {
 				console.log('Location selection already in progress, ignoring click');
 				return;
@@ -383,9 +358,8 @@
 			const { lat, lng } = e.latlng;
 
 			if (strictNcrBounds && strictNcrBounds.contains(e.latlng)) {
-				isSelectingLocation = true; // Set flag before starting
+				isSelectingLocation = true;
 				
-				// Immediately add a temporary marker with loading effect
 				if (marker && map) {
 					try {
 						map.removeLayer(marker);
@@ -395,7 +369,6 @@
 					}
 				}
 				
-				// Create a loading indicator marker
 				const loadingIcon = L.divIcon({
 					html: `<div class="loading-marker-wrapper">
 						<div class="loading-marker-inner"></div>
@@ -405,17 +378,14 @@
 					iconAnchor: [20, 20]
 				});
 				
-				// Add temporary marker immediately
 				const tempMarker = L.marker([lat, lng], { icon: loadingIcon }).addTo(map);
 				map.panTo([lat, lng]);
 				
 				try {
-					// Get final marker from location setting function, which replaces the temp marker
 					marker = await setSelectedLocation(lat, lng, null, map, L, marker, dispatch, tempMarker);
 				} finally {
-					isSelectingLocation = false; // Always reset flag when done
+					isSelectingLocation = false;
 					
-					// If temporary marker still exists for some reason, remove it
 					if (tempMarker && map.hasLayer(tempMarker)) {
 						map.removeLayer(tempMarker);
 					}
@@ -429,23 +399,46 @@
 			const addedLayerName = e.name;
 			const layerConfig = allLayerConfigs.find(
 				(lc) => addedLayerName && addedLayerName.includes(lc.name)
-				);
+			);
+			
+			if (layerConfig && layerConfig.id === facilitiesConfig.id) {
+				console.log('Facilities layer activated');
+				facilitiesLayerActive.set(true);
 				
-				// Track when facilities layer is checked
-				if (layerConfig && layerConfig.id === facilitiesConfig.id) {
-					console.log('Facilities layer activated');
-					facilitiesLayerActive.set(true); // Update the store instead of local variable
-					
-					// Force update the display immediately if a location is selected
-					if ($selectedLocation && $selectedLocation.lat !== null) {
-						setTimeout(() => updateDisplayedFacilities(), 100);
-					}
+				if ($selectedLocation && $selectedLocation.lat !== null) {
+					setTimeout(() => updateDisplayedFacilities(), 100);
 				}
-				
+			}
+			
+			handleLayerToggle(
+				layerConfig, 
+				true, 
+				!isInitialLayerSetup, 
+				map, 
+				L, 
+				facilityLayers, 
+				loadedGeojsonData, 
+				activeLeafletLayers, 
+				layerControl
+			);
+		});
+		
+		map.on('overlayremove', function (e) {
+			const removedLayerName = e.name;
+			const layerConfig = allLayerConfigs.find(
+				(lc) => removedLayerName && removedLayerName.includes(lc.name)
+			);
+			
+			if (layerConfig && layerConfig.id === facilitiesConfig.id) {
+				facilitiesLayerActive.set(false);
+				nearestFacilities.set([]);
+			}
+			
+			if (layerConfig) {
 				handleLayerToggle(
 					layerConfig, 
-					true, 
-					!isInitialLayerSetup, 
+					false, 
+					false, 
 					map, 
 					L, 
 					facilityLayers, 
@@ -453,47 +446,15 @@
 					activeLeafletLayers, 
 					layerControl
 				);
-			});
-			
-			map.on('overlayremove', function (e) {
-				const removedLayerName = e.name;
-				const layerConfig = allLayerConfigs.find(
-					(lc) => removedLayerName && removedLayerName.includes(lc.name)
-					);
-					
-					// Track when facilities layer is unchecked
-					if (layerConfig && layerConfig.id === facilitiesConfig.id) {
-						facilitiesLayerActive.set(false); // Update the store instead of local variable
-						// Clear facilities in sidebar when layer is turned off
-						nearestFacilities.set([]);
-					}
-					
-					if (layerConfig) {
-						handleLayerToggle(
-							layerConfig, 
-							false, 
-							false, 
-							map, 
-							L, 
-							facilityLayers, 
-							loadedGeojsonData, 
-							activeLeafletLayers, 
-							layerControl
-						);
-					}
-				});
-				
-				// Add and initialize facilities layer but don't check it by default
-				facilityLayers[facilitiesConfig.id] = L.layerGroup();
-				
-				// Only pre-load the data but don't add the layer to the map by default
-				loadAndProcessGeoJson(facilitiesConfig, loadedGeojsonData, true)
-				.catch(err => console.warn(`Failed to pre-load ${facilitiesConfig.name}:`, err));
-				
-				// Don't automatically add the facilities layer to the map
-				// map.addLayer(facilityLayers[facilitiesConfig.id]);  <- Remove this line
-				
-				isInitialLayerSetup = false;
+			}
+		});
+		
+		facilityLayers[facilitiesConfig.id] = L.layerGroup();
+		
+		loadAndProcessGeoJson(facilitiesConfig, loadedGeojsonData, true)
+			.catch(err => console.warn(`Failed to pre-load ${facilitiesConfig.name}:`, err));
+		
+		isInitialLayerSetup = false;
 
 		waterStationSubscription = waterStations.subscribe((value) => {
 			if (!map || !L) return;
@@ -532,11 +493,9 @@
 			}
 		});
 
-		// Subscribe to focused water station changes
 		focusedWaterStationSubscription = focusedWaterStation.subscribe(station => {
 			if (station) {
 				focusOnWaterStation(station);
-				// Reset after focusing to allow reselecting the same station
 				setTimeout(() => focusedWaterStation.set(null), 100);
 			}
 		});
@@ -545,39 +504,6 @@
 		if (!currentStations.loading && currentStations.data && currentStations.data.length > 0) {
 			waterStations.set(currentStations);
 		}
-
-		return () => {
-			if (map) {
-				map.off('click');
-				map.off('overlayadd');
-				map.off('overlayremove');
-			}
-			if (waterStationSubscription) {
-				waterStationSubscription();
-			}
-			if (focusedWaterStationSubscription) {
-				focusedWaterStationSubscription();
-			}
-			waterStationMarkers.forEach((m) => {
-				try {
-					if (map) map.removeLayer(m);
-				} catch (e) {}
-			});
-			if (marker) {
-				try {
-					if (map) map.removeLayer(marker);
-				} catch (e) {}
-			}
-			Object.values(facilityLayers).forEach((layer) => {
-				try {
-					if (map) map.removeLayer(layer);
-				} catch (e) {}
-			});
-			if (map) {
-				map.remove();
-				map = null;
-			}
-		};
 	});
 
 	$: if (
@@ -613,6 +539,11 @@
 						map.removeLayer(marker);
 					} catch (e) {}
 				}
+				Object.values(facilityLayers).forEach((layer) => {
+					try {
+						map.removeLayer(layer);
+					} catch (e) {}
+				});
 				map.remove();
 			} catch (e) {
 				console.warn('Error during map cleanup:', e);
@@ -655,8 +586,8 @@
 			max-width: 100%;
 			top: 10px;
 			left: 8px;
-			right: 70px; /* Increase space for the layers button */
-			width: calc(100% - 80px); /* Adjust width calculation accordingly */
+			right: 70px;
+			width: calc(100% - 80px);
 		}
 	}
 
@@ -767,6 +698,7 @@
 
 	:global(.leaflet-search-control) {
 		background: transparent !important;
+		box-shadow: none !important;
 		box-shadow: none !important;
 		margin: 10px 10px 0 10px !important;
 		padding: 0 !important;
