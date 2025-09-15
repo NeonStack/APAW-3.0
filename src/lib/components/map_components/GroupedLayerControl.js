@@ -40,8 +40,8 @@ export function setupGroupedLayerControl(L, map, baseLayers, facilityLayers, flo
   const options = {
     // Make the "Weather" group exclusive (use radio inputs)
     exclusiveGroups: ["Weather"],
-    // Show a checkbox next to non-exclusive group labels for toggling all
-    groupCheckboxes: true
+    // Set to false to remove checkboxes from group titles
+    groupCheckboxes: false
   };
   
   // Create and add the grouped layer control
