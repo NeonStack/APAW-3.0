@@ -10,6 +10,9 @@ export function setupWeatherLayers(map, L, apiKey) {
     return {};
   }
 
+  // Create an empty layer group for the "None" option
+  const none = L.layerGroup();
+  
   // Precipitation layer
   const precipitation = L.tileLayer(
     `https://maps.openweathermap.org/maps/2.0/weather/PR0/{z}/{x}/{y}?appid=${apiKey}`,
@@ -85,6 +88,7 @@ export function setupWeatherLayers(map, L, apiKey) {
 
   // Store all layers in an object
   weatherLayerGroups = {
+    none,
     precipitation,
     temperature,
     windGroup,
@@ -93,6 +97,9 @@ export function setupWeatherLayers(map, L, apiKey) {
     humidity
   };
   
+  // Add the "None" layer to the map by default
+  none.addTo(map);
+  
   return weatherLayerGroups;
 }
 
@@ -100,6 +107,7 @@ export function setupWeatherLayers(map, L, apiKey) {
 export function addWeatherLayersToControl(layerControl) {
   if (!layerControl || !weatherLayerGroups) return;
   
+  layerControl.addOverlay(weatherLayerGroups.none, 'None', 'Weather');
   layerControl.addOverlay(weatherLayerGroups.precipitation, 'Precipitation', 'Weather');
   layerControl.addOverlay(weatherLayerGroups.temperature, 'Temperature', 'Weather');
   layerControl.addOverlay(weatherLayerGroups.windGroup, 'Wind', 'Weather');

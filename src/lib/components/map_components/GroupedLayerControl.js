@@ -68,6 +68,9 @@ function ensureLayerGroupsExist(L, facilityLayers, floodHazardLayers) {
 export function addWeatherLayersToGroupedControl(layerControl, weatherLayers) {
   if (!layerControl || !weatherLayers) return;
   
+  // Add "None" option first to the "Weather" group
+  layerControl.addOverlay(weatherLayers.none, "None", "Weather");
+  
   // Add each weather layer to the "Weather" group
   layerControl.addOverlay(weatherLayers.precipitation, "Precipitation", "Weather");
   layerControl.addOverlay(weatherLayers.temperature, "Temperature", "Weather");
