@@ -15,8 +15,20 @@
 	import MapSearchBar from './MapSearchBar.svelte';
 	import { toast } from 'svelte-sonner';
 
-	// Import extracted components
-	import { loadGeoJSON, loadAndProcessGeoJson } from './map_components/GeoJsonUtils.js';
+	// Import map services
+	import { 
+		initMapService, 
+		createMarker, 
+		removeMarker, 
+		panTo, 
+		createRecenterControl 
+	} from '$lib/services/MapService.js';
+	
+	// Import modular map components
+	import { initializeMap } from './map_components/MapInitializer.js';
+	import { setupBaseLayers } from './map_components/BaseLayers.js';
+	import { setupWeatherLayers, addWeatherLayersToControl } from './map_components/WeatherLayers.js';
+	import { loadAndProcessGeoJson } from './map_components/GeoJsonUtils.js';
 	import {
 		createWaterIcon,
 		getStationAlertInfo,
@@ -32,10 +44,12 @@
 		facilitiesConfig,
 		floodHazardLayers,
 		allLayerConfigs,
-		baseMaps,
-		mapAttributions, // Import the new map attributions
 		NEARBY_RADIUS_METERS
 	} from './map_components/MapConfig.js';
+	import { 
+		setupGroupedLayerControl, 
+		addWeatherLayersToGroupedControl 
+	} from './map_components/GroupedLayerControl.js';
 
 	const dispatch = createEventDispatcher();
 	const OPENWEATHER_MAP_API_KEY = import.meta.env.VITE_OPENWEATHER_MAP_API_KEY || '';
@@ -44,7 +58,6 @@
 
 	let mapContainer;
 	let map;
-	let geojsonLayer;
 	let marker = null;
 	let waterStationMarkers = [];
 	let L;
@@ -104,8 +117,6 @@
 		const centerLat = parseFloat(location.lat);
 		const centerLng = parseFloat(location.lng);
 
-		console.log('Updating nearby facilities with center:', centerLat, centerLng);
-
 		if (isFacilitiesLayerActive) {
 			const layerGroup = facilityLayers[facilitiesConfig.id];
 
@@ -156,12 +167,8 @@
 		isSelectingLocation = true;
 
 		if (marker && map) {
-			try {
-				map.removeLayer(marker);
-				marker = null;
-			} catch (e) {
-				console.error('Error removing existing marker:', e);
-			}
+			removeMarker(marker);
+			marker = null;
 		}
 
 		const loadingIcon = L.divIcon({
@@ -174,7 +181,7 @@
 		});
 
 		const tempMarker = L.marker([lat, lng], { icon: loadingIcon }).addTo(map);
-		map.panTo([lat, lng]);
+		panTo(lat, lng);
 
 		setSelectedLocation(lat, lng, name, map, L, marker, dispatch, tempMarker)
 			.then((newMarker) => {
@@ -187,44 +194,6 @@
 					map.removeLayer(tempMarker);
 				}
 			});
-	}
-
-	function createRecenterControl() {
-		const RecenterControl = L.Control.extend({
-			options: {
-				position: 'bottomleft'
-			},
-
-			onAdd: function () {
-				const container = L.DomUtil.create(
-					'div',
-					'leaflet-bar leaflet-control leaflet-control-recenter'
-				);
-
-				container.innerHTML = `
-					<a href="#" title="Re-center map on selected location" class="recenter-button">
-						<div class="icon-container">
-							<i class="iconify" data-icon="carbon:map-center" data-width="20" data-height="20"></i>
-						</div>
-					</a>
-				`;
-
-				L.DomEvent.disableClickPropagation(container);
-				L.DomEvent.disableScrollPropagation(container);
-
-				L.DomEvent.on(container, 'click', function (e) {
-					L.DomEvent.preventDefault(e);
-					L.DomEvent.stopPropagation(e);
-					if (marker && map) {
-						map.panTo(marker.getLatLng());
-					}
-				});
-
-				return container;
-			}
-		});
-
-		return new RecenterControl();
 	}
 
 	function focusOnWaterStation(station) {
@@ -242,7 +211,7 @@
 		});
 
 		if (stationMarker) {
-			map.panTo(stationMarker.getLatLng());
+			panTo(stationMarker.getLatLng().lat, stationMarker.getLatLng().lng);
 			stationMarker.openPopup();
 
 			const icon = stationMarker.getElement();
@@ -258,192 +227,52 @@
 	onMount(async () => {
 		if (!browser) return;
 
+		// Import Leaflet
 		L = await import('leaflet');
-		let isInitialLayerSetup = true;
-
-		const geojsonData = await loadGeoJSON();
-		if (geojsonData) {
-			const tempLayer = L.geoJSON(geojsonData);
-			strictNcrBounds = tempLayer.getBounds();
-			paddedNcrBounds = strictNcrBounds.pad(0.2);
-		} else {
-			strictNcrBounds = L.latLngBounds(L.latLng(14.35, 120.9), L.latLng(14.75, 121.15));
-			paddedNcrBounds = strictNcrBounds.pad(0.2);
-			console.warn('Failed to load GeoJSON, using fallback bounds for NCR.');
-		}
-
-		map = L.map(mapContainer, {
-			zoomControl: false,
-			center: paddedNcrBounds.getCenter(),
-			maxBounds: paddedNcrBounds,
-			zoom: 11,
-			minZoom: 10,
-			maxBoundsViscosity: 0.9
+		
+		// Initialize map service with Leaflet
+		initMapService(L);
+		
+		// Dynamically load leaflet-groupedlayercontrol CSS
+		const groupedLayerControlCSS = document.createElement('link');
+		groupedLayerControlCSS.rel = 'stylesheet';
+		groupedLayerControlCSS.href = 'https://unpkg.com/leaflet-groupedlayercontrol/dist/leaflet.groupedlayercontrol.min.css';
+		document.head.appendChild(groupedLayerControlCSS);
+		
+		// Dynamically load leaflet-groupedlayercontrol JS
+		await new Promise((resolve) => {
+			const groupedLayerControlScript = document.createElement('script');
+			groupedLayerControlScript.src = 'https://unpkg.com/leaflet-groupedlayercontrol/dist/leaflet.groupedlayercontrol.min.js';
+			groupedLayerControlScript.onload = resolve;
+			document.head.appendChild(groupedLayerControlScript);
 		});
 
-		// Set up base layers with correct attributions
-		const standard = L.tileLayer(baseMaps.standard, {
-			attribution: '© OpenStreetMap contributors',
-			maxZoom: 19
-		}).addTo(map);
+		// Initialize the map
+		const mapConfig = await initializeMap(L, mapContainer);
+		map = mapConfig.map;
+		strictNcrBounds = mapConfig.strictNcrBounds;
+		paddedNcrBounds = mapConfig.paddedNcrBounds;
 
-		const topographic = L.tileLayer(baseMaps.topographic, {
-			attribution: 'Map data © OpenTopoMap contributors',
-			maxZoom: 19
-		});
+		// Setup base layers
+		const baseLayers = setupBaseLayers(L);
+		baseLayers['Standard'].addTo(map);
 
-		const satellite = L.tileLayer(baseMaps.satellite, {
-			attribution: 'Imagery © Esri',
-			maxZoom: 19
-		});
+		// Setup weather layers
+		const weatherLayers = setupWeatherLayers(map, L, OPENWEATHER_MAP_API_KEY);
+		
+		// Setup grouped layer control instead of the regular control
+		layerControl = setupGroupedLayerControl(L, map, baseLayers, facilityLayers, floodHazardLayers);
+		
+		// Add weather layers to the grouped control
+		addWeatherLayersToGroupedControl(layerControl, weatherLayers);
 
-		const osmHot = L.tileLayer(baseMaps.osmHot, {
-			attribution:
-				'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, Tiles style by <a href="https://www.hotosm.org/" target="_blank">Humanitarian OpenStreetMap Team</a> hosted by <a href="https://openstreetmap.fr/" target="_blank">OpenStreetMap France</a>',
-			maxZoom: 19
-		});
-
-		const positron = L.tileLayer(baseMaps.positron, {
-			attribution:
-				'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-			subdomains: 'abcd',
-			maxZoom: 20
-		});
-
-		const darkMatter = L.tileLayer(baseMaps.darkMatter, {
-			attribution:
-				'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-			subdomains: 'abcd',
-			maxZoom: 20
-		});
-
-		const esriStreet = L.tileLayer(baseMaps.esriStreet, {
-			attribution: 'Tiles &copy; Esri',
-			maxZoom: 19
-		});
-
-		const esriTopo = L.tileLayer(baseMaps.esriTopo, {
-			attribution: mapAttributions.esriTopo,
-			maxZoom: 19
-		});
-
-		const baseLayers = {
-			Standard: standard,
-			Topographic: topographic,
-			Satellite: satellite,
-			Humanitarian: osmHot,
-			'Positron (Light)': positron,
-			'Dark Matter': darkMatter,
-			'Esri Street': esriStreet,
-			'Topographic (Esri)': esriTopo
-		};
-
-		//for weathers
-		const precipitation = L.tileLayer(
-			`https://maps.openweathermap.org/maps/2.0/weather/PR0/{z}/{x}/{y}?appid=${OPENWEATHER_MAP_API_KEY}`,
-			{
-				attribution: '© OpenWeatherMap',
-				maxZoom: 19,
-				opacity: 0.5
-			}
-		);
-
-		const temperature = L.tileLayer(
-			`https://maps.openweathermap.org/maps/2.0/weather/TA2/{z}/{x}/{y}?appid=${OPENWEATHER_MAP_API_KEY}`,
-			{
-				attribution: '© OpenWeatherMap',
-				maxZoom: 19,
-				opacity: 0.5
-			}
-		);
-
-		// Separate wind layers for direction and speed
-		const windDirection = L.tileLayer(
-			`https://maps.openweathermap.org/maps/2.0/weather/WND/{z}/{x}/{y}?appid=${OPENWEATHER_MAP_API_KEY}`,
-			{
-				attribution: '© OpenWeatherMap',
-				maxZoom: 19,
-				opacity: 0.5
-			}
-		);
-
-		const windSpeed = L.tileLayer(
-			`https://maps.openweathermap.org/maps/2.0/weather/WS10/{z}/{x}/{y}?appid=${OPENWEATHER_MAP_API_KEY}`,
-			{
-				attribution: '© OpenWeatherMap',
-				maxZoom: 19,
-				opacity: 0.5
-			}
-		);
-
-		// Group the wind layers for stacking
-		const windGroup = L.layerGroup([windDirection, windSpeed]);
-
-		const clouds = L.tileLayer(
-			`https://maps.openweathermap.org/maps/2.0/weather/CL/{z}/{x}/{y}?appid=${OPENWEATHER_MAP_API_KEY}&palette=0:0000FF00;10:1E90FF19;20:4169E126;30:0000CD33;40:00008B4C;50:00008066;60:1919708C;70:0000FFBF;80:0000FFCC;90:0000FFD8;100:0000FFFF;200:0000FFFF`,
-			{
-				attribution: '© OpenWeatherMap',
-				maxZoom: 19,
-				opacity: 0.5
-			}
-		);
-
-		const pressure = L.tileLayer(
-			`https://maps.openweathermap.org/maps/2.0/weather/APM/{z}/{x}/{y}?appid=${OPENWEATHER_MAP_API_KEY}`,
-			{
-				attribution: '© OpenWeatherMap',
-				maxZoom: 19,
-				opacity: 0.5
-			}
-		);
-
-		const humidity = L.tileLayer(
-			`https://maps.openweathermap.org/maps/2.0/weather/HRD0/{z}/{x}/{y}?appid=${OPENWEATHER_MAP_API_KEY}`,
-			{
-				attribution: '© OpenWeatherMap',
-				maxZoom: 19,
-				opacity: 0.5
-			}
-		);
-
-		// Group weather layers for radio behavior (use windGroup instead of single wind)
-		const weatherLayers = {
-			Precipitation: precipitation,
-			Temperature: temperature,
-			Wind: windGroup, // Now a group of direction and speed
-			Clouds: clouds,
-			Pressure: pressure,
-			Humidity: humidity
-		};
-
-		layerControl = setupLayerControl(L, map, baseLayers, facilityLayers, floodHazardLayers);
-		layerControl.addOverlay(precipitation, 'Precipitation', 'Weather');
-		layerControl.addOverlay(temperature, 'Temperature', 'Weather');
-		layerControl.addOverlay(windGroup, 'Wind', 'Weather'); // Add the group as "Wind"
-		layerControl.addOverlay(clouds, 'Clouds', 'Weather');
-		layerControl.addOverlay(pressure, 'Pressure', 'Weather');
-		layerControl.addOverlay(humidity, 'Humidity', 'Weather');
-
+		// Add zoom control
 		L.control.zoom({ position: 'bottomleft' }).addTo(map);
 
-		if (L) {
-			createRecenterControl().addTo(map);
-		}
+		// Add recenter control
+		createRecenterControl().addTo(map);
 
-		if (geojsonData) {
-			geojsonLayer = L.geoJSON(geojsonData, {
-				style: {
-					color: 'blue',
-					weight: 2,
-					opacity: 0.6,
-					fillOpacity: 0,
-					interactive: false
-				}
-			}).addTo(map);
-		} else {
-			map.fitBounds(paddedNcrBounds);
-		}
-
+		// Handle map click for location selection
 		map.on('click', async (e) => {
 			if (isSelectingLocation) {
 				console.log('Location selection already in progress, ignoring click');
@@ -455,13 +284,9 @@
 			if (strictNcrBounds && strictNcrBounds.contains(e.latlng)) {
 				isSelectingLocation = true;
 
-				if (marker && map) {
-					try {
-						map.removeLayer(marker);
-						marker = null;
-					} catch (e) {
-						console.error('Error removing existing marker:', e);
-					}
+				if (marker) {
+					removeMarker(marker);
+					marker = null;
 				}
 
 				const loadingIcon = L.divIcon({
@@ -473,8 +298,8 @@
 					iconAnchor: [20, 20]
 				});
 
-				const tempMarker = L.marker([lat, lng], { icon: loadingIcon }).addTo(map);
-				map.panTo([lat, lng]);
+				const tempMarker = createMarker(lat, lng, { icon: loadingIcon });
+				panTo(lat, lng);
 
 				try {
 					marker = await setSelectedLocation(lat, lng, null, map, L, marker, dispatch, tempMarker);
@@ -490,6 +315,7 @@
 			}
 		});
 
+		// Handle layer toggle events
 		map.on('overlayadd', function (e) {
 			const addedLayerName = e.name;
 			const layerConfig = allLayerConfigs.find(
@@ -508,7 +334,7 @@
 			handleLayerToggle(
 				layerConfig,
 				true,
-				!isInitialLayerSetup,
+				true,
 				map,
 				L,
 				facilityLayers,
@@ -516,38 +342,6 @@
 				activeLeafletLayers,
 				layerControl
 			);
-		});
-
-		// FOR WEATHER OVERLAYADD
-		map.on('overlayadd', function (e) {
-			if (
-				e.name === 'Precipitation' ||
-				e.name === 'Temperature' ||
-				e.name === 'Wind' || // Refers to the windGroup
-				e.name === 'Clouds' ||
-				e.name === 'Pressure' ||
-				e.name === 'Humidity'
-			) {
-				// Remove other weather layers/groups to ensure only one is active (radio behavior)
-				if (e.name !== 'Precipitation') {
-					map.removeLayer(precipitation);
-				}
-				if (e.name !== 'Temperature') {
-					map.removeLayer(temperature);
-				}
-				if (e.name !== 'Wind') {
-					map.removeLayer(windGroup); // Remove the entire group
-				}
-				if (e.name !== 'Clouds') {
-					map.removeLayer(clouds);
-				}
-				if (e.name !== 'Pressure') {
-					map.removeLayer(pressure);
-				}
-				if (e.name !== 'Humidity') {
-					map.removeLayer(humidity);
-				}
-			}
 		});
 
 		map.on('overlayremove', function (e) {
@@ -576,14 +370,15 @@
 			}
 		});
 
+		// Initialize facility layers
 		facilityLayers[facilitiesConfig.id] = L.layerGroup();
 
+		// Preload facility data
 		loadAndProcessGeoJson(facilitiesConfig, loadedGeojsonData, true).catch((err) =>
 			console.warn(`Failed to pre-load ${facilitiesConfig.name}:`, err)
 		);
 
-		isInitialLayerSetup = false;
-
+		// Subscribe to water stations data
 		waterStationSubscription = waterStations.subscribe((value) => {
 			if (!map || !L) return;
 
@@ -612,26 +407,16 @@
 						}
 					}
 				});
-
-				if (waterStationMarkers.length > 0) {
-					const group = L.featureGroup(waterStationMarkers);
-				} else if (map && !marker) {
-					map.fitBounds(paddedNcrBounds);
-				}
 			}
 		});
 
+		// Subscribe to focused water station
 		focusedWaterStationSubscription = focusedWaterStation.subscribe((station) => {
 			if (station) {
 				focusOnWaterStation(station);
 				setTimeout(() => focusedWaterStation.set(null), 100);
 			}
 		});
-
-		const currentStations = get(waterStations);
-		if (!currentStations.loading && currentStations.data && currentStations.data.length > 0) {
-			waterStations.set(currentStations);
-		}
 	});
 
 	$: if (
@@ -684,6 +469,7 @@
 <svelte:head>
 	<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />
 	<script src="https://code.iconify.design/2/2.2.1/iconify.min.js"></script>
+	<!-- We'll load the groupedlayercontrol dynamically in the onMount function -->
 </svelte:head>
 
 <div bind:this={mapContainer} style="height: {height}; width: 100%;" class="map-container z-10">
@@ -1026,5 +812,36 @@
 	:global(.highlight-station) {
 		animation: highlight-pulse 0.8s ease-in-out 2;
 		z-index: 1000 !important;
+	}
+
+	/* Grouped Layer Control Styles */
+	:global(.leaflet-control-layers-group-name) {
+		font-weight: bold;
+		margin: 0 0 5px 0;
+		color: #333;
+		padding-bottom: 3px;
+		border-bottom: 1px solid #ccc;
+	}
+
+	:global(.leaflet-control-layers-group) {
+		margin-bottom: 8px;
+	}
+
+	:global(.leaflet-control-layers-group-label) {
+		display: flex;
+		align-items: center;
+		gap: 5px;
+	}
+
+	:global(.leaflet-control-layers-group-label input) {
+		margin: 0;
+	}
+
+	:global(.leaflet-control-layers-overlays label) {
+		margin-left: 5px;
+	}
+
+	:global(.group-label-icon) {
+		margin-right: 5px;
 	}
 </style>

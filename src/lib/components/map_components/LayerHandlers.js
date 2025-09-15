@@ -4,6 +4,7 @@ import { selectedLocation } from '$lib/stores/locationStore.js';
 import { loadAndProcessGeoJson } from './GeoJsonUtils.js';
 import { displayNearbyFacilities } from './MarkerHandlers.js';
 import { NEARBY_RADIUS_METERS, facilitiesConfig } from './MapConfig.js';
+import { addLayerToMap, removeLayerFromMap, clearLayerGroup } from '$lib/services/MapService';
 
 export function setupLayerControl(L, map, baseLayers, facilityLayers, floodHazardLayers) {
   // Create separate layer groups
@@ -29,7 +30,14 @@ export function setupLayerControl(L, map, baseLayers, facilityLayers, floodHazar
   const layerControl = L.control.layers(baseLayers, overlays, { collapsed: true });
   layerControl.addTo(map);
   
-  // Manually insert section titles using DOM manipulation
+  // Add section titles
+  addLayerControlSectionTitles(layerControl, floodHazardLayers);
+  
+  return layerControl;
+}
+
+// Separate function for adding section titles to layer control
+function addLayerControlSectionTitles(layerControl, floodHazardLayers) {
   setTimeout(() => {
     try {
       const container = layerControl.getContainer();
@@ -75,8 +83,6 @@ export function setupLayerControl(L, map, baseLayers, facilityLayers, floodHazar
       console.error('Error adding layer control titles:', error);
     }
   }, 100); // Small delay to ensure DOM is ready
-  
-  return layerControl;
 }
 
 export async function handleLayerToggle(layerConfig, isAdding, showToast, map, L, facilityLayers, loadedGeojsonData, activeLeafletLayers, layerControl) {
@@ -88,34 +94,17 @@ export async function handleLayerToggle(layerConfig, isAdding, showToast, map, L
   const layerGroup = facilityLayers[layerConfig.id];
 
   if (isAdding) {
-    // Make sure the layer group is added to the map when activated
-    if (!map.hasLayer(layerGroup)) {
-      map.addLayer(layerGroup);
-    }
+    // Add layer group to map
+    addLayerToMap(layerGroup);
     
     const loadPromise = loadAndProcessGeoJson(layerConfig, loadedGeojsonData, !showToast)
       .then((geoJsonData) => {
         if (!geoJsonData) throw new Error('No data loaded.');
 
-        layerGroup.clearLayers();
+        clearLayerGroup(layerGroup);
 
         if (layerConfig.type === 'facility') {
-          // For facility layers, immediately trigger the update for currently selected location
-          const selectedLoc = get(selectedLocation);
-          if (selectedLoc && selectedLoc.lat !== null && selectedLoc.lng !== null) {
-            displayNearbyFacilities(
-              selectedLoc.lat,
-              selectedLoc.lng,
-              NEARBY_RADIUS_METERS,
-              map,
-              L,
-              facilityLayers,
-              loadedGeojsonData
-            );
-            console.log(`Displaying nearby ${layerConfig.name} for current location.`);
-          } else {
-            console.log(`${layerConfig.name} layer is active, waiting for location selection.`);
-          }
+          handleFacilityLayer(layerConfig, map, L, facilityLayers, loadedGeojsonData);
         } else if (layerConfig.type === 'hazard' && layerConfig.style) {
           activeLeafletLayers[layerConfig.id] = L.geoJSON(geoJsonData, {
             style: layerConfig.style,
@@ -128,21 +117,7 @@ export async function handleLayerToggle(layerConfig, isAdding, showToast, map, L
       .catch((err) => {
         console.error(`Error in loadPromise for ${layerConfig.name}:`, err);
         if (err.message.includes('User cancelled')) {
-          if (layerControl && map) {
-            const controlContainer = layerControl.getContainer();
-            const inputs = controlContainer.querySelectorAll(
-              'input.leaflet-control-layers-selector'
-            );
-            for (let input of inputs) {
-              const label = input.nextElementSibling;
-              if (label && label.textContent && label.textContent.includes(layerConfig.name)) {
-                if (input.checked) {
-                  input.click();
-                }
-                break;
-              }
-            }
-          }
+          uncheckLayerInControl(layerControl, map, layerConfig);
         }
         throw err;
       });
@@ -167,15 +142,50 @@ export async function handleLayerToggle(layerConfig, isAdding, showToast, map, L
     }
   } else {
     console.log(`Clearing ${layerConfig.name} layer.`);
-    layerGroup.clearLayers();
+    clearLayerGroup(layerGroup);
     
-    // Ensure the layer is removed from the map
-    if (map.hasLayer(layerGroup)) {
-      map.removeLayer(layerGroup);
-    }
+    // Remove layer from map
+    removeLayerFromMap(layerGroup);
     
     if (activeLeafletLayers[layerConfig.id]) {
       delete activeLeafletLayers[layerConfig.id];
+    }
+  }
+}
+
+function handleFacilityLayer(layerConfig, map, L, facilityLayers, loadedGeojsonData) {
+  // For facility layers, immediately trigger the update for currently selected location
+  const selectedLoc = get(selectedLocation);
+  if (selectedLoc && selectedLoc.lat !== null && selectedLoc.lng !== null) {
+    displayNearbyFacilities(
+      selectedLoc.lat,
+      selectedLoc.lng,
+      NEARBY_RADIUS_METERS,
+      map,
+      L,
+      facilityLayers,
+      loadedGeojsonData
+    );
+    console.log(`Displaying nearby ${layerConfig.name} for current location.`);
+  } else {
+    console.log(`${layerConfig.name} layer is active, waiting for location selection.`);
+  }
+}
+
+function uncheckLayerInControl(layerControl, map, layerConfig) {
+  if (!layerControl || !map) return;
+  
+  const controlContainer = layerControl.getContainer();
+  const inputs = controlContainer.querySelectorAll(
+    'input.leaflet-control-layers-selector'
+  );
+  for (let input of inputs) {
+    const label = input.nextElementSibling;
+    if (label && label.textContent && label.textContent.includes(layerConfig.name)) {
+      if (input.checked) {
+        input.click();
+      }
+      break;
     }
   }
 }
