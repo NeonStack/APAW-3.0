@@ -14,33 +14,31 @@
 	import Icon from '@iconify/svelte';
 	import MapSearchBar from './MapSearchBar.svelte';
 	import { toast } from 'svelte-sonner';
-	
+
 	// Import extracted components
 	import { loadGeoJSON, loadAndProcessGeoJson } from './map_components/GeoJsonUtils.js';
-	import { 
-		createWaterIcon, 
-		getStationAlertInfo, 
-		createWaterStationPopup 
+	import {
+		createWaterIcon,
+		getStationAlertInfo,
+		createWaterStationPopup
 	} from './map_components/WaterStationLayer.js';
 	import {
 		setSelectedLocation,
 		updateNearestFacilitiesList,
 		displayNearbyFacilities
 	} from './map_components/MarkerHandlers.js';
-	import {
-		setupLayerControl,
-		handleLayerToggle
-	} from './map_components/LayerHandlers.js';
+	import { setupLayerControl, handleLayerToggle } from './map_components/LayerHandlers.js';
 	import {
 		facilitiesConfig,
 		floodHazardLayers,
 		allLayerConfigs,
 		baseMaps,
-		mapAttributions,  // Import the new map attributions
+		mapAttributions, // Import the new map attributions
 		NEARBY_RADIUS_METERS
 	} from './map_components/MapConfig.js';
 
 	const dispatch = createEventDispatcher();
+	const OPENWEATHER_MAP_API_KEY = import.meta.env.VITE_OPENWEATHER_MAP_API_KEY || '';
 
 	export let height = '100%';
 
@@ -66,13 +64,21 @@
 			console.log('Location selection already in progress, ignoring locate request');
 			return;
 		}
-		
+
 		try {
 			isSelectingLocation = true;
 			dispatch('locationSelectionStart', { message: 'Getting your location...' });
 			const position = await getCurrentPosition();
 			const locationName = await getLocationName(position.lat, position.lng);
-			marker = await setSelectedLocation(position.lat, position.lng, locationName || 'Current Location', map, L, marker, dispatch);
+			marker = await setSelectedLocation(
+				position.lat,
+				position.lng,
+				locationName || 'Current Location',
+				map,
+				L,
+				marker,
+				dispatch
+			);
 		} catch (error) {
 			console.error('Error getting current position:', error);
 			alert(`Could not get your location: ${error.message}`);
@@ -102,22 +108,22 @@
 
 		if (isFacilitiesLayerActive) {
 			const layerGroup = facilityLayers[facilitiesConfig.id];
-			
+
 			if (layerGroup && !map.hasLayer(layerGroup)) {
 				map.addLayer(layerGroup);
 			}
-			
+
 			if (layerGroup && loadedGeojsonData[facilitiesConfig.id]) {
 				displayNearbyFacilities(
-					centerLat, 
-					centerLng, 
-					NEARBY_RADIUS_METERS, 
-					map, 
-					L, 
-					facilityLayers, 
+					centerLat,
+					centerLng,
+					NEARBY_RADIUS_METERS,
+					map,
+					L,
+					facilityLayers,
 					loadedGeojsonData
 				);
-				
+
 				updateNearestFacilitiesList(map, nearestFacilities, loadedGeojsonData);
 			} else if (layerGroup) {
 				handleLayerToggle(
@@ -145,10 +151,10 @@
 			console.log('Location selection already in progress, ignoring search');
 			return;
 		}
-		
+
 		const { lat, lng, name } = event.detail;
 		isSelectingLocation = true;
-		
+
 		if (marker && map) {
 			try {
 				map.removeLayer(marker);
@@ -157,7 +163,7 @@
 				console.error('Error removing existing marker:', e);
 			}
 		}
-		
+
 		const loadingIcon = L.divIcon({
 			html: `<div class="loading-marker-wrapper">
 				<div class="loading-marker-inner"></div>
@@ -166,17 +172,17 @@
 			iconSize: [40, 40],
 			iconAnchor: [20, 20]
 		});
-		
+
 		const tempMarker = L.marker([lat, lng], { icon: loadingIcon }).addTo(map);
 		map.panTo([lat, lng]);
-		
+
 		setSelectedLocation(lat, lng, name, map, L, marker, dispatch, tempMarker)
-			.then(newMarker => {
+			.then((newMarker) => {
 				if (newMarker) marker = newMarker;
 			})
 			.finally(() => {
 				isSelectingLocation = false;
-				
+
 				if (tempMarker && map.hasLayer(tempMarker)) {
 					map.removeLayer(tempMarker);
 				}
@@ -188,10 +194,13 @@
 			options: {
 				position: 'bottomleft'
 			},
-			
-			onAdd: function() {
-				const container = L.DomUtil.create('div', 'leaflet-bar leaflet-control leaflet-control-recenter');
-				
+
+			onAdd: function () {
+				const container = L.DomUtil.create(
+					'div',
+					'leaflet-bar leaflet-control leaflet-control-recenter'
+				);
+
 				container.innerHTML = `
 					<a href="#" title="Re-center map on selected location" class="recenter-button">
 						<div class="icon-container">
@@ -199,41 +208,43 @@
 						</div>
 					</a>
 				`;
-				
+
 				L.DomEvent.disableClickPropagation(container);
 				L.DomEvent.disableScrollPropagation(container);
-				
-				L.DomEvent.on(container, 'click', function(e) {
+
+				L.DomEvent.on(container, 'click', function (e) {
 					L.DomEvent.preventDefault(e);
 					L.DomEvent.stopPropagation(e);
 					if (marker && map) {
 						map.panTo(marker.getLatLng());
 					}
 				});
-				
+
 				return container;
 			}
 		});
-		
+
 		return new RecenterControl();
 	}
 
 	function focusOnWaterStation(station) {
 		if (!map || !waterStationMarkers.length || !station || !station.lat || !station.lon) return;
-		
-		const stationMarker = waterStationMarkers.find(marker => {
+
+		const stationMarker = waterStationMarkers.find((marker) => {
 			const markerLatLng = marker.getLatLng();
 			const stationLat = parseFloat(station.lat);
 			const stationLon = parseFloat(station.lon);
-			
-			return Math.abs(markerLatLng.lat - stationLat) < 0.0001 && 
-				Math.abs(markerLatLng.lng - stationLon) < 0.0001;
+
+			return (
+				Math.abs(markerLatLng.lat - stationLat) < 0.0001 &&
+				Math.abs(markerLatLng.lng - stationLon) < 0.0001
+			);
 		});
-		
+
 		if (stationMarker) {
 			map.panTo(stationMarker.getLatLng());
 			stationMarker.openPopup();
-			
+
 			const icon = stationMarker.getElement();
 			if (icon) {
 				icon.classList.add('highlight-station');
@@ -256,10 +267,7 @@
 			strictNcrBounds = tempLayer.getBounds();
 			paddedNcrBounds = strictNcrBounds.pad(0.2);
 		} else {
-			strictNcrBounds = L.latLngBounds(
-				L.latLng(14.35, 120.9),
-				L.latLng(14.75, 121.15)
-			);
+			strictNcrBounds = L.latLngBounds(L.latLng(14.35, 120.9), L.latLng(14.75, 121.15));
 			paddedNcrBounds = strictNcrBounds.pad(0.2);
 			console.warn('Failed to load GeoJSON, using fallback bounds for NCR.');
 		}
@@ -290,18 +298,21 @@
 		});
 
 		const osmHot = L.tileLayer(baseMaps.osmHot, {
-			attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, Tiles style by <a href="https://www.hotosm.org/" target="_blank">Humanitarian OpenStreetMap Team</a> hosted by <a href="https://openstreetmap.fr/" target="_blank">OpenStreetMap France</a>',
+			attribution:
+				'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, Tiles style by <a href="https://www.hotosm.org/" target="_blank">Humanitarian OpenStreetMap Team</a> hosted by <a href="https://openstreetmap.fr/" target="_blank">OpenStreetMap France</a>',
 			maxZoom: 19
 		});
 
 		const positron = L.tileLayer(baseMaps.positron, {
-			attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+			attribution:
+				'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
 			subdomains: 'abcd',
 			maxZoom: 20
 		});
 
 		const darkMatter = L.tileLayer(baseMaps.darkMatter, {
-			attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+			attribution:
+				'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
 			subdomains: 'abcd',
 			maxZoom: 20
 		});
@@ -317,20 +328,104 @@
 		});
 
 		const baseLayers = {
-			'Standard': standard,
-			'Topographic': topographic,
-			'Satellite': satellite,
-			'Humanitarian': osmHot,
+			Standard: standard,
+			Topographic: topographic,
+			Satellite: satellite,
+			Humanitarian: osmHot,
 			'Positron (Light)': positron,
 			'Dark Matter': darkMatter,
 			'Esri Street': esriStreet,
 			'Topographic (Esri)': esriTopo
 		};
 
+		//for weathers
+		const precipitation = L.tileLayer(
+			`https://maps.openweathermap.org/maps/2.0/weather/PR0/{z}/{x}/{y}?appid=${OPENWEATHER_MAP_API_KEY}`,
+			{
+				attribution: '© OpenWeatherMap',
+				maxZoom: 19,
+				opacity: 0.5
+			}
+		);
+
+		const temperature = L.tileLayer(
+			`https://maps.openweathermap.org/maps/2.0/weather/TA2/{z}/{x}/{y}?appid=${OPENWEATHER_MAP_API_KEY}`,
+			{
+				attribution: '© OpenWeatherMap',
+				maxZoom: 19,
+				opacity: 0.5
+			}
+		);
+
+		// Separate wind layers for direction and speed
+		const windDirection = L.tileLayer(
+			`https://maps.openweathermap.org/maps/2.0/weather/WND/{z}/{x}/{y}?appid=${OPENWEATHER_MAP_API_KEY}`,
+			{
+				attribution: '© OpenWeatherMap',
+				maxZoom: 19,
+				opacity: 0.5
+			}
+		);
+
+		const windSpeed = L.tileLayer(
+			`https://maps.openweathermap.org/maps/2.0/weather/WS10/{z}/{x}/{y}?appid=${OPENWEATHER_MAP_API_KEY}`,
+			{
+				attribution: '© OpenWeatherMap',
+				maxZoom: 19,
+				opacity: 0.5
+			}
+		);
+
+		// Group the wind layers for stacking
+		const windGroup = L.layerGroup([windDirection, windSpeed]);
+
+		const clouds = L.tileLayer(
+			`https://maps.openweathermap.org/maps/2.0/weather/CL/{z}/{x}/{y}?appid=${OPENWEATHER_MAP_API_KEY}&palette=0:0000FF00;10:1E90FF19;20:4169E126;30:0000CD33;40:00008B4C;50:00008066;60:1919708C;70:0000FFBF;80:0000FFCC;90:0000FFD8;100:0000FFFF;200:0000FFFF`,
+			{
+				attribution: '© OpenWeatherMap',
+				maxZoom: 19,
+				opacity: 0.5
+			}
+		);
+
+		const pressure = L.tileLayer(
+			`https://maps.openweathermap.org/maps/2.0/weather/APM/{z}/{x}/{y}?appid=${OPENWEATHER_MAP_API_KEY}`,
+			{
+				attribution: '© OpenWeatherMap',
+				maxZoom: 19,
+				opacity: 0.5
+			}
+		);
+
+		const humidity = L.tileLayer(
+			`https://maps.openweathermap.org/maps/2.0/weather/HRD0/{z}/{x}/{y}?appid=${OPENWEATHER_MAP_API_KEY}`,
+			{
+				attribution: '© OpenWeatherMap',
+				maxZoom: 19,
+				opacity: 0.5
+			}
+		);
+
+		// Group weather layers for radio behavior (use windGroup instead of single wind)
+		const weatherLayers = {
+			Precipitation: precipitation,
+			Temperature: temperature,
+			Wind: windGroup, // Now a group of direction and speed
+			Clouds: clouds,
+			Pressure: pressure,
+			Humidity: humidity
+		};
+
 		layerControl = setupLayerControl(L, map, baseLayers, facilityLayers, floodHazardLayers);
+		layerControl.addOverlay(precipitation, 'Precipitation', 'Weather');
+		layerControl.addOverlay(temperature, 'Temperature', 'Weather');
+		layerControl.addOverlay(windGroup, 'Wind', 'Weather'); // Add the group as "Wind"
+		layerControl.addOverlay(clouds, 'Clouds', 'Weather');
+		layerControl.addOverlay(pressure, 'Pressure', 'Weather');
+		layerControl.addOverlay(humidity, 'Humidity', 'Weather');
 
 		L.control.zoom({ position: 'bottomleft' }).addTo(map);
-		
+
 		if (L) {
 			createRecenterControl().addTo(map);
 		}
@@ -354,12 +449,12 @@
 				console.log('Location selection already in progress, ignoring click');
 				return;
 			}
-			
+
 			const { lat, lng } = e.latlng;
 
 			if (strictNcrBounds && strictNcrBounds.contains(e.latlng)) {
 				isSelectingLocation = true;
-				
+
 				if (marker && map) {
 					try {
 						map.removeLayer(marker);
@@ -368,7 +463,7 @@
 						console.error('Error removing existing marker:', e);
 					}
 				}
-				
+
 				const loadingIcon = L.divIcon({
 					html: `<div class="loading-marker-wrapper">
 						<div class="loading-marker-inner"></div>
@@ -377,15 +472,15 @@
 					iconSize: [40, 40],
 					iconAnchor: [20, 20]
 				});
-				
+
 				const tempMarker = L.marker([lat, lng], { icon: loadingIcon }).addTo(map);
 				map.panTo([lat, lng]);
-				
+
 				try {
 					marker = await setSelectedLocation(lat, lng, null, map, L, marker, dispatch, tempMarker);
 				} finally {
 					isSelectingLocation = false;
-					
+
 					if (tempMarker && map.hasLayer(tempMarker)) {
 						map.removeLayer(tempMarker);
 					}
@@ -400,60 +495,93 @@
 			const layerConfig = allLayerConfigs.find(
 				(lc) => addedLayerName && addedLayerName.includes(lc.name)
 			);
-			
+
 			if (layerConfig && layerConfig.id === facilitiesConfig.id) {
 				console.log('Facilities layer activated');
 				facilitiesLayerActive.set(true);
-				
+
 				if ($selectedLocation && $selectedLocation.lat !== null) {
 					setTimeout(() => updateDisplayedFacilities(), 100);
 				}
 			}
-			
+
 			handleLayerToggle(
-				layerConfig, 
-				true, 
-				!isInitialLayerSetup, 
-				map, 
-				L, 
-				facilityLayers, 
-				loadedGeojsonData, 
-				activeLeafletLayers, 
+				layerConfig,
+				true,
+				!isInitialLayerSetup,
+				map,
+				L,
+				facilityLayers,
+				loadedGeojsonData,
+				activeLeafletLayers,
 				layerControl
 			);
 		});
-		
+
+		// FOR WEATHER OVERLAYADD
+		map.on('overlayadd', function (e) {
+			if (
+				e.name === 'Precipitation' ||
+				e.name === 'Temperature' ||
+				e.name === 'Wind' || // Refers to the windGroup
+				e.name === 'Clouds' ||
+				e.name === 'Pressure' ||
+				e.name === 'Humidity'
+			) {
+				// Remove other weather layers/groups to ensure only one is active (radio behavior)
+				if (e.name !== 'Precipitation') {
+					map.removeLayer(precipitation);
+				}
+				if (e.name !== 'Temperature') {
+					map.removeLayer(temperature);
+				}
+				if (e.name !== 'Wind') {
+					map.removeLayer(windGroup); // Remove the entire group
+				}
+				if (e.name !== 'Clouds') {
+					map.removeLayer(clouds);
+				}
+				if (e.name !== 'Pressure') {
+					map.removeLayer(pressure);
+				}
+				if (e.name !== 'Humidity') {
+					map.removeLayer(humidity);
+				}
+			}
+		});
+
 		map.on('overlayremove', function (e) {
 			const removedLayerName = e.name;
 			const layerConfig = allLayerConfigs.find(
 				(lc) => removedLayerName && removedLayerName.includes(lc.name)
 			);
-			
+
 			if (layerConfig && layerConfig.id === facilitiesConfig.id) {
 				facilitiesLayerActive.set(false);
 				nearestFacilities.set([]);
 			}
-			
+
 			if (layerConfig) {
 				handleLayerToggle(
-					layerConfig, 
-					false, 
-					false, 
-					map, 
-					L, 
-					facilityLayers, 
-					loadedGeojsonData, 
-					activeLeafletLayers, 
+					layerConfig,
+					false,
+					false,
+					map,
+					L,
+					facilityLayers,
+					loadedGeojsonData,
+					activeLeafletLayers,
 					layerControl
 				);
 			}
 		});
-		
+
 		facilityLayers[facilitiesConfig.id] = L.layerGroup();
-		
-		loadAndProcessGeoJson(facilitiesConfig, loadedGeojsonData, true)
-			.catch(err => console.warn(`Failed to pre-load ${facilitiesConfig.name}:`, err));
-		
+
+		loadAndProcessGeoJson(facilitiesConfig, loadedGeojsonData, true).catch((err) =>
+			console.warn(`Failed to pre-load ${facilitiesConfig.name}:`, err)
+		);
+
 		isInitialLayerSetup = false;
 
 		waterStationSubscription = waterStations.subscribe((value) => {
@@ -493,7 +621,7 @@
 			}
 		});
 
-		focusedWaterStationSubscription = focusedWaterStation.subscribe(station => {
+		focusedWaterStationSubscription = focusedWaterStation.subscribe((station) => {
 			if (station) {
 				focusOnWaterStation(station);
 				setTimeout(() => focusedWaterStation.set(null), 100);
@@ -769,7 +897,7 @@
 	:global(.leaflet-control-recenter a:hover) {
 		background-color: #f4f4f4;
 	}
-	
+
 	:global(.leaflet-control-recenter .icon-container) {
 		display: flex;
 		align-items: center;
@@ -790,7 +918,7 @@
 	:global(.leaflet-control-recenter) {
 		margin-left: 10px !important;
 	}
-	
+
 	:global(.recenter-button) {
 		background-color: white;
 		display: flex;
@@ -881,9 +1009,18 @@
 
 	/* Add animation for the highlighted water station */
 	@keyframes highlight-pulse {
-		0% { transform: scale(1); opacity: 1; }
-		50% { transform: scale(1.3); opacity: 0.8; }
-		100% { transform: scale(1); opacity: 1; }
+		0% {
+			transform: scale(1);
+			opacity: 1;
+		}
+		50% {
+			transform: scale(1.3);
+			opacity: 0.8;
+		}
+		100% {
+			transform: scale(1);
+			opacity: 1;
+		}
 	}
 
 	:global(.highlight-station) {

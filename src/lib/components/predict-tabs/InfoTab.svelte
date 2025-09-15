@@ -240,75 +240,75 @@
 	function getRiskLevelColor(riskLevel) {
 		switch (riskLevel) {
 			case 'Very High':
-                return 'text-red-600 font-bold';
-            case 'High':
-                return 'text-orange-600 font-bold';
-            case 'Moderate':
-                return 'text-yellow-600 font-medium';
-            case 'Low':
-                return 'text-blue-600 font-medium';
-            case 'Very Low':
-                return 'text-green-600';
-            default:
-                return 'text-gray-600';
-        }
-    }
+				return 'text-red-600 font-bold';
+			case 'High':
+				return 'text-orange-600 font-bold';
+			case 'Moderate':
+				return 'text-yellow-600 font-medium';
+			case 'Low':
+				return 'text-blue-600 font-medium';
+			case 'Very Low':
+				return 'text-green-600';
+			default:
+				return 'text-gray-600';
+		}
+	}
 
-    // Get background color for prediction card based on risk level
-    function getPredictionCardStyle(prediction, riskLevel) {
-        if (prediction === 'LOCATION_ON_WATER') return 'bg-blue-50 border-blue-200';
+	// Get background color for prediction card based on risk level
+	function getPredictionCardStyle(prediction, riskLevel) {
+		if (prediction === 'LOCATION_ON_WATER') return 'bg-blue-50 border-blue-200';
 
-        switch (riskLevel) {
-            case 'Very High':
-                return 'bg-red-50 border-red-400';
-            case 'High':
-                return 'bg-orange-50 border-orange-400';
-            case 'Moderate':
-                return 'bg-yellow-50 border-yellow-400';
-            case 'Low':
-                return 'bg-blue-50 border-blue-400';
-            case 'Very Low':
-                return 'bg-green-50 border-green-400';
-            default:
-                return 'bg-gray-50 border-gray-200';
-        }
-    }
+		switch (riskLevel) {
+			case 'Very High':
+				return 'bg-red-50 border-red-400';
+			case 'High':
+				return 'bg-orange-50 border-orange-400';
+			case 'Moderate':
+				return 'bg-yellow-50 border-yellow-400';
+			case 'Low':
+				return 'bg-blue-50 border-blue-400';
+			case 'Very Low':
+				return 'bg-green-50 border-green-400';
+			default:
+				return 'bg-gray-50 border-gray-200';
+		}
+	}
 
-    // Get risk level badge style
-    function getRiskLevelBadgeStyle(riskLevel) {
-        switch (riskLevel) {
-            case 'Very High':
-                return 'bg-red-100 text-red-800 border border-red-300';
-            case 'High':
-                return 'bg-orange-100 text-orange-800 border border-orange-300';
-            case 'Moderate':
-                return 'bg-yellow-100 text-yellow-800 border border-yellow-300';
-            case 'Low':
-                return 'bg-blue-100 text-blue-800 border border-blue-300';
-            case 'Very Low':
-                return 'bg-green-100 text-green-800 border border-green-300';
-            default:
-                return 'bg-gray-100 text-gray-800 border border-gray-300';
-        }
-    }
+	// Get risk level badge style
+	function getRiskLevelBadgeStyle(riskLevel) {
+		switch (riskLevel) {
+			case 'Very High':
+				return 'bg-red-100 text-red-800 border border-red-300';
+			case 'High':
+				return 'bg-orange-100 text-orange-800 border border-orange-300';
+			case 'Moderate':
+				return 'bg-yellow-100 text-yellow-800 border border-yellow-300';
+			case 'Low':
+				return 'bg-blue-100 text-blue-800 border border-blue-300';
+			case 'Very Low':
+				return 'bg-green-100 text-green-800 border border-green-300';
+			default:
+				return 'bg-gray-100 text-gray-800 border border-gray-300';
+		}
+	}
 
-    // Get color based on flood probability
-    function getFloodProbabilityColor(prediction, riskLevel) {
-        switch (riskLevel) {
-            case 'Very High':
-                return 'text-red-600 font-bold';
-            case 'High':
-                return 'text-orange-600 font-bold';
-            case 'Moderate':
-                return 'text-yellow-600 font-medium';
-            case 'Low':
-                return 'text-blue-600 font-medium';
-            case 'Very Low':
-                return 'text-green-600';
-            default:
-                return 'text-gray-600';
-        }
-    }
+	// Get color based on flood probability
+	function getFloodProbabilityColor(prediction, riskLevel) {
+		switch (riskLevel) {
+			case 'Very High':
+				return 'text-red-600 font-bold';
+			case 'High':
+				return 'text-orange-600 font-bold';
+			case 'Moderate':
+				return 'text-yellow-600 font-medium';
+			case 'Low':
+				return 'text-blue-600 font-medium';
+			case 'Very Low':
+				return 'text-green-600';
+			default:
+				return 'text-gray-600';
+		}
+	}
 
 	// Get icon for prediction
 	function getPredictionIcon(prediction, riskLevel) {
@@ -636,7 +636,7 @@
 			<button
 				on:click={predictFlood}
 				disabled={isPredicting || !$selectedLocation.lat || locationLoadingState}
-				class={`flex w-full items-center justify-center rounded-md bg-[#0c3143] px-3 py-2 text-sm font-medium text-white shadow transition-all duration-200 hover:bg-[#1a4a5a] focus:ring-2 focus:ring-[#0c3143]/20 focus:outline-none cursor-pointer disabled:cursor-not-allowed disabled:opacity-50`}
+				class={`flex w-full cursor-pointer items-center justify-center rounded-md bg-[#0c3143] px-3 py-2 text-sm font-medium text-white shadow transition-all duration-200 hover:bg-[#1a4a5a] focus:ring-2 focus:ring-[#0c3143]/20 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50`}
 			>
 				{#if isPredicting}
 					<Icon icon="eos-icons:loading" class="mr-1.5 animate-spin" width="14" />
@@ -784,9 +784,9 @@
 								<!-- Improved Risk Level & Probability Row -->
 								<div class="mb-2 flex flex-col space-y-2">
 									<!-- Risk Level Badge -->
-									<div class="flex flex-col md:flex-row items-center justify-between gap-1">
+									<div class="flex flex-col items-center justify-between gap-1 md:flex-row">
 										<p
-											class={`flex items-center gap-3 rounded-full px-2 py-0.5 text-xs lg:textsm font-semibold ${getRiskLevelBadgeStyle(day.flood_risk_level)}`}
+											class={`lg:textsm flex items-center gap-3 rounded-full px-2 py-0.5 text-xs font-semibold ${getRiskLevelBadgeStyle(day.flood_risk_level)}`}
 										>
 											<Icon
 												icon={getPredictionIcon(day.is_flooded_prediction_rf, day.flood_risk_level)}
@@ -796,7 +796,7 @@
 											{day.flood_risk_level} Flood Probability
 										</p>
 										<p
-											class={`font-bold text-sm ${getFloodProbabilityColor(day.is_flooded_prediction_rf, day.flood_risk_level)}`}
+											class={`text-sm font-bold ${getFloodProbabilityColor(day.is_flooded_prediction_rf, day.flood_risk_level)}`}
 										>
 											{formatRawProbability(day.is_flooded_probability_rf)} chance
 										</p>
@@ -859,7 +859,7 @@
 							<div class="border-t border-gray-200/50 bg-white/50 p-2">
 								<button
 									on:click={() => toggleExpand(day.date)}
-									class="flex w-full items-center justify-center rounded border border-dashed border-blue-300 bg-blue-50/50 px-2 py-1.5 text-xs font-medium text-blue-700 transition-all duration-200 hover:bg-blue-100 focus:ring-1 focus:ring-blue-500 focus:outline-none cursor-pointer"
+									class="flex w-full cursor-pointer items-center justify-center rounded border border-dashed border-blue-300 bg-blue-50/50 px-2 py-1.5 text-xs font-medium text-blue-700 transition-all duration-200 hover:bg-blue-100 focus:ring-1 focus:ring-blue-500 focus:outline-none"
 								>
 									<Icon
 										icon={expandedPredictions[day.date] ? 'mdi:chevron-up' : 'mdi:chevron-down'}
@@ -1413,12 +1413,14 @@
 				Nearby Facilities
 			</h4>
 			{#if !$facilitiesLayerActive}
-				<div class="rounded border-2 border-dashed border-yellow-300 bg-yellow-50 p-2">
+				<div
+					class="flex items-center rounded border-2 border-dashed border-yellow-300 bg-yellow-50 p-3"
+				>
 					<div class="flex items-center text-xs">
-						<Icon icon="mdi:layers-off" class="mr-2 flex-shrink-0 text-yellow-600" width="16" />
+						<Icon icon="mdi:layers-off" class="mr-2 flex-shrink-0 text-yellow-600" width="20" />
 						<div>
-							<p class="font-semibold text-gray-800">Layer Disabled</p>
-							<p class="text-gray-600">Enable "Nearby Facilities" layer</p>
+							<p class="text-sm font-semibold text-gray-800">"Nearby Facilities" Is Disabled</p>
+							<p class="text-xs text-gray-600">Enable "Nearby Facilities" Layer</p>
 						</div>
 					</div>
 				</div>
@@ -1428,7 +1430,7 @@
 						<div class="rounded border border-gray-300 bg-white">
 							<button
 								on:click={() => toggleFacilityDetails(facility.id)}
-								class="flex w-full items-center p-2 transition-colors duration-150 hover:bg-gray-50 cursor-pointer"
+								class="flex w-full cursor-pointer items-center p-2 transition-colors duration-150 hover:bg-gray-50"
 							>
 								<Icon
 									icon={facility.icon || 'mdi:map-marker'}
@@ -1536,7 +1538,7 @@
 					</div>
 					<div>
 						<p class="text-xs font-bold text-gray-800">Select Location</p>
-						<p class="text-xs text-gray-600">Click map or search</p>
+						<p class="text-xs text-gray-600">Click on Map or Search</p>
 					</div>
 				</div>
 				<div class="flex items-start rounded border border-blue-200 bg-blue-50 p-2">
@@ -1558,7 +1560,7 @@
 					</div>
 					<div>
 						<p class="text-xs font-bold text-gray-800">Review Results</p>
-						<p class="text-xs text-gray-600">See 5-day predictions</p>
+						<p class="text-xs text-gray-600">See 5-day Predictions</p>
 					</div>
 				</div>
 				<div class="flex items-start rounded border border-blue-200 bg-blue-50 p-2">
@@ -1569,7 +1571,7 @@
 					</div>
 					<div>
 						<p class="text-xs font-bold text-gray-800">Explore Data</p>
-						<p class="text-xs text-gray-600">Show detailed analysis</p>
+						<p class="text-xs text-gray-600">Click "Show Details"</p>
 					</div>
 				</div>
 			</div>
