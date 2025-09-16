@@ -16,14 +16,14 @@
 	import { toast } from 'svelte-sonner';
 
 	// Import map services
-	import { 
-		initMapService, 
-		createMarker, 
-		removeMarker, 
-		panTo, 
-		createRecenterControl 
+	import {
+		initMapService,
+		createMarker,
+		removeMarker,
+		panTo,
+		createRecenterControl
 	} from '$lib/services/MapService.js';
-	
+
 	// Import modular map components
 	import { initializeMap } from './map_components/MapInitializer.js';
 	import { setupBaseLayers } from './map_components/BaseLayers.js';
@@ -46,9 +46,9 @@
 		allLayerConfigs,
 		NEARBY_RADIUS_METERS
 	} from './map_components/MapConfig.js';
-	import { 
-		setupGroupedLayerControl, 
-		addWeatherLayersToGroupedControl 
+	import {
+		setupGroupedLayerControl,
+		addWeatherLayersToGroupedControl
 	} from './map_components/GroupedLayerControl.js';
 
 	const dispatch = createEventDispatcher();
@@ -229,20 +229,22 @@
 
 		// Import Leaflet
 		L = await import('leaflet');
-		
+
 		// Initialize map service with Leaflet
 		initMapService(L);
-		
+
 		// Dynamically load leaflet-groupedlayercontrol CSS
 		const groupedLayerControlCSS = document.createElement('link');
 		groupedLayerControlCSS.rel = 'stylesheet';
-		groupedLayerControlCSS.href = 'https://unpkg.com/leaflet-groupedlayercontrol/dist/leaflet.groupedlayercontrol.min.css';
+		groupedLayerControlCSS.href =
+			'https://unpkg.com/leaflet-groupedlayercontrol/dist/leaflet.groupedlayercontrol.min.css';
 		document.head.appendChild(groupedLayerControlCSS);
-		
+
 		// Dynamically load leaflet-groupedlayercontrol JS
 		await new Promise((resolve) => {
 			const groupedLayerControlScript = document.createElement('script');
-			groupedLayerControlScript.src = 'https://unpkg.com/leaflet-groupedlayercontrol/dist/leaflet.groupedlayercontrol.min.js';
+			groupedLayerControlScript.src =
+				'https://unpkg.com/leaflet-groupedlayercontrol/dist/leaflet.groupedlayercontrol.min.js';
 			groupedLayerControlScript.onload = resolve;
 			document.head.appendChild(groupedLayerControlScript);
 		});
@@ -259,10 +261,10 @@
 
 		// Setup weather layers
 		const weatherLayers = setupWeatherLayers(map, L, OPENWEATHER_MAP_API_KEY);
-		
+
 		// Setup grouped layer control instead of the regular control
 		layerControl = setupGroupedLayerControl(L, map, baseLayers, facilityLayers, floodHazardLayers);
-		
+
 		// Add weather layers to the grouped control
 		addWeatherLayersToGroupedControl(layerControl, weatherLayers);
 
@@ -815,33 +817,20 @@
 	}
 
 	/* Grouped Layer Control Styles */
+	:global(.leaflet-control-layers-group-label) {
+		border-bottom: solid 1px black;
+		margin-bottom: 2px;
+	}
+	
 	:global(.leaflet-control-layers-group-name) {
 		font-weight: bold;
-		margin: 0 0 5px 0;
-		color: #333;
-		padding-bottom: 3px;
-		border-bottom: 1px solid #ccc;
+		margin-top: 5px;
 	}
 
 	:global(.leaflet-control-layers-group) {
-		margin-bottom: 8px;
 	}
 
-	:global(.leaflet-control-layers-group-label) {
-		display: flex;
-		align-items: center;
-		gap: 5px;
-	}
-
-	:global(.leaflet-control-layers-group-label input) {
-		margin: 0;
-	}
-
-	:global(.leaflet-control-layers-overlays label) {
-		margin-left: 5px;
-	}
-
-	:global(.group-label-icon) {
-		margin-right: 5px;
+	:global(.leaflet-control-layers-selector) {
+		margin-right: 2px;
 	}
 </style>
