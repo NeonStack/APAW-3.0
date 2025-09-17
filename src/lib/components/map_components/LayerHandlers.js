@@ -4,157 +4,156 @@ import { selectedLocation } from '$lib/stores/locationStore.js';
 import { loadAndProcessGeoJson } from './GeoJsonUtils.js';
 import { displayNearbyFacilities } from './MarkerHandlers.js';
 import { NEARBY_RADIUS_METERS, facilitiesConfig } from './MapConfig.js';
-import { addLayerToMap, removeLayerFromMap, clearLayerGroup } from '$lib/services/MapService';
+import { addLayerToMap, removeLayerFromMap, clearLayerGroup } from '$lib/services/MapService.js';
 
+/**
+ * Sets up the layer control for the map.
+ * This creates buttons to show/hide different layers like facilities and flood hazards.
+ */
 export function setupLayerControl(L, map, baseLayers, facilityLayers, floodHazardLayers) {
-  // Create separate layer groups
+  // Create groups for each layer type
   facilityLayers[facilitiesConfig.id] = L.layerGroup();
   floodHazardLayers.forEach(hazardLayer => {
     facilityLayers[hazardLayer.id] = L.layerGroup();
   });
-  
-  // Create a combined overlays object for the control
+
+  // Prepare the layer options for the control
   const overlays = {};
-  
-  // Add the facilities layer with icon
-  overlays[`<i class="iconify" data-icon="mdi:map-marker-multiple" style="color: #3498db;"></i> ${facilitiesConfig.name}`] = 
+
+  // Add facilities layer with an icon
+  overlays[`<i class="iconify" data-icon="mdi:map-marker-multiple" style="color: #3498db;"></i> ${facilitiesConfig.name}`] =
     facilityLayers[facilitiesConfig.id];
-  
-  // Add hazard layers with icons
+
+  // Add flood hazard layers with icons
   floodHazardLayers.forEach(hazardLayer => {
-    overlays[`<i class="iconify" data-icon="mdi:waves" style="color: #3498db;"></i> ${hazardLayer.name}`] = 
+    overlays[`<i class="iconify" data-icon="mdi:waves" style="color: #3498db;"></i> ${hazardLayer.name}`] =
       facilityLayers[hazardLayer.id];
   });
 
-  // Create and add the layer control to the map
+  // Create the control and add it to the map
   const layerControl = L.control.layers(baseLayers, overlays, { collapsed: true });
   layerControl.addTo(map);
-  
-  // Add section titles
-  addLayerControlSectionTitles(layerControl, floodHazardLayers);
-  
+
+  // Add titles to organize the layers
+  addTitlesToLayerControl(layerControl, floodHazardLayers);
+
   return layerControl;
 }
 
-// Separate function for adding section titles to layer control
-function addLayerControlSectionTitles(layerControl, floodHazardLayers) {
+/**
+ * Adds section titles to the layer control for better organization.
+ */
+function addTitlesToLayerControl(layerControl, floodHazardLayers) {
+  // Wait a bit for the control to be ready
   setTimeout(() => {
     try {
       const container = layerControl.getContainer();
       if (!container) return;
-      
-      // Find the overlay section
+
       const overlaysDiv = container.querySelector('.leaflet-control-layers-overlays');
       if (!overlaysDiv) return;
-      
-      // Remove any existing titles (to avoid duplicates if this runs multiple times)
-      const existingTitles = overlaysDiv.querySelectorAll('.leaflet-control-layers-title');
-      existingTitles.forEach(title => title.remove());
-      
-      // Get all the labels in the overlay section
+
+      // Remove old titles if any
+      const oldTitles = overlaysDiv.querySelectorAll('.leaflet-control-layers-title');
+      oldTitles.forEach(title => title.remove());
+
       const labels = overlaysDiv.querySelectorAll('label');
       if (!labels.length) return;
-      
-      // Find where to insert the Facilities title (before the first label)
+
+      // Add "Facilities" title
       const facilitiesTitle = document.createElement('div');
       facilitiesTitle.className = 'leaflet-control-layers-title';
       facilitiesTitle.innerHTML = 'Facilities';
       overlaysDiv.insertBefore(facilitiesTitle, labels[0]);
-      
-      // Find the first flood hazard label
-      let floodHazardLabel = null;
-      for (let i = 0; i < labels.length; i++) {
-        const text = labels[i].textContent || '';
-        // Check if this label is for a flood hazard
+
+      // Find first flood hazard label
+      let firstHazardLabel = null;
+      for (let label of labels) {
+        const text = label.textContent || '';
         if (floodHazardLayers.some(h => text.includes(h.name))) {
-          floodHazardLabel = labels[i];
+          firstHazardLabel = label;
           break;
         }
       }
-      
-      // Insert the Flood Hazards title if we found a flood hazard label
-      if (floodHazardLabel) {
-        const floodHazardsTitle = document.createElement('div');
-        floodHazardsTitle.className = 'leaflet-control-layers-title';
-        floodHazardsTitle.innerHTML = 'Flood Hazards';
-        overlaysDiv.insertBefore(floodHazardsTitle, floodHazardLabel);
+
+      // Add "Flood Hazards" title
+      if (firstHazardLabel) {
+        const hazardsTitle = document.createElement('div');
+        hazardsTitle.className = 'leaflet-control-layers-title';
+        hazardsTitle.innerHTML = 'Flood Hazards';
+        overlaysDiv.insertBefore(hazardsTitle, firstHazardLabel);
       }
     } catch (error) {
-      console.error('Error adding layer control titles:', error);
+      console.error('Error adding titles:', error);
     }
-  }, 100); // Small delay to ensure DOM is ready
+  }, 100);
 }
 
+/**
+ * Handles turning a layer on or off.
+ * This is called when the user clicks the checkbox in the layer control.
+ */
 export async function handleLayerToggle(layerConfig, isAdding, showToast, map, L, facilityLayers, loadedGeojsonData, activeLeafletLayers, layerControl) {
   if (!layerConfig || !facilityLayers[layerConfig.id]) {
-    console.warn('Layer config or group missing for toggle:', layerConfig?.id);
+    console.warn('Layer config or group missing:', layerConfig?.id);
     return;
   }
 
   const layerGroup = facilityLayers[layerConfig.id];
 
   if (isAdding) {
-    // Add layer group to map
+    // Turn layer on
     addLayerToMap(layerGroup);
-    
-    const loadPromise = loadAndProcessGeoJson(layerConfig, loadedGeojsonData, !showToast)
-      .then((geoJsonData) => {
-        if (!geoJsonData) throw new Error('No data loaded.');
-
-        clearLayerGroup(layerGroup);
-
-        if (layerConfig.type === 'facility') {
-          handleFacilityLayer(layerConfig, map, L, facilityLayers, loadedGeojsonData);
-        } else if (layerConfig.type === 'hazard' && layerConfig.style) {
-          activeLeafletLayers[layerConfig.id] = L.geoJSON(geoJsonData, {
-            style: layerConfig.style,
-            interactive: false
-          }).addTo(layerGroup);
-          console.log(`${layerConfig.name} GeoJSON added to map.`);
-        }
-        return `${layerConfig.name} data loaded and displayed.`;
-      })
-      .catch((err) => {
-        console.error(`Error in loadPromise for ${layerConfig.name}:`, err);
-        if (err.message.includes('User cancelled')) {
-          uncheckLayerInControl(layerControl, map, layerConfig);
-        }
-        throw err;
-      });
-
-    if (showToast) {
-      toast.promise(loadPromise, {
-        loading: `Loading ${layerConfig.name} data...`,
-        success: (message) => message,
-        error: (err) => {
-          if (err.message.includes('User cancelled')) {
-            return `${layerConfig.name} download cancelled.`;
-          }
-          return `Failed to load ${layerConfig.name}: ${err.message}`;
-        }
-      });
-    } else {
-      loadPromise.catch((err) => {
-        if (!err.message.includes('User cancelled')) {
-          console.error(`Silent error loading ${layerConfig.name}:`, err);
-        }
-      });
-    }
+    await loadLayerData(layerConfig, layerGroup, map, L, facilityLayers, loadedGeojsonData, activeLeafletLayers, showToast, layerControl);
   } else {
-    console.log(`Clearing ${layerConfig.name} layer.`);
+    // Turn layer off
+    console.log(`Removing ${layerConfig.name} layer.`);
     clearLayerGroup(layerGroup);
-    
-    // Remove layer from map
     removeLayerFromMap(layerGroup);
-    
     if (activeLeafletLayers[layerConfig.id]) {
       delete activeLeafletLayers[layerConfig.id];
     }
   }
 }
 
-function handleFacilityLayer(layerConfig, map, L, facilityLayers, loadedGeojsonData) {
-  // For facility layers, immediately trigger the update for currently selected location
+/**
+ * Loads data for a layer and adds it to the map.
+ */
+async function loadLayerData(layerConfig, layerGroup, map, L, facilityLayers, loadedGeojsonData, activeLeafletLayers, showToast, layerControl) {
+  try {
+    const geoJsonData = await loadAndProcessGeoJson(layerConfig, loadedGeojsonData, !showToast);
+    if (!geoJsonData) throw new Error('No data loaded.');
+
+    clearLayerGroup(layerGroup);
+
+    if (layerConfig.type === 'facility') {
+      showFacilities(layerConfig, map, L, facilityLayers, loadedGeojsonData);
+    } else if (layerConfig.type === 'hazard' && layerConfig.style) {
+      activeLeafletLayers[layerConfig.id] = L.geoJSON(geoJsonData, {
+        style: layerConfig.style,
+        interactive: false
+      }).addTo(layerGroup);
+      console.log(`${layerConfig.name} added to map.`);
+    }
+
+    if (showToast) {
+      toast.success(`${layerConfig.name} loaded!`);
+    }
+  } catch (error) {
+    console.error(`Error loading ${layerConfig.name}:`, error);
+    if (error.message.includes('User cancelled')) {
+      uncheckInControl(layerControl, layerConfig);
+    }
+    if (showToast) {
+      toast.error(`Failed to load ${layerConfig.name}`);
+    }
+  }
+}
+
+/**
+ * Shows facilities near the selected location.
+ */
+function showFacilities(layerConfig, map, L, facilityLayers, loadedGeojsonData) {
   const selectedLoc = get(selectedLocation);
   if (selectedLoc && selectedLoc.lat !== null && selectedLoc.lng !== null) {
     displayNearbyFacilities(
@@ -166,19 +165,20 @@ function handleFacilityLayer(layerConfig, map, L, facilityLayers, loadedGeojsonD
       facilityLayers,
       loadedGeojsonData
     );
-    console.log(`Displaying nearby ${layerConfig.name} for current location.`);
+    console.log(`Showing nearby ${layerConfig.name}.`);
   } else {
-    console.log(`${layerConfig.name} layer is active, waiting for location selection.`);
+    console.log(`${layerConfig.name} active, waiting for location.`);
   }
 }
 
-function uncheckLayerInControl(layerControl, map, layerConfig) {
-  if (!layerControl || !map) return;
-  
-  const controlContainer = layerControl.getContainer();
-  const inputs = controlContainer.querySelectorAll(
-    'input.leaflet-control-layers-selector'
-  );
+/**
+ * Unchecks a layer in the control if loading failed.
+ */
+function uncheckInControl(layerControl, layerConfig) {
+  if (!layerControl) return;
+
+  const container = layerControl.getContainer();
+  const inputs = container.querySelectorAll('input.leaflet-control-layers-selector');
   for (let input of inputs) {
     const label = input.nextElementSibling;
     if (label && label.textContent && label.textContent.includes(layerConfig.name)) {
