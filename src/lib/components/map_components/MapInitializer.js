@@ -18,6 +18,7 @@ export async function initializeMap(L, mapContainer) {
   const map = L.map(mapContainer, {
     zoomControl: false,
     center: paddedNcrBounds.getCenter(),
+    maxBounds: paddedNcrBounds,
     zoom: 10,
     minZoom: 100,
     maxBoundsViscosity: 0.9
