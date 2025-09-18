@@ -19,9 +19,9 @@ export async function initializeMap(L, mapContainer) {
     zoomControl: false,
     center: paddedNcrBounds.getCenter(),
     zoom: 10,
+    minZoom: 100,
     maxBoundsViscosity: 0.9
   });
-// minZoom: 10,
 // zoom: 11,
 // minZoom: 10,
 // maxBounds: paddedNcrBounds,
