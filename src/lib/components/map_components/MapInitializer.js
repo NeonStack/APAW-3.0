@@ -20,7 +20,7 @@ export async function initializeMap(L, mapContainer) {
     center: paddedNcrBounds.getCenter(),
     maxBounds: paddedNcrBounds,
     zoom: 10,
-    minZoom: 100,
+    minZoom: 19,
     maxBoundsViscosity: 0.9
   });
 // zoom: 11,
