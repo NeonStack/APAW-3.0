@@ -19,12 +19,13 @@ export async function initializeMap(L, mapContainer) {
     zoomControl: false,
     center: paddedNcrBounds.getCenter(),
     maxBounds: paddedNcrBounds,
-    zoom: 10,
+    zoom: 11,
     minZoom: 10,
     maxBoundsViscosity: 0.9
   });
+// zoom: 11,
 // minZoom: 10,
-//zoom: 11,
+// maxBounds: paddedNcrBounds,
   
   
   // Add NCR boundary to map if available
