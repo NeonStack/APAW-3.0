@@ -11,6 +11,34 @@ export const weatherData = writable({
 // Create a store for selected city (to show detailed forecast)
 export const selectedCity = writable(null);
 
+export async function fetchWeatherData() {
+  weatherData.update((current) => ({ ...current, loading: true, error: null }));
+
+  try {
+    const response = await fetch('/api/weather');
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch weather data. Status: ${response.status}`);
+    }
+
+    const data = await response.json();
+
+    weatherData.set({
+      loading: false,
+      data: data,
+      error: null,
+      lastUpdated: new Date()
+    });
+  } catch (error) {
+    console.error('Error fetching weather data:', error);
+    weatherData.update((current) => ({
+      ...current,
+      loading: false,
+      error: error.message
+    }));
+  }
+}
+
 // Add city coordinates data for distance calculations
 export const metroManilaCities = [
   { id: "264885", name: "Manila", lat: 14.5958, lon: 120.9772 },

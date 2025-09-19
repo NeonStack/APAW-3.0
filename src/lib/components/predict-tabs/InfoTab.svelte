@@ -7,11 +7,81 @@
 		facilitiesLayerActive
 	} from '$lib/stores/locationStore.js';
 	import { waterStations, nearestWaterStation } from '$lib/stores/waterStationStore.js';
-	import { metroManilaCities, nearestWeatherCity } from '$lib/stores/weatherStore.js';
+	import { metroManilaCities, nearestWeatherCity, weatherData } from '$lib/stores/weatherStore.js';
 	import { onMount, afterUpdate, createEventDispatcher } from 'svelte';
 	import Icon from '@iconify/svelte';
 
 	const dispatch = createEventDispatcher();
+
+	// Data source status
+	let sources = [
+		{
+			name: 'PAGASA',
+			logo: 'logo/pagasa.png',
+			type: 'img',
+			status: 'pending' // pending, success, error
+		},
+		{
+			name: 'AccuWeather',
+			logo: 'simple-icons:accuweather',
+			type: 'icon',
+			status: 'pending'
+		},
+		{
+			name: 'OpenStreetMap',
+			logo: 'openmoji:openstreetmap',
+			type: 'icon',
+			status: 'pending'
+		},
+		{
+			name: 'Open Topo Data',
+			logo: 'arcticons:opentopomap',
+			type: 'icon',
+			status: 'pending'
+		}
+	];
+
+	$: {
+		// PAGASA (Water Stations)
+		if ($waterStations.loading) {
+			sources[0].status = 'pending';
+		} else if ($waterStations.error) {
+			sources[0].status = 'error';
+		} else if ($waterStations.data && $waterStations.data.length > 0) {
+			sources[0].status = 'success';
+		}
+
+		// AccuWeather (Weather Data)
+		if ($weatherData.loading) {
+			sources[1].status = 'pending';
+		} else if ($weatherData.error) {
+			sources[1].status = 'error';
+		} else if ($weatherData.data && $weatherData.data.length > 0) {
+			sources[1].status = 'success';
+		}
+
+		// OpenStreetMap (Location Name)
+		if ($selectedLocation.loading) {
+			sources[2].status = 'pending';
+		} else if ($selectedLocation.lat && $selectedLocation.locationName) {
+			sources[2].status = 'success';
+		} else if ($selectedLocation.lat && !$selectedLocation.locationName) {
+			// If we have lat but no name, it could be an error or just not fetched yet.
+			// Assuming an attempt was made if lat is present.
+			sources[2].status = 'pending';
+		}
+
+		// Open Topo Data (Elevation)
+		if ($selectedLocation.loading) {
+			sources[3].status = 'pending';
+		} else if ($selectedLocation.error) {
+			sources[3].status = 'error';
+		} else if ($selectedLocation.elevation !== null) {
+			sources[3].status = 'success';
+		}
+	}
+
+	let dataSourcesExpanded = false;
 
 	// Flood prediction state
 	let floodPrediction = null;
@@ -608,6 +678,60 @@
 </script>
 
 <div class="info-tab space-y-3">
+	<!-- Data Sources Status -->
+	<div class="rounded-lg border border-gray-200 bg-white shadow-sm">
+		<button
+			on:click={() => (dataSourcesExpanded = !dataSourcesExpanded)}
+			class="flex w-full items-center justify-between p-3 text-left cursor-pointer hover:bg-gray-50"
+		>
+			<div class="flex items-center">
+				<Icon icon="mdi:database-check-outline" class="mr-2 text-[#0c3143]" width="16" />
+				<h3 class="text-sm font-bold text-[#0c3143]">Data Sources Status</h3>
+			</div>
+			<Icon
+				icon={dataSourcesExpanded ? 'mdi:chevron-up' : 'mdi:chevron-down'}
+				class="text-gray-500"
+				width="20"
+			/>
+		</button>
+		{#if dataSourcesExpanded}
+			<div class="grid grid-cols-2 gap-2 border-t border-gray-200 p-3">
+				{#each sources as source}
+					<div class="flex items-center space-x-2 rounded-md bg-gray-50 p-2">
+						{#if source.type === 'img'}
+							<img src={source.logo} alt={source.name} class="h-4 w-4" />
+						{:else}
+							<Icon icon={source.logo} class="h-4 w-4 flex-shrink-0" />
+						{/if}
+						<span class="flex-grow truncate text-xs font-medium text-gray-700">{source.name}</span>
+						<div
+							class="relative h-3 w-3 flex-shrink-0 rounded-full"
+							class:bg-gray-400={source.status === 'pending'}
+							class:bg-green-500={source.status === 'success'}
+							class:bg-red-500={source.status === 'error'}
+							class:shadow-lg={source.status === 'success' || source.status === 'error'}
+							class:shadow-green-400={source.status === 'success'}
+							class:shadow-red-400={source.status === 'error'}
+							class:ring-2={source.status === 'success' || source.status === 'error'}
+							class:ring-green-300={source.status === 'success'}
+							class:ring-red-300={source.status === 'error'}
+							class:ring-opacity-50={source.status === 'success' || source.status === 'error'}
+							class:animate-pulse={source.status === 'success' || source.status === 'error'}
+							title={source.status}
+						>
+							<!-- Inner glow effect for active states -->
+							{#if source.status === 'success'}
+								<div class="absolute inset-0 rounded-full bg-green-400 opacity-30 blur-sm"></div>
+							{:else if source.status === 'error'}
+								<div class="absolute inset-0 rounded-full bg-red-400 opacity-30 blur-sm"></div>
+							{/if}
+						</div>
+					</div>
+				{/each}
+			</div>
+		{/if}
+	</div>
+
 	<!-- Compact Header -->
 	<div class="flex items-center space-x-2">
 		<div class="rounded-md bg-gradient-to-br from-[#0c3143] to-[#1a4a5a] p-1.5">
