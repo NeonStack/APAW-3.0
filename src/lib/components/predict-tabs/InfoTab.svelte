@@ -1466,12 +1466,8 @@
 					<!-- Compact coordinates -->
 					<div class="space-y-1">
 						<div class="flex justify-between text-xs">
-							<span class="font-medium text-gray-600">Latitude:</span>
-							<span class="font-mono text-gray-800">{$selectedLocation.lat}</span>
-						</div>
-						<div class="flex justify-between text-xs">
-							<span class="font-medium text-gray-600">Longitude:</span>
-							<span class="font-mono text-gray-800">{$selectedLocation.lng}</span>
+							<span class="font-medium text-gray-600">Coordinates:</span>
+							<span class="font-mono text-gray-800">{$selectedLocation.lat} {$selectedLocation.lng}</span>
 						</div>
 						<div class="flex justify-between text-xs">
 							<span class="font-medium text-gray-600">Elevation:</span>
