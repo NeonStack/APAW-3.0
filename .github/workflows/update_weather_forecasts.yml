@@ -1,0 +1,35 @@
+# Name of the GitHub Actions workflow
+name: Scheduled Weather Data Update
+
+# Controls when the workflow will run
+on:
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+  # Runs the job on a schedule (times are in UTC)
+  schedule:
+    # PH Time: 2:05 AM (UTC: 6:05 PM previous day)
+    - cron: '5 18 * * *'
+    # PH Time: 8:05 AM (UTC: 12:05 AM)
+    - cron: '5 0 * * *'
+    # PH Time: 2:05 PM (UTC: 6:05 AM)
+    - cron: '5 6 * * *'
+    # PH Time: 8:05 PM (UTC: 12:05 PM)
+    - cron: '5 12 * * *'
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # This workflow contains a single job called "update-weather-data"
+  update-weather-data:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      # Step 1: Send a POST request to the SvelteKit webhook to trigger the update
+      - name: Trigger Weather Update Webhook
+        run: |
+          curl -X POST \
+          -H "Authorization: Bearer ${{ secrets.GITHUB_ACTION_SECRET }}" \
+          -H "Content-Type: application/json" \
+          "${{ secrets.WEBHOOK_URL }}"
