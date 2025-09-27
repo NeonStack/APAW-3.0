@@ -30,6 +30,6 @@ jobs:
       - name: Trigger Weather Update Webhook
         run: |
           curl -X POST \
-          -H "Authorization: Bearer ${{ secrets.GITHUB_ACTION_SECRET }}" \
+          -H "Authorization: Bearer ${{ secrets.JOB_TRIGGER_SECRET }}" \
           -H "Content-Type: application/json" \
           "${{ secrets.WEBHOOK_URL }}"
