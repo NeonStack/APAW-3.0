@@ -23,8 +23,8 @@
 		},
 		{
 			name: 'Visual Crossing',
-			logo: 'simple-icons:weatherapi',
-			type: 'icon',
+			logo: 'logo/visual-crossing-short.png',
+			type: 'img',
 			status: 'pending'
 		},
 		{
@@ -99,8 +99,8 @@
 	const phases = [
 		{ endTime: 2000, endProgress: 40 }, // Phase 1: 0-10s, 0-40%
 		{ endTime: 5000, endProgress: 70 }, // Phase 2: 10-25s, 40-80%
-		{ endTime: 9000, endProgress: 95 }, // Phase 3: 25-40s, 80-90%
-		{ endTime: 11000, endProgress: 99 } // Final phase: stays at 99%
+		{ endTime: 10000, endProgress: 90 }, // Phase 3: 25-40s, 80-90%
+		{ endTime: 15000, endProgress: 99 } // Final phase: stays at 99%
 	];
 
 	// Start the fake progress animation
