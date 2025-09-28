@@ -132,12 +132,12 @@
 			url: 'https://open-meteo.com/'
 		},
 		{
-			title: 'AccuWeather API',
-			description: 'Provided supplementary weather forecast data used in the prediction backend.',
+			title: 'Visual Crossing Weather',
+			description: 'Provided supplementary weather forecast data used in the prediction backend and for displaying weather information.',
 			category: 'Data Sources',
-			iconType: 'iconify',
-			icon: 'simple-icons:accuweather',
-			url: 'https://developer.accuweather.com/'
+			iconType: 'image',
+			icon: '/logo/visual-crossing-short.png',
+			url: 'https://www.visualcrossing.com/'
 		},
 		{
 			title: 'OpenStreetMap (OSM)',

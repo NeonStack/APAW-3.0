@@ -182,6 +182,20 @@
         <Icon icon={showFilters ? "mdi:filter-off" : "mdi:filter"} width="12" />
         {showFilters ? 'Hide' : 'Filters'}
       </button>
+
+      <a
+                href="https://www.pagasa.dost.gov.ph/flood#flood-information"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="flex cursor-pointer items-center rounded bg-gray-100 px-2 py-1 transition-colors hover:bg-gray-200"
+                title="Water level provided by PAGASA"
+            >
+                <img 
+                    src="/logo/pagasa.png" 
+                    alt="Powered by PAGASA"
+                    class="h-6 w-auto"
+                />
+            </a>
     </div>
   </div>
 

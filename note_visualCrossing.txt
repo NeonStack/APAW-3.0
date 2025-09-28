@@ -24,6 +24,32 @@ Pasay = 14.534401, 121.001278
 Pateros = 14.545080, 121.069831
 Taguig = 14.517084, 121.057200
 
+1st District:  
+Manila
+
+2nd District:  
+Mandaluyong
+Marikina
+Pasig
+Quezon City
+San Juan
+
+3rd District:  
+Caloocan (North)
+Caloocan (South)
+Malabon
+Navotas
+Valenzuela
+
+4th District:  
+Las Piñas
+Makati
+Muntinlupa
+Parañaque
+Pasay
+Pateros
+Taguig
+
 fetch link: http://dataservice.accuweather.com/forecasts/v1/daily/5day/{key_id_area}
 
 Query Parameters
