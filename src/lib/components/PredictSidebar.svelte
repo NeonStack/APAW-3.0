@@ -1,7 +1,7 @@
 <script>
 	import { createEventDispatcher, onMount, afterUpdate } from 'svelte';
 	import { waterStations, fetchWaterStations } from '$lib/stores/waterStationStore.js';
-	import InfoTab from './predict-tabs/InfoTab.svelte';
+	// import InfoTab from './predict-tabs/InfoTab.svelte';
 	import WaterStationsTab from './predict-tabs/WaterStationsTab.svelte';
   import { weatherData, fetchWeatherData } from '$lib/stores/weatherStore.js';
 	import WeatherTab from './predict-tabs/WeatherTab.svelte';
@@ -13,7 +13,7 @@
 
 	let activeTab = 'info';
 	let tabs = [
-		{ id: 'info', name: 'Information', icon: 'mdi:information-outline' },
+		// { id: 'info', name: 'Information', icon: 'mdi:information-outline' },
 		{ id: 'water', name: 'Water Stations', icon: 'mdi:water' },
 		{ id: 'weather', name: 'Weather', icon: 'mdi:weather-partly-cloudy' }
 	];
@@ -65,7 +65,7 @@
 
 	<div class="flex-grow overflow-y-auto border-t border-gray-100 p-3">
 		{#if activeTab === 'info'}
-			<InfoTab />
+			<!-- <InfoTab /> -->
 		{:else if activeTab === 'water'}
 			<WaterStationsTab />
 		{:else if activeTab === 'weather'}
