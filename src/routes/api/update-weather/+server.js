@@ -45,7 +45,8 @@ export async function POST({ request }) {
     try {
         for (const location of NCR_LOCATIONS) {
             // 2. --- FETCH DATA FROM VISUAL CROSSING ---
-            const apiUrl = `https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/${location.lat}%2C%20${location.lon}?unitGroup=metric&key=${VISUAL_CROSSING_API_KEY}&contentType=json`;
+            // The API URL now includes `&include=hours` to ensure we get hourly details
+            const apiUrl = `https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/${location.lat}%2C%20${location.lon}?unitGroup=metric&include=hours&key=${VISUAL_CROSSING_API_KEY}&contentType=json`;
             const response = await fetch(apiUrl);
             if (!response.ok) {
                 console.error(`Visual Crossing API error for ${location.name}: ${response.statusText}`);
@@ -55,6 +56,7 @@ export async function POST({ request }) {
             const data = await response.json();
 
             // 3. --- DELETE EXISTING FORECAST FOR THE SAME PERIOD ---
+            // We'll fetch a 5-day forecast, so we delete the next 5 days of data
             const fiveDaysOfForecasts = data.days.slice(0, 5);
             if (fiveDaysOfForecasts.length === 0) {
                 console.log(`No forecast data returned for ${location.name}. Skipping.`);
@@ -62,10 +64,9 @@ export async function POST({ request }) {
                 continue;
             }
 
-            const startDate = fiveDaysOfForecasts[0].datetime; // e.g., "2025-09-27"
-            const endDate = fiveDaysOfForecasts[fiveDaysOfForecasts.length - 1].datetime; // e.g., "2025-10-01"
+            const startDate = fiveDaysOfForecasts[0].datetime;
+            const endDate = fiveDaysOfForecasts[fiveDaysOfForecasts.length - 1].datetime;
             
-            // To include all hours of the end date, we set the upper bound to the start of the next day.
             const endDatePlusOne = new Date(endDate);
             endDatePlusOne.setDate(endDatePlusOne.getDate() + 1);
             
@@ -81,11 +82,12 @@ export async function POST({ request }) {
                 throw new Error(`Supabase delete error for ${location.name}: ${deleteError.message}`);
             }
 
-            // 4. --- TRANSFORM AND UPSERT NEW DATA ---
+            // 4. --- TRANSFORM AND UPSERT NEW DATA (WITH ENRICHED FIELDS) ---
             const recordsToUpsert = [];
             for (const day of fiveDaysOfForecasts) {
                 for (const hour of day.hours) {
                     recordsToUpsert.push({
+                        // --- Core Model Features ---
                         location_name: location.name,
                         latitude: location.lat,
                         longitude: location.lon,
@@ -96,7 +98,15 @@ export async function POST({ request }) {
                         precip_mm: hour.precip,
                         windspeed_kmh: hour.windspeed,
                         pressure_mb: hour.pressure,
-                        cloudcover: hour.cloudcover
+                        cloudcover: hour.cloudcover,
+                        
+                        // --- NEW: User-Facing Display Features ---
+                        conditions: hour.conditions,
+                        icon: hour.icon,
+                        precipprob: hour.precipprob,
+                        windgust_kmh: hour.windgust,
+                        uvindex: hour.uvindex,
+                        solarradiation: hour.solarradiation
                     });
                 }
             }
