@@ -45,7 +45,7 @@ export async function GET({ request }) {
       console.error(`API error! status: ${response.status}`);
       return json({ error: 'Unable to retrieve data' }, { status: 500 });
     }
-
+    
     const data = await response.json();
 
     // Process and sanitize the data
@@ -55,7 +55,7 @@ export async function GET({ request }) {
         obsnm: station.obsnm,
         lon: station.lon,
         lat: station.lat,
-        timestr: moment(station.timestr, 'YYYY-MM-DD HH:mm').format('MMMM D, YYYY [at] h:mm A'),
+        timestr: moment(station.timestr, 'YYYY-MM-DD HH:mm').format('MMM D • h:mm A'),
         wl: cleanWaterLevel(station.wl),
         wl10m: cleanWaterLevel(station.wl10m),
         wl30m: cleanWaterLevel(station.wl30m),

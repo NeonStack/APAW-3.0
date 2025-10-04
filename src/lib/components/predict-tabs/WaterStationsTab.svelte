@@ -68,22 +68,6 @@
       waterStations.set({ loading: false, data: [], error: error.message });
     }
   }
-
-  // Function to format the datetime display in a compact way
-  function formatDateTime(timeStr) {
-    if (!timeStr) return '';
- 
-    const parts = timeStr.split(' at ');
-    
-    if (parts.length === 2) {
-      const datePart = parts[0]; // "Month D, YYYY"
-      const timePart = parts[1]; // "h:mm AM/PM"
-      
-      return `${datePart} • ${timePart}`;
-    }
-    
-    return timeStr;
-  }
   
   // Add filter and sorting options
   let statusFilter = $state('all');
@@ -166,13 +150,13 @@
     <h2 class="text-xs xl:text-lg font-bold text-[#0c3143]">Water Level Stations</h2>
     
     <!-- Action buttons aligned to the right -->
-    <div class="ml-auto flex gap-2">
+    <div class="ml-auto flex flex-wrap gap-2">
       <button 
         class="flex items-center gap-1 rounded bg-gray-100 px-2 py-1 text-xs text-gray-600 transition-colors hover:bg-gray-200 hover:text-gray-900 cursor-pointer"
         on:click={refreshWaterStations}
       >
         <Icon icon="mdi:refresh" width="12" />
-        Refresh
+        <span class="hidden sm:inline">Refresh</span>
       </button>
       
       <button 
@@ -180,22 +164,8 @@
         on:click={() => showFilters = !showFilters}
       >
         <Icon icon={showFilters ? "mdi:filter-off" : "mdi:filter"} width="12" />
-        {showFilters ? 'Hide' : 'Filters'}
+        <span class="hidden sm:inline">{showFilters ? 'Hide' : 'Filters'}</span>
       </button>
-
-      <a
-                href="https://www.pagasa.dost.gov.ph/flood#flood-information"
-                target="_blank"
-                rel="noopener noreferrer"
-                class="flex cursor-pointer items-center rounded bg-gray-100 px-2 py-1 transition-colors hover:bg-gray-200"
-                title="Water level provided by PAGASA"
-            >
-                <img 
-                    src="/logo/pagasa.png" 
-                    alt="Powered by PAGASA"
-                    class="h-6 w-auto"
-                />
-            </a>
     </div>
   </div>
 
@@ -323,13 +293,12 @@
     </div>
   {:else}
     <!-- Compact Water Station Cards -->
-    <div class="space-y-2">
+    <div class="space-y-5">
       {#each filteredStations as station (station.obsnm)}
         {@const status = getStationStatus(station)}
         {@const change = calculateWaterChange(station)}
         
-        <div class="rounded-lg border shadow-sm bg-white">
-          <!-- Compact Station Header -->
+        <div class="rounded-lg shadow-md bg-gray-50 border-gray-300 border-2">
           <div class="p-3">
             <div class="mb-2">
               <div class="flex items-center justify-between mb-1">
@@ -344,7 +313,8 @@
                   on:click={() => showStationOnMap(station)}
                 >
                   <Icon icon="mdi:map-marker" width="12" />
-                  Show on Map
+                  <span class="hidden sm:inline">Show on Map</span>
+                  <span class="sm:hidden">Map</span>
                 </button>
               </div>
               
@@ -447,77 +417,23 @@
             {/if}
           </div>
 
-          <!-- Compact Expand/Collapse Section -->
-          <div class="border-t border-gray-200/50 bg-white/50 p-2">
-            <details class="group">
-              <summary class="flex w-full cursor-pointer items-center justify-center rounded border border-dashed border-blue-300 bg-blue-50/50 px-2 py-1.5 text-xs font-medium text-blue-700 transition-all duration-200 hover:bg-blue-100">
-                <Icon icon="mdi:chart-line" class="mr-1" width="14" />
-                <span class="group-open:hidden">Show Detailed Data</span>
-                <span class="hidden group-open:inline">Hide Detailed Data</span>
-                <Icon icon="mdi:chevron-down" class="ml-1 transition-transform group-open:rotate-180" width="14" />
-              </summary>
-              
-              <!-- Detailed Data Section -->
-              <div class="mt-2 space-y-2 p-2">
-                <!-- Historical Readings -->
-                <div class="rounded border border-blue-200 bg-blue-50 p-2">
-                  <h6 class="mb-2 flex items-center text-xs font-bold text-blue-800">
-                    <Icon icon="mdi:history" class="mr-1" width="12" />
-                    Historical Readings
-                  </h6>
-                  <div class="space-y-1">
-                    <div class="flex items-center justify-between rounded bg-white border border-gray-200 px-2 py-1">
-                      <span class="text-xs text-gray-600">Current Level:</span>
-                      <span class="text-xs font-bold text-gray-800">{station.wl || 'N/A'} m</span>
-                    </div>
-                    <div class="flex items-center justify-between rounded bg-white border border-gray-200 px-2 py-1">
-                      <span class="text-xs text-gray-600">10 minutes ago:</span>
-                      <span class="text-xs font-bold text-gray-800">{station.wl10m || 'N/A'} m</span>
-                    </div>
-                    <div class="flex items-center justify-between rounded bg-white border border-gray-200 px-2 py-1">
-                      <span class="text-xs text-gray-600">30 minutes ago:</span>
-                      <span class="text-xs font-bold text-gray-800">{station.wl30m || 'N/A'} m</span>
-                    </div>
-                    <div class="flex items-center justify-between rounded bg-white border border-gray-200 px-2 py-1">
-                      <span class="text-xs text-gray-600">1 hour ago:</span>
-                      <span class="text-xs font-bold text-gray-800">{station.wl1h || 'N/A'} m</span>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Warning Thresholds -->
-                <div class="rounded border border-blue-200 bg-blue-50 p-2">
-                  <h6 class="mb-2 flex items-center text-xs font-bold text-blue-800">
-                    <Icon icon="mdi:alert" class="mr-1" width="12" />
-                    Warning Thresholds
-                  </h6>
-                  <div class="space-y-1">
-                    <div class="flex items-center justify-between rounded bg-white border border-gray-200 px-2 py-1">
-                      <span class="text-xs text-gray-600">Alert Level:</span>
-                      <span class="text-xs font-bold text-yellow-700">{station.alertwl || 'Not set'} m</span>
-                    </div>
-                    <div class="flex items-center justify-between rounded bg-white border border-gray-200 px-2 py-1">
-                      <span class="text-xs text-gray-600">Alarm Level:</span>
-                      <span class="text-xs font-bold text-orange-700">{station.alarmwl || 'Not set'} m</span>
-                    </div>
-                    <div class="flex items-center justify-between rounded bg-white border border-gray-200 px-2 py-1">
-                      <span class="text-xs text-gray-600">Critical Level:</span>
-                      <span class="text-xs font-bold text-red-700">{station.criticalwl || 'Not set'} m</span>
-                    </div>
-                    <div class="flex items-center justify-between rounded bg-white border border-gray-200 px-2 py-1">
-                      <span class="text-xs text-gray-600">Current Status:</span>
-                      <span class={`text-xs font-bold ${
-                        status.color === 'green' ? 'text-green-700' :
-                        status.color === 'yellow' ? 'text-yellow-700' :
-                        status.color === 'orange' ? 'text-orange-700' :
-                        status.color === 'red' ? 'text-red-700' :
-                        'text-gray-700'
-                      }`}>{status.text}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </details>
+          <!-- PAGASA Attribution -->
+          <div class="border-t border-gray-200 bg-gradient-to-r from-gray-50 to-white px-3 py-2">
+            <a
+              href="https://www.pagasa.dost.gov.ph/flood#koica"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="flex items-center justify-center gap-2 text-xs text-gray-600 transition-all hover:text-gray-900 group"
+              title="Water level data from PAGASA"
+            >
+              <span class="font-medium">Data from</span>
+              <img 
+                src="/logo/pagasa.png" 
+                alt="PAGASA"
+                class="h-5 w-auto transition-transform group-hover:scale-105"
+              />
+              <span class="font-semibold text-gray-700 group-hover:text-gray-900">PAGASA</span>
+            </a>
           </div>
         </div>
       {/each}
@@ -526,35 +442,10 @@
 </div>
 
 <style>
-  /* Enhanced styles for narrow containers */
-  .text-2xs {
-    font-size: 0.625rem;
-    line-height: 0.875rem;
-  }
-  
-  /* Smooth transitions */
-  .water-stations-tab button {
-    transition: all 0.2s ease-in-out;
-  }
-  
-  /* Compact hover effects */
-  .water-stations-tab button:hover:not(:disabled) {
-    transform: translateY(-0.5px);
-  }
-  
   /* Better focus states */
   .water-stations-tab button:focus-visible {
     outline: 2px solid #0c3143;
     outline-offset: 1px;
-  }
-  
-  /* Details/summary styling */
-  details summary {
-    list-style: none;
-  }
-  
-  details summary::-webkit-details-marker {
-    display: none;
   }
   
   /* Compact spacing for narrow layouts */
@@ -564,9 +455,5 @@
   
   .space-y-2 > :not([hidden]) ~ :not([hidden]) {
     margin-top: 0.5rem;
-  }
-  
-  .space-y-1 > :not([hidden]) ~ :not([hidden]) {
-    margin-top: 0.25rem;
   }
 </style>

@@ -50,6 +50,7 @@ export async function GET({ request }) {
     .order('datetime', { ascending: true });
 
   if (error) {
+    console.log(error);
     return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: { 'Content-Type': 'application/json' } });
   }
 

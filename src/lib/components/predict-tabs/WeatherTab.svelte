@@ -103,15 +103,15 @@
         <div class="rounded-md bg-gradient-to-br from-[#0c3143] to-[#1a4a5a] p-1.5">
             <Icon icon="mdi:weather-partly-cloudy" class="text-white" width="18" />
         </div>
-        <h2 class="text-xs font-bold text-[#0c3143] xl:text-lg">Weather</h2>
+        <h2 class="text-xs font-bold text-[#0c3143] xl:text-lg">Weather Forecast</h2>
 
-        <div class="ml-auto flex gap-2">
+        <div class="ml-auto flex flex-wrap gap-2">
             <button
                 class="flex cursor-pointer items-center gap-1 rounded bg-gray-100 px-2 py-1 text-xs text-gray-600 transition-colors hover:bg-gray-200 hover:text-gray-900"
                 on:click={refreshWeather}
             >
                 <Icon icon="mdi:refresh" width="12" />
-                Refresh
+                <span class="hidden sm:inline">Refresh</span>
             </button>
 
             <button
@@ -119,22 +119,8 @@
                 on:click={() => (showFilters = !showFilters)}
             >
                 <Icon icon={showFilters ? 'mdi:filter-off' : 'mdi:filter'} width="12" />
-                {showFilters ? 'Hide' : 'Filters'}
+                <span class="hidden sm:inline">{showFilters ? 'Hide' : 'Filters'}</span>
             </button>
-
-            <a
-                href="https://www.visualcrossing.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                class="flex cursor-pointer items-center rounded bg-gray-100 px-2 py-1 transition-colors hover:bg-gray-200"
-                title="Weather data provided by Visual Crossing"
-            >
-                <img 
-                    src="/logo/powered-visual-crossing.png" 
-                    alt="Powered by Visual Crossing Weather"
-                    class="h-6 w-auto"
-                />
-            </a>
         </div>
     </div>
 
@@ -224,246 +210,238 @@
         <div class="space-y-2">
             {#each Object.entries(filteredData()) as [location, days]}
                 {@const currentData = getCurrentHourData(days)}
-                <div class="rounded-lg border shadow-sm bg-white">
+                <div class="rounded-lg shadow-md bg-gray-50 border-gray-300 border-2">
                     <!-- Location Header -->
-                    <div class="p-3">
-                        <div class="mb-2">
-                            <div class="flex items-center justify-between mb-1">
-                                <h4 class="flex items-center text-sm font-bold text-gray-800">
-                                    <Icon
-                                        icon={iconMap[currentData.icon] || 'mdi:weather-partly-cloudy'}
-                                        class="mr-1.5 text-blue-600"
-                                        width="14"
-                                    />
-                                    {location}
-                                </h4>
-                                
-                                <div class="flex items-center text-xs text-gray-500">
-                                    <Icon icon="mdi:clock-outline" class="mr-1" width="12" />
-                                    {moment(currentData.datetime, 'YYYY-MM-DD HH:mm:ss').format('MMM D • h:mm A')}
-                                </div>
-                            </div>
+                    <div class="px-3 sm:px-4 py-2 rounded-t-lg">
+                        <div class="flex items-start sm:items-center justify-between gap-2">
+                            <h3 class="font-bold text-sm sm:text-base truncate flex-shrink min-w-0">
+                               {location}
+                            </h3>
                             
-                            <!-- Weather Status -->
-                            <div class="flex items-center justify-between">
-                                <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold bg-blue-100 text-blue-800">
-                                    <Icon icon={iconMap[currentData.icon] || 'mdi:weather-partly-cloudy'} class="mr-1" width="12" />
-                                    {currentData.conditions}
-                                </span>
-                                
-                                <div class="flex items-center text-xs text-gray-500">
-                                    <Icon icon="mdi:thermometer" class="mr-1" width="12" />
-                                    Feels like {currentData.feelslike_c}°C
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- Main Weather Display -->
-                        <div class="rounded bg-white/70 p-3 border border-gray-200">
-                            <div class="flex items-center justify-between mb-3">
-                                <div class="flex items-center">
-                                    <Icon 
-                                        icon={iconMap[currentData.icon] || 'mdi:weather-partly-cloudy'} 
-                                        class="mr-3 text-blue-600" 
-                                        width="32" 
-                                    />
-                                    <div>
-                                        <div class="flex items-baseline">
-                                            <span class="text-2xl font-bold text-gray-800">{currentData.temp_c}</span>
-                                            <span class="ml-1 text-sm text-gray-500">°C</span>
-                                        </div>
-                                        <div class="text-xs text-gray-600">Temperature</div>
-                                    </div>
-                                </div>
-                                
-                                <div class="text-right">
-                                    <div class="flex items-center text-xs font-medium text-blue-600">
-                                        <Icon icon="mdi:water-percent" class="mr-1" width="12" />
-                                        {currentData.precipprob}% chance
-                                    </div>
-                                    <div class="text-xs text-gray-500">of rain</div>
-                                </div>
-                            </div>
-                            
-                            <!-- Key Weather Metrics Row -->
-                            <div class="grid grid-cols-4 gap-2 text-xs">
-                                <div class="text-center">
-                                    <div class="flex items-center justify-center mb-1">
-                                        <Icon icon="mdi:water-percent" class="text-blue-500" width="16" />
-                                    </div>
-                                    <div class="font-medium text-gray-700">{currentData.humidity}%</div>
-                                    <div class="text-gray-500">Humidity</div>
-                                </div>
-                                <div class="text-center">
-                                    <div class="flex items-center justify-center mb-1">
-                                        <Icon icon="mdi:weather-windy" class="text-gray-500" width="16" />
-                                    </div>
-                                    <div class="font-medium text-gray-700">{currentData.windspeed_kmh} km/h</div>
-                                    <div class="text-gray-500">Wind</div>
-                                </div>
-                                <div class="text-center">
-                                    <div class="flex items-center justify-center mb-1">
-                                        <Icon icon="mdi:gauge" class="text-purple-500" width="16" />
-                                    </div>
-                                    <div class="font-medium text-gray-700">{currentData.pressure_mb} mb</div>
-                                    <div class="text-gray-500">Pressure</div>
-                                </div>
-                                <div class="text-center">
-                                    <div class="flex items-center justify-center mb-1">
-                                        <Icon icon="mdi:weather-sunny" class="text-yellow-500" width="16" />
-                                    </div>
-                                    <div class="font-medium text-gray-700">{currentData.uvindex}</div>
-                                    <div class="text-gray-500">UV Index</div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- Additional Weather Details -->
-                        <div class="mt-2 rounded bg-gray-50 border border-gray-200 p-2">
-                            <div class="mb-1 text-xs font-semibold text-gray-700">Additional Details</div>
-                            <div class="grid grid-cols-3 gap-2 text-xs">
-                                <div class="text-center">
-                                    <div class="flex items-center justify-center mb-1">
-                                        <Icon icon="mdi:weather-rainy" class="text-blue-500" width="14" />
-                                    </div>
-                                    <div class="font-medium text-gray-700">{currentData.precip_mm} mm</div>
-                                    <div class="text-gray-600">Precipitation</div>
-                                </div>
-                                <div class="text-center">
-                                    <div class="flex items-center justify-center mb-1">
-                                        <Icon icon="mdi:weather-windy-variant" class="text-gray-500" width="14" />
-                                    </div>
-                                    <div class="font-medium text-gray-700">{currentData.windgust_kmh} km/h</div>
-                                    <div class="text-gray-600">Wind Gust</div>
-                                </div>
-                                <div class="text-center">
-                                    <div class="flex items-center justify-center mb-1">
-                                        <Icon icon="mdi:weather-cloudy" class="text-gray-400" width="14" />
-                                    </div>
-                                    <div class="font-medium text-gray-700">{currentData.cloudcover}%</div>
-                                    <div class="text-gray-600">Cloud Cover</div>
-                                </div>
+                            <div class="flex items-center text-xs opacity-80 whitespace-nowrap flex-shrink-0">
+                                <Icon icon="mdi:clock-outline" class="mr-1" width="12" />
+                                <span class="hidden sm:inline">{moment(currentData.datetime, 'YYYY-MM-DD HH:mm:ss').format('MMM D • h:mm A')}</span>
+                                <span class="sm:hidden">{moment(currentData.datetime, 'YYYY-MM-DD HH:mm:ss').format('MMM D')}</span>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Compact Expand/Collapse Section -->
+                    <div class="p-2 sm:p-3">
+                        <!-- Main Temperature & Condition -->
+                        <div class="flex items-center justify-between bg-gradient-to-br from-blue-50 to-blue-100/50 rounded-lg p-2 sm:p-3 border border-blue-200 mb-2">
+                            <div class="flex items-center min-w-0 flex-1">
+                                <Icon 
+                                    icon={iconMap[currentData.icon] || 'mdi:weather-partly-cloudy'} 
+                                    class="mr-2 sm:mr-3 text-blue-600 flex-shrink-0" 
+                                    width="40"
+                                />
+                                <div class="min-w-0">
+                                    <div class="flex items-baseline">
+                                        <span class="text-2xl sm:text-3xl font-bold text-gray-800">{currentData.temp_c}</span>
+                                        <span class="ml-1 text-base sm:text-lg text-gray-600">°C</span>
+                                    </div>
+                                    <div class="text-xs text-gray-600 mt-0.5 sm:mt-1">
+                                        Feels like <span class="font-semibold">{currentData.feelslike_c}°C</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="text-right flex-shrink-0 ml-2">
+                                <span class="inline-flex items-center rounded-full px-2 sm:px-3 py-1 text-xs font-semibold bg-white shadow-sm border border-blue-300 text-blue-800 max-w-[120px] sm:max-w-none truncate">
+                                    {currentData.conditions}
+                                </span>
+                            </div>
+                        </div>
+                        
+                        <!-- Weather Metrics Grid - Mobile Optimized -->
+                        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-1.5 sm:gap-2">
+                            <!-- Rain Probability -->
+                            <div class="bg-blue-50 rounded-lg p-2 border border-blue-200">
+                                <div class="flex items-center justify-between mb-1">
+                                    <Icon icon="mdi:water-percent" class="text-blue-600 flex-shrink-0" width="14" />
+                                    <span class="text-xs font-medium text-gray-600 truncate ml-1">Rain</span>
+                                </div>
+                                <div class="text-base sm:text-lg font-bold text-blue-700">{currentData.precipprob}%</div>
+                                <div class="text-xs text-gray-500 truncate">{currentData.precip_mm} mm</div>
+                            </div>
+
+                            <!-- Humidity -->
+                            <div class="bg-cyan-50 rounded-lg p-2 border border-cyan-200">
+                                <div class="flex items-center justify-between mb-1">
+                                    <Icon icon="mdi:water" class="text-cyan-600 flex-shrink-0" width="14" />
+                                    <span class="text-xs font-medium text-gray-600 truncate ml-1">Humidity</span>
+                                </div>
+                                <div class="text-base sm:text-lg font-bold text-cyan-700">{currentData.humidity}%</div>
+                                <div class="text-xs text-gray-500 truncate">Moisture</div>
+                            </div>
+
+                            <!-- Wind Speed -->
+                            <div class="bg-gray-50 rounded-lg p-2 border border-gray-200">
+                                <div class="flex items-center justify-between mb-1">
+                                    <Icon icon="mdi:weather-windy" class="text-gray-600 flex-shrink-0" width="14" />
+                                    <span class="text-xs font-medium text-gray-600 truncate ml-1">Wind</span>
+                                </div>
+                                <div class="text-base sm:text-lg font-bold text-gray-700">{currentData.windspeed_kmh}</div>
+                                <div class="text-xs text-gray-500 truncate">km/h</div>
+                            </div>
+
+                            <!-- Wind Gust -->
+                            <div class="bg-slate-50 rounded-lg p-2 border border-slate-200">
+                                <div class="flex items-center justify-between mb-1">
+                                    <Icon icon="mdi:weather-windy-variant" class="text-slate-600 flex-shrink-0" width="14" />
+                                    <span class="text-xs font-medium text-gray-600 truncate ml-1">Gust</span>
+                                </div>
+                                <div class="text-base sm:text-lg font-bold text-slate-700">{currentData.windgust_kmh}</div>
+                                <div class="text-xs text-gray-500 truncate">km/h</div>
+                            </div>
+
+                            <!-- Pressure -->
+                            <div class="bg-purple-50 rounded-lg p-2 border border-purple-200">
+                                <div class="flex items-center justify-between mb-1">
+                                    <Icon icon="mdi:gauge" class="text-purple-600 flex-shrink-0" width="14" />
+                                    <span class="text-xs font-medium text-gray-600 truncate ml-1">Pressure</span>
+                                </div>
+                                <div class="text-base sm:text-lg font-bold text-purple-700">{currentData.pressure_mb}</div>
+                                <div class="text-xs text-gray-500 truncate">mb</div>
+                            </div>
+
+                            <!-- Cloud Cover -->
+                            <div class="bg-gray-50 rounded-lg p-2 border border-gray-200">
+                                <div class="flex items-center justify-between mb-1">
+                                    <Icon icon="mdi:weather-cloudy" class="text-gray-500 flex-shrink-0" width="14" />
+                                    <span class="text-xs font-medium text-gray-600 truncate ml-1">Clouds</span>
+                                </div>
+                                <div class="text-base sm:text-lg font-bold text-gray-700">{currentData.cloudcover}%</div>
+                                <div class="text-xs text-gray-500 truncate">Cover</div>
+                            </div>
+
+                            <!-- UV Index -->
+                            <div class="bg-yellow-50 rounded-lg p-2 border border-yellow-200">
+                                <div class="flex items-center justify-between mb-1">
+                                    <Icon icon="mdi:weather-sunny" class="text-yellow-600 flex-shrink-0" width="14" />
+                                    <span class="text-xs font-medium text-gray-600 truncate ml-1">UV Index</span>
+                                </div>
+                                <div class="text-base sm:text-lg font-bold text-yellow-700">{currentData.uvindex}</div>
+                                <div class="text-xs text-gray-500 truncate">
+                                    {currentData.uvindex <= 2 ? 'Low' : currentData.uvindex <= 5 ? 'Moderate' : currentData.uvindex <= 7 ? 'High' : 'Very High'}
+                                </div>
+                            </div>
+
+                            <!-- Solar Radiation -->
+                            <div class="bg-orange-50 rounded-lg p-2 border border-orange-200">
+                                <div class="flex items-center justify-between mb-1">
+                                    <Icon icon="mdi:solar-power" class="text-orange-600 flex-shrink-0" width="14" />
+                                    <span class="text-xs font-medium text-gray-600 truncate ml-1">Solar</span>
+                                </div>
+                                <div class="text-base sm:text-lg font-bold text-orange-700">{currentData.solarradiation}</div>
+                                <div class="text-xs text-gray-500 truncate">W/m²</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Compact Expand/Collapse Section for Hourly Forecast -->
                     <div class="border-t border-gray-200/50 bg-white/50 p-2">
                         <details class="group">
-                            <summary
-                                class="flex w-full cursor-pointer items-center justify-center rounded border border-dashed border-blue-300 bg-blue-50/50 px-2 py-1.5 text-xs font-medium text-blue-700 transition-all duration-200 hover:bg-blue-100"
-                            >
-                                <Icon icon="mdi:chart-line" class="mr-1" width="14" />
-                                <span class="group-open:hidden">Show Hourly Forecast</span>
-                                <span class="hidden group-open:inline">Hide Hourly Forecast</span>
-                                <Icon
-                                    icon="mdi:chevron-down"
-                                    class="ml-1 transition-transform group-open:rotate-180"
-                                    width="14"
-                                />
+                            <summary class="flex w-full cursor-pointer items-center justify-center rounded border border-dashed border-blue-300 bg-blue-50/50 px-2 py-1.5 text-xs font-medium text-blue-700 transition-all duration-200 hover:bg-blue-100">
+                                <Icon icon="mdi:chart-timeline-variant" class="mr-1 flex-shrink-0" width="14" />
+                                <span class="group-open:hidden truncate">Show 5-Day Hourly Forecast</span>
+                                <span class="hidden group-open:inline truncate">Hide 5-Day Hourly Forecast</span>
+                                <Icon icon="mdi:chevron-down" class="ml-1 flex-shrink-0 transition-transform group-open:rotate-180" width="14" />
                             </summary>
 
-                            <!-- Hourly Data -->
+                            <!-- 5-Day Hourly Forecast -->
                             <div class="mt-2 space-y-2 p-2">
-                                <div class="rounded border border-blue-200 bg-blue-50 p-3">
-                                    <h6 class="mb-3 flex items-center text-xs font-bold text-blue-800">
-                                        <Icon icon="mdi:clock-time-four-outline" class="mr-1" width="12" />
-                                        Hourly 5-Day Forecast
+                                <div class="rounded border border-blue-200 bg-blue-50 p-2">
+                                    <h6 class="mb-2 flex items-center justify-between text-xs font-bold text-blue-800">
+                                        <span class="flex items-center min-w-0 truncate">
+                                            <Icon icon="mdi:chart-timeline-variant" class="mr-1 flex-shrink-0" width="12" />
+                                            <span class="truncate">Hourly Forecast ({days.length} hours)</span>
+                                        </span>
+                                        <span class="text-blue-600 font-medium ml-2 whitespace-nowrap flex-shrink-0">Scroll →</span>
                                     </h6>
                                     
                                     <!-- Horizontal scrollable container -->
-                                    <div class="overflow-x-auto pb-2">
-                                        <div class="flex gap-3 min-w-max">
+                                    <div class="overflow-x-auto pb-2 -mx-1 px-1">
+                                        <div class="flex gap-2 min-w-max">
                                             {#each days as hour, index}
-                                                <div class="flex-shrink-0 w-32">
-                                                    <div class="rounded-lg border border-gray-200 bg-white p-3 shadow-sm hover:shadow-md transition-shadow">
-                                                        <!-- Time and Icon -->
-                                                        <div class="text-center mb-3">
-                                                            <div class="text-xs font-semibold text-gray-700 mb-1">
+                                                {@const isCurrentHour = moment(hour.datetime, 'YYYY-MM-DD HH:mm:ss').isSame(moment().utcOffset('+08:00').startOf('hour'), 'hour')}
+                                                <div class="flex-shrink-0 w-24 sm:w-28">
+                                                    <div class="rounded-lg border-2 {isCurrentHour ? 'border-blue-500 bg-blue-100' : 'border-gray-300 bg-white'} p-2 shadow hover:shadow-md transition-all h-full">
+                                                        <!-- Time -->
+                                                        <div class="text-center mb-2">
+                                                            <div class="text-xs font-bold text-gray-800 truncate">
                                                                 {moment(hour.datetime, 'YYYY-MM-DD HH:mm:ss').format('h:mm A')}
                                                             </div>
-                                                            <div class="text-xs text-gray-500 mb-2">
+                                                            <div class="text-xs text-gray-500 truncate">
                                                                 {moment(hour.datetime, 'YYYY-MM-DD HH:mm:ss').format('MMM D')}
                                                             </div>
+                                                        </div>
+                                                        
+                                                        <!-- Icon -->
+                                                        <div class="text-center mb-2">
                                                             <Icon
                                                                 icon={iconMap[hour.icon] || 'mdi:weather-partly-cloudy'}
-                                                                class="mx-auto mb-2 text-blue-600"
+                                                                class="mx-auto text-blue-600"
                                                                 width="28"
                                                             />
                                                         </div>
                                                         
                                                         <!-- Temperature -->
-                                                        <div class="text-center mb-3">
-                                                            <div class="text-lg font-bold text-gray-800 mb-1">{hour.temp_c}°C</div>
-                                                            <div class="text-xs text-gray-500">Feels {hour.feelslike_c}°C</div>
+                                                        <div class="text-center mb-2">
+                                                            <div class="text-lg sm:text-xl font-bold text-gray-800">{hour.temp_c}°</div>
+                                                            <div class="text-xs text-gray-500 truncate">Feels {hour.feelslike_c}°</div>
                                                         </div>
                                                         
-                                                        <!-- Key Metrics -->
-                                                        <div class="space-y-2">
-                                                            <!-- Rain Chance -->
+                                                        <!-- Compact metrics -->
+                                                        <div class="space-y-1 text-xs">
                                                             <div class="flex items-center justify-between">
-                                                                <div class="flex items-center">
-                                                                    <Icon icon="mdi:water-percent" class="text-blue-500 mr-1" width="12" />
-                                                                    <span class="text-xs text-gray-600">Rain</span>
-                                                                </div>
-                                                                <span class="text-xs font-semibold text-blue-700">{hour.precipprob}%</span>
+                                                                <Icon icon="mdi:water-percent" class="text-blue-500 flex-shrink-0" width="12" />
+                                                                <span class="font-semibold text-blue-700 ml-1">{hour.precipprob}%</span>
                                                             </div>
-                                                            
-                                                            <!-- Humidity -->
                                                             <div class="flex items-center justify-between">
-                                                                <div class="flex items-center">
-                                                                    <Icon icon="mdi:water" class="text-cyan-500 mr-1" width="12" />
-                                                                    <span class="text-xs text-gray-600">Humidity</span>
-                                                                </div>
-                                                                <span class="text-xs font-semibold text-gray-700">{hour.humidity}%</span>
+                                                                <Icon icon="mdi:water" class="text-cyan-500 flex-shrink-0" width="12" />
+                                                                <span class="ml-1">{hour.humidity}%</span>
                                                             </div>
-                                                            
-                                                            <!-- Wind -->
                                                             <div class="flex items-center justify-between">
-                                                                <div class="flex items-center">
-                                                                    <Icon icon="mdi:weather-windy" class="text-gray-500 mr-1" width="12" />
-                                                                    <span class="text-xs text-gray-600">Wind</span>
-                                                                </div>
-                                                                <span class="text-xs font-semibold text-gray-700">{hour.windspeed_kmh} km/h</span>
+                                                                <Icon icon="mdi:weather-windy" class="text-gray-500 flex-shrink-0" width="12" />
+                                                                <span class="ml-1 truncate">{hour.windspeed_kmh} km/h</span>
                                                             </div>
                                                         </div>
                                                         
-                                                        <!-- Conditions Badge -->
-                                                        <div class="mt-3 text-center">
-                                                            <div class="inline-block bg-gray-100 text-gray-700 text-xs px-2 py-1 rounded-full">
-                                                                {hour.conditions.split(' ').slice(0, 2).join(' ')}
-                                                            </div>
-                                                        </div>
-                                                        
-                                                        <!-- Additional Details (Collapsible) -->
+                                                        <!-- Expandable details -->
                                                         <details class="mt-2">
-                                                            <summary class="text-xs text-blue-600 cursor-pointer hover:text-blue-800 text-center">
-                                                                More details
+                                                            <summary class="text-xs text-blue-600 cursor-pointer hover:text-blue-800 text-center font-medium">
+                                                                + More
                                                             </summary>
-                                                            <div class="mt-2 pt-2 border-t border-gray-200 space-y-1">
-                                                                <div class="flex items-center justify-between text-xs">
-                                                                    <span class="text-gray-600">Precipitation</span>
-                                                                    <span class="font-medium">{hour.precip_mm} mm</span>
+                                                            <div class="mt-2 pt-2 border-t border-gray-200 space-y-1 text-xs">
+                                                                <div class="flex justify-between">
+                                                                    <span class="text-gray-600">Precip:</span>
+                                                                    <span class="font-medium truncate ml-1">{hour.precip_mm} mm</span>
                                                                 </div>
-                                                                <div class="flex items-center justify-between text-xs">
-                                                                    <span class="text-gray-600">Wind Gust</span>
-                                                                    <span class="font-medium">{hour.windgust_kmh} km/h</span>
+                                                                <div class="flex justify-between">
+                                                                    <span class="text-gray-600">Gust:</span>
+                                                                    <span class="font-medium truncate ml-1">{hour.windgust_kmh} km/h</span>
                                                                 </div>
-                                                                <div class="flex items-center justify-between text-xs">
-                                                                    <span class="text-gray-600">Pressure</span>
-                                                                    <span class="font-medium">{hour.pressure_mb} mb</span>
+                                                                <div class="flex justify-between">
+                                                                    <span class="text-gray-600">Pressure:</span>
+                                                                    <span class="font-medium truncate ml-1">{hour.pressure_mb} mb</span>
                                                                 </div>
-                                                                <div class="flex items-center justify-between text-xs">
-                                                                    <span class="text-gray-600">Cloud Cover</span>
+                                                                <div class="flex justify-between">
+                                                                    <span class="text-gray-600">Clouds:</span>
                                                                     <span class="font-medium">{hour.cloudcover}%</span>
                                                                 </div>
-                                                                <div class="flex items-center justify-between text-xs">
-                                                                    <span class="text-gray-600">UV Index</span>
+                                                                <div class="flex justify-between">
+                                                                    <span class="text-gray-600">UV:</span>
                                                                     <span class="font-medium">{hour.uvindex}</span>
                                                                 </div>
-                                                                <div class="flex items-center justify-between text-xs">
-                                                                    <span class="text-gray-600">Solar Radiation</span>
-                                                                    <span class="font-medium">{hour.solarradiation}</span>
+                                                                <div class="flex justify-between">
+                                                                    <span class="text-gray-600">Solar:</span>
+                                                                    <span class="font-medium truncate ml-1">{hour.solarradiation} W/m²</span>
+                                                                </div>
+                                                                <div class="mt-2 pt-1 border-t border-gray-200">
+                                                                    <div class="text-gray-700 font-medium text-center text-xs break-words">
+                                                                        {hour.conditions}
+                                                                    </div>
                                                                 </div>
                                                             </div>
                                                         </details>
@@ -474,12 +452,32 @@
                                     </div>
                                     
                                     <!-- Scroll indicator -->
-                                    <div class="text-center mt-2">
-                                        <p class="text-xs text-gray-500">← Scroll horizontally to see more hours →</p>
+                                    <div class="text-center mt-2 flex items-center justify-center gap-2">
+                                        <Icon icon="mdi:gesture-swipe-horizontal" class="text-blue-500 flex-shrink-0" width="16" />
+                                        <p class="text-xs text-blue-700 font-medium truncate">Swipe or scroll to view all forecasts</p>
                                     </div>
                                 </div>
                             </div>
                         </details>
+                    </div>
+
+                    <!-- Visual Crossing Attribution -->
+                    <div class="border-t border-gray-200 bg-gradient-to-r from-gray-50 to-white px-3 py-2">
+                        <a
+                            href="https://www.visualcrossing.com"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="flex items-center justify-center gap-2 text-xs text-gray-600 transition-all hover:text-gray-900 group"
+                            title="Weather data provided by Visual Crossing"
+                        >
+                            <span class="font-medium">Powered by</span>
+                            <img 
+                                src="/logo/visual-crossing-short.png" 
+                                alt="Visual Crossing Weather"
+                                class="h-5 w-auto transition-transform group-hover:scale-105"
+                            />
+                            <span class="font-semibold text-gray-700 group-hover:text-gray-900">Visual Crossing</span>
+                        </a>
                     </div>
                 </div>
             {/each}
@@ -515,5 +513,29 @@
 
     .space-y-2 > :not([hidden]) ~ :not([hidden]) {
         margin-top: 0.5rem;
+    }
+
+    /* Improve scrollbar for horizontal scroll */
+    .overflow-x-auto {
+        scrollbar-width: thin;
+        scrollbar-color: #cbd5e1 #f1f5f9;
+    }
+
+    .overflow-x-auto::-webkit-scrollbar {
+        height: 6px;
+    }
+
+    .overflow-x-auto::-webkit-scrollbar-track {
+        background: #f1f5f9;
+        border-radius: 3px;
+    }
+
+    .overflow-x-auto::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 3px;
+    }
+
+    .overflow-x-auto::-webkit-scrollbar-thumb:hover {
+        background: #94a3b8;
     }
 </style>

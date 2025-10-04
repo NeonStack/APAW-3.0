@@ -14,7 +14,7 @@
 	let activeTab = 'info';
 	let tabs = [
 		{ id: 'info', name: 'Information', icon: 'mdi:information-outline' },
-		{ id: 'water', name: 'Water Stations', icon: 'mdi:water' },
+		{ id: 'water', name: 'Water Level', icon: 'mdi:water' },
 		{ id: 'weather', name: 'Weather', icon: 'mdi:weather-partly-cloudy' }
 	];
 
