@@ -278,6 +278,75 @@
 		}
 	}
 
+	// Add the missing function to toggle facility details
+	function toggleFacilityDetails(facilityId) {
+		expandedFacilities[facilityId] = !expandedFacilities[facilityId];
+	}
+
+	// Helper function to extract formatted address from facility properties
+	function getFormattedAddress(properties) {
+		if (!properties) return null;
+		
+		const addressParts = [];
+		
+		if (properties['addr:housenumber'] && properties['addr:street']) {
+			addressParts.push(`${properties['addr:housenumber']} ${properties['addr:street']}`);
+		} else if (properties['addr:street']) {
+			addressParts.push(properties['addr:street']);
+		}
+		
+		if (properties['addr:city']) {
+			addressParts.push(properties['addr:city']);
+		} else if (properties['addr:district']) {
+			addressParts.push(properties['addr:district']);
+		}
+		
+		if (properties['addr:province']) {
+			addressParts.push(properties['addr:province']);
+		}
+		
+		if (properties['addr:postcode']) {
+			addressParts.push(properties['addr:postcode']);
+		}
+		
+		return addressParts.length > 0 ? addressParts.join(', ') : null;
+	}
+
+	// Helper function to get additional properties for display
+	function getAdditionalProperties(properties) {
+		if (!properties) return [];
+		
+		const additionalProps = [];
+		const interestingProps = [
+			'amenity', 'emergency', 'evacuation_center', 'leisure', 'operator', 'capacity'
+		];
+		
+		interestingProps.forEach(prop => {
+			if (properties[prop] && properties[prop] !== 'yes') {
+				let label = prop;
+				if (prop.includes(':')) {
+					label = prop.split(':')[1];
+				}
+				
+				label = label
+					.split('_')
+					.map(word => word.charAt(0).toUpperCase() + word.slice(1))
+					.join(' ');
+				
+				const value = typeof properties[prop] === 'string' 
+					? properties[prop].split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')
+					: properties[prop];
+				
+				additionalProps.push({
+					label,
+					value
+				});
+			}
+		});
+		
+		return additionalProps;
+	}
+
 	// Select hour for viewing details
 	function selectHour(date, hourIndex) {
 		selectedHourByDay[date] = hourIndex;
@@ -1046,6 +1115,7 @@
 								<div class="min-w-0 flex-1 text-left">
 									<p class="truncate text-sm font-bold text-gray-800">{facility.name}</p>
 									<p class="truncate text-xs text-gray-600">{facility.type}</p>
+									
 								</div>
 								<span class="mr-1 flex-shrink-0 rounded-full bg-gray-200 px-1.5 py-0.5 text-xs font-semibold text-gray-700">
 									{formatDistance(facility.distance)}

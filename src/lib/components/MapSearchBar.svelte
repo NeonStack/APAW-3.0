@@ -17,9 +17,7 @@
   export let disabled = false;
   
   async function handleSearch() {
-    if (disabled) return;
-
-    if (searchQuery.trim().length < 2) { // Reduce minimum query length from 3 to 2
+    if (disabled || searchQuery.trim().length < 2) {
       searchResults = [];
       showResults = false;
       return;
@@ -38,7 +36,7 @@
     }
   }
   
-  async function handleGpsClick() {
+  async function handleGpsClick(event) { // Add event parameter
     event.stopPropagation();
     isGettingLocation = true;
 
@@ -72,8 +70,6 @@
   
   function handleResultClick(result, event) {
     if (disabled) return;
-
-    // Prevent the event from reaching the map
     event.stopPropagation();
     event.preventDefault();
 
@@ -90,22 +86,11 @@
     });
   }
   
-  // Stop propagation of click events within the search component
-  function handleContainerClick(event) {
+  // Simplified - one function to stop all map interactions
+  function stopMapPropagation(event) {
     event.stopPropagation();
   }
   
-  // Prevent double-click zoom on search bar
-  function preventDoubleClickZoom(event) {
-    event.stopPropagation();
-  }
-  
-  // Add this function to stop propagation to the map
-  function stopMapInteraction(event) {
-    event.stopPropagation();
-  }
-  
-  // Close results when clicking outside
   function handleClickOutside(event) {
     if (searchContainer && !searchContainer.contains(event.target)) {
       showResults = false;
@@ -120,7 +105,12 @@
   });
 </script>
 
-<div bind:this={searchContainer} class="relative w-full z-[1000]" on:click={stopMapInteraction} on:dblclick={preventDoubleClickZoom}>
+<div 
+  bind:this={searchContainer} 
+  class="relative w-full z-[1000]" 
+  on:click={stopMapPropagation} 
+  on:dblclick={stopMapPropagation}
+>
   <div class="overflow-visible rounded-lg bg-transparent">
     <div class="flex items-center gap-2">
       <div class="flex-1 relative">
@@ -131,7 +121,7 @@
             bind:value={searchQuery}
             on:input={debounceSearch}
             on:focus={() => showResults = true}
-            on:click={stopMapInteraction}
+            on:click={stopMapPropagation}
             placeholder="Search location or enter coordinates"
             class="flex-1 h-full border-none outline-none bg-transparent text-sm text-gray-800"
             disabled={disabled}
@@ -156,7 +146,7 @@
         </div>
       </div>
       <button
-        on:click|stopPropagation={handleGpsClick}
+        on:click={handleGpsClick}
         class="flex justify-center items-center w-10 h-10 bg-white text-blue-500 rounded-lg shadow-md border border-gray-200 flex-shrink-0 transition-all duration-200 hover:bg-gray-50 hover:text-blue-600 active:scale-95"
         aria-label="Get current location"
         title="Get current location"
@@ -171,10 +161,14 @@
     </div>
     
     {#if showResults && searchResults.length > 0}
-      <div class="absolute w-full max-h-[300px] overflow-y-auto bg-white rounded-lg mt-2 shadow-lg z-[1100]" on:click={stopMapInteraction} on:dblclick={preventDoubleClickZoom}>
+      <div 
+        class="absolute w-full max-h-[300px] overflow-y-auto bg-white rounded-lg mt-2 shadow-lg z-[1100]" 
+        on:click={stopMapPropagation} 
+        on:dblclick={stopMapPropagation}
+      >
         {#each searchResults as result}
           <button
-            on:click|stopPropagation={(e) => handleResultClick(result, e)}
+            on:click={(e) => handleResultClick(result, e)}
             class="block w-full py-2.5 px-3 text-left border-b border-gray-100 last:border-b-0 hover:bg-gray-50 transition-colors duration-150"
           >
             <div class="flex items-center">
@@ -199,8 +193,8 @@
           </button>
         {/each}
       </div>
-    {:else if showResults && searchQuery.length >= 2 && !isLoading} <!-- Changed from 3 to 2 -->
-      <div class="absolute w-full bg-white rounded-lg mt-2 shadow-lg p-3 z-[1100]" on:click={stopMapInteraction}>
+    {:else if showResults && searchQuery.length >= 2 && !isLoading}
+      <div class="absolute w-full bg-white rounded-lg mt-2 shadow-lg p-3 z-[1100]" on:click={stopMapPropagation}>
         <p class="text-gray-500 text-sm text-center">No results found</p>
         <p class="text-gray-400 text-xs text-center mt-1">Try adding your city/area name or use coordinates (14.xxxx, 121.xxxx)</p>
       </div>

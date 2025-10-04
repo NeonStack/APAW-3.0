@@ -1,13 +1,11 @@
 <script>
-	import { createEventDispatcher, onMount, afterUpdate } from 'svelte';
+	import { createEventDispatcher, onMount } from 'svelte';
 	import { waterStations, fetchWaterStations } from '$lib/stores/waterStationStore.js';
 	import InfoTab from './predict-tabs/InfoTab.svelte';
 	import WaterStationsTab from './predict-tabs/WaterStationsTab.svelte';
-  import { weatherData, fetchWeatherData } from '$lib/stores/weatherStore.js';
+	import { weatherData, fetchWeatherData } from '$lib/stores/weatherStore.js';
 	import WeatherTab from './predict-tabs/WeatherTab.svelte';
 	import Icon from '@iconify/svelte';
-	import { tweened } from 'svelte/motion';
-	import { cubicOut } from 'svelte/easing';
 
 	const dispatch = createEventDispatcher();
 

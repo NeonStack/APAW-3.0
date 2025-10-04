@@ -111,22 +111,13 @@ export function addWeatherLayersToControl(layerControl) {
 	if (!layerControl || !weatherLayerGroups) return;
 
 	layerControl.addOverlay(weatherLayerGroups.none, 'None', 'Weather');
+	layerControl.addOverlay(weatherLayerGroups.pagasaSatellite, 'Himawari', 'Weather');
 	layerControl.addOverlay(weatherLayerGroups.precipitation, 'Precipitation', 'Weather');
 	layerControl.addOverlay(weatherLayerGroups.temperature, 'Temperature', 'Weather');
 	layerControl.addOverlay(weatherLayerGroups.windGroup, 'Wind', 'Weather');
 	layerControl.addOverlay(weatherLayerGroups.clouds, 'Clouds', 'Weather');
 	layerControl.addOverlay(weatherLayerGroups.pressure, 'Pressure', 'Weather');
 	layerControl.addOverlay(weatherLayerGroups.humidity, 'Humidity', 'Weather');
-
-	if (layerName !== 'Clouds' && map.hasLayer(weatherLayerGroups.clouds)) {
-		map.removeLayer(weatherLayerGroups.clouds);
-	}
-	if (layerName !== 'Pressure' && map.hasLayer(weatherLayerGroups.pressure)) {
-		map.removeLayer(weatherLayerGroups.pressure);
-	}
-	if (layerName !== 'Humidity' && map.hasLayer(weatherLayerGroups.humidity)) {
-		map.removeLayer(weatherLayerGroups.humidity);
-	}
 }
 
 function createPagasaSatelliteLayer(L) {

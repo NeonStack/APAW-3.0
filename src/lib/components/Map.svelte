@@ -28,7 +28,6 @@
 	import { initializeMap } from './map_components/MapInitializer.js';
 	import { setupBaseLayers } from './map_components/BaseLayers.js';
 	import { setupWeatherLayers, addWeatherLayersToControl } from './map_components/WeatherLayers.js';
-	import { loadAndProcessGeoJson } from './map_components/GeoJsonUtils.js';
 	import {
 		createWaterIcon,
 		getStationAlertInfo,
