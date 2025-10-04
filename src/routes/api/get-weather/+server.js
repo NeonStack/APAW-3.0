@@ -5,9 +5,17 @@ export async function GET({ request }) {
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
   // Get current date in Manila timezone
-  const today = new Date('2025-09-28T00:00:00Z'); // Start of Sep 28 UTC
-  const endDate = new Date(today);
-  endDate.setDate(today.getDate() + 5); // Up to Oct 3
+  const today = new Date(); // ← Changed from hardcoded '2025-09-28T00:00:00Z'
+  
+  // Format to Manila timezone (UTC+8)
+  const manilaOffset = 8 * 60; // 8 hours in minutes
+  const localTime = new Date(today.getTime() + (manilaOffset * 60 * 1000));
+  
+  // Set to start of day
+  localTime.setUTCHours(0, 0, 0, 0);
+  
+  const endDate = new Date(localTime);
+  endDate.setDate(localTime.getDate() + 5); // 5 days ahead
 
   // List of all location names
   const locations = [
@@ -36,7 +44,7 @@ export async function GET({ request }) {
     .from('hourly_weather_forecasts')
     .select('*')
     .in('location_name', locations)
-    .gte('datetime', today.toISOString().split('T')[0])
+    .gte('datetime', localTime.toISOString().split('T')[0])
     .lt('datetime', endDate.toISOString().split('T')[0])
     .order('location_name', { ascending: true })
     .order('datetime', { ascending: true });
