@@ -319,6 +319,19 @@
 		// Handle layer toggle events
 		map.on('overlayadd', function (e) {
 			const addedLayerName = e.name;
+			
+			// Check if this is a weather layer
+			const isWeatherLayer = ['None', 'Himawari', 'Precipitation', 'Temperature', 'Wind', 'Clouds', 'Pressure', 'Humidity'].some(
+				weatherName => addedLayerName.includes(weatherName)
+			);
+			
+			// Only show toast for non-"None" weather layers
+			if (isWeatherLayer && !addedLayerName.includes('None')) {
+				const cleanName = addedLayerName.replace(/<[^>]*>/g, '').trim(); // Remove HTML tags
+				toast.success(`${cleanName} layer activated`);
+			}
+			
+			// Handle facility and hazard layers
 			const layerConfig = allLayerConfigs.find(
 				(lc) => addedLayerName && addedLayerName.includes(lc.name)
 			);
@@ -332,21 +345,28 @@
 				}
 			}
 
-			handleLayerToggle(
-				layerConfig,
-				true,
-				true,
-				map,
-				L,
-				facilityLayers,
-				loadedGeojsonData,
-				activeLeafletLayers,
-				layerControl
-			);
+			// Use toast for non-weather layers
+			if (layerConfig) {
+				handleLayerToggle(
+					layerConfig,
+					true,
+					true, // Show toast
+					map,
+					L,
+					facilityLayers,
+					loadedGeojsonData,
+					activeLeafletLayers,
+					layerControl
+				);
+			}
 		});
 
 		map.on('overlayremove', function (e) {
 			const removedLayerName = e.name;
+			
+			// No toast for removing weather layers anymore
+			
+			// Handle facility and hazard layers
 			const layerConfig = allLayerConfigs.find(
 				(lc) => removedLayerName && removedLayerName.includes(lc.name)
 			);
@@ -360,7 +380,7 @@
 				handleLayerToggle(
 					layerConfig,
 					false,
-					false,
+					false, // No toast when removing
 					map,
 					L,
 					facilityLayers,

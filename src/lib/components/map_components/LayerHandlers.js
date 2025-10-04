@@ -102,11 +102,46 @@ export async function handleLayerToggle(layerConfig, isAdding, showToast, map, L
   const layerGroup = facilityLayers[layerConfig.id];
 
   if (isAdding) {
-    // Turn layer on
+    // Turn layer on - use toast.promise for loading feedback
     addLayerToMap(layerGroup);
-    await loadLayerData(layerConfig, layerGroup, map, L, facilityLayers, loadedGeojsonData, activeLeafletLayers, showToast, layerControl);
+    
+    // Create a promise for loading the layer
+    const loadPromise = loadLayerData(
+      layerConfig, 
+      layerGroup, 
+      map, 
+      L, 
+      facilityLayers, 
+      loadedGeojsonData, 
+      activeLeafletLayers, 
+      false, // Don't show individual toast
+      layerControl
+    );
+    
+    // Wrap it with toast.promise to show loading/success/error
+    if (showToast) {
+      toast.promise(loadPromise, {
+        loading: `Loading ${layerConfig.name}...`,
+        success: `${layerConfig.name} loaded successfully!`,
+        error: (err) => {
+          // If user cancelled, show different message
+          if (err.message && err.message.includes('User cancelled')) {
+            return `${layerConfig.name} download cancelled`;
+          }
+          return `Failed to load ${layerConfig.name}`;
+        }
+      });
+    }
+    
+    // Wait for the promise to complete
+    try {
+      await loadPromise;
+    } catch (error) {
+      // Error is already handled by toast.promise
+      console.error(`Error loading ${layerConfig.name}:`, error);
+    }
   } else {
-    // Turn layer off
+    // Turn layer off - no toast notification
     console.log(`Removing ${layerConfig.name} layer.`);
     clearLayerGroup(layerGroup);
     removeLayerFromMap(layerGroup);
@@ -118,14 +153,21 @@ export async function handleLayerToggle(layerConfig, isAdding, showToast, map, L
 
 /**
  * Loads data for a layer and adds it to the map.
+ * Returns a promise so it can be used with toast.promise
  */
 async function loadLayerData(layerConfig, layerGroup, map, L, facilityLayers, loadedGeojsonData, activeLeafletLayers, showToast, layerControl) {
   try {
+    // Load the GeoJSON data
     const geoJsonData = await loadAndProcessGeoJson(layerConfig, loadedGeojsonData, !showToast);
-    if (!geoJsonData) throw new Error('No data loaded.');
+    
+    if (!geoJsonData) {
+      throw new Error('No data loaded.');
+    }
 
+    // Clear existing layers
     clearLayerGroup(layerGroup);
 
+    // Add the layer based on its type
     if (layerConfig.type === 'facility') {
       showFacilities(layerConfig, map, L, facilityLayers, loadedGeojsonData);
     } else if (layerConfig.type === 'hazard' && layerConfig.style) {
@@ -136,17 +178,19 @@ async function loadLayerData(layerConfig, layerGroup, map, L, facilityLayers, lo
       console.log(`${layerConfig.name} added to map.`);
     }
 
-    if (showToast) {
-      toast.success(`${layerConfig.name} loaded!`);
-    }
+    // Return success (for toast.promise)
+    return { success: true, name: layerConfig.name };
+    
   } catch (error) {
     console.error(`Error loading ${layerConfig.name}:`, error);
+    
+    // Uncheck the layer in the control if it failed
     if (error.message.includes('User cancelled')) {
       uncheckInControl(layerControl, layerConfig);
     }
-    if (showToast) {
-      toast.error(`Failed to load ${layerConfig.name}`);
-    }
+    
+    // Re-throw the error so toast.promise can catch it
+    throw error;
   }
 }
 
