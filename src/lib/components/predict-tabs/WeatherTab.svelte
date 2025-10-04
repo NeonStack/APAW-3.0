@@ -1,5 +1,5 @@
 <script>
-    import { weatherData, fetchWeatherData } from '$lib/stores/weatherStore.js';
+    import { weatherData, fetchWeatherData, fetchLocationForecast } from '$lib/stores/weatherStore.js';
     import Icon from '@iconify/svelte';
     import moment from 'moment';
 
@@ -52,8 +52,12 @@
     }
 
     // Filters
-    let districtFilter = $state('1st District'); // Default to 1st District
+    let districtFilter = $state('all'); // Changed default to 'all'
     let sortOption = $state('location-asc');
+
+    // Cache for 5-day forecasts per location
+    let locationForecasts = $state({});
+    let loadingForecasts = $state({});
 
     // Derived filtered and sorted data
     let filteredData = $derived(() => {
@@ -93,6 +97,24 @@
         await fetchWeatherData();
     }
 
+    // Load 5-day forecast for a specific location
+    async function loadLocationForecast(location) {
+        if (locationForecasts[location]) {
+            return; // Already loaded
+        }
+
+        loadingForecasts[location] = true;
+        try {
+            const data = await fetchLocationForecast(location);
+            locationForecasts[location] = data;
+        } catch (error) {
+            console.error(`Failed to load forecast for ${location}:`, error);
+            locationForecasts[location] = [];
+        } finally {
+            loadingForecasts[location] = false;
+        }
+    }
+
     // Toggle filters
     let showFilters = $state(false);
 </script>
@@ -108,7 +130,7 @@
         <div class="ml-auto flex flex-wrap gap-2">
             <button
                 class="flex cursor-pointer items-center gap-1 rounded bg-gray-100 px-2 py-1 text-xs text-gray-600 transition-colors hover:bg-gray-200 hover:text-gray-900"
-                on:click={refreshWeather}
+                onclick={refreshWeather}
             >
                 <Icon icon="mdi:refresh" width="12" />
                 <span class="hidden sm:inline">Refresh</span>
@@ -116,7 +138,7 @@
 
             <button
                 class="flex cursor-pointer items-center gap-1 rounded bg-gray-100 px-2 py-1 text-xs text-gray-600 transition-colors hover:bg-gray-200 hover:text-gray-900"
-                on:click={() => (showFilters = !showFilters)}
+                onclick={() => (showFilters = !showFilters)}
             >
                 <Icon icon={showFilters ? 'mdi:filter-off' : 'mdi:filter'} width="12" />
                 <span class="hidden sm:inline">{showFilters ? 'Hide' : 'Filters'}</span>
@@ -187,7 +209,7 @@
                     <p class="mt-1 text-xs text-red-700">{$weatherData.error}</p>
                     <button
                         class="mt-2 flex items-center gap-1 rounded bg-red-100 px-2 py-1 text-xs font-medium text-red-800 transition-colors hover:bg-red-200"
-                        on:click={refreshWeather}
+                        onclick={refreshWeather}
                     >
                         <Icon icon="mdi:refresh" width="12" />
                         Try Again
@@ -220,15 +242,14 @@
                             
                             <div class="flex items-center text-xs opacity-80 whitespace-nowrap flex-shrink-0">
                                 <Icon icon="mdi:clock-outline" class="mr-1" width="12" />
-                                <span class="hidden sm:inline">{moment(currentData.datetime, 'YYYY-MM-DD HH:mm:ss').format('MMM D • h:mm A')}</span>
-                                <span class="sm:hidden">{moment(currentData.datetime, 'YYYY-MM-DD HH:mm:ss').format('MMM D')}</span>
+                                <span>{moment(currentData.datetime, 'YYYY-MM-DD HH:mm:ss').format('MMM D • h:mm A')}</span>
                             </div>
                         </div>
                     </div>
 
                     <div class="p-2 sm:p-3">
                         <!-- Main Temperature & Condition -->
-                        <div class="flex items-center justify-between bg-gradient-to-br from-blue-50 to-blue-100/50 rounded-lg p-2 sm:p-3 border border-blue-200 mb-2">
+                        <div class="flex items-center justify-between bg-gradient-to-br from-blue-50 to-blue-100/50 rounded-lg p-2 sm:p-3 border border-blue-200 mb-2 shadow-md">
                             <div class="flex items-center min-w-0 flex-1">
                                 <Icon 
                                     icon={iconMap[currentData.icon] || 'mdi:weather-partly-cloudy'} 
@@ -256,7 +277,7 @@
                         <!-- Weather Metrics Grid - Mobile Optimized -->
                         <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-1.5 sm:gap-2">
                             <!-- Rain Probability -->
-                            <div class="bg-blue-50 rounded-lg p-2 border border-blue-200">
+                            <div class="bg-blue-50 rounded-lg p-2 border border-blue-200 shadow-md">
                                 <div class="flex items-center justify-between mb-1">
                                     <Icon icon="mdi:water-percent" class="text-blue-600 flex-shrink-0" width="14" />
                                     <span class="text-xs font-medium text-gray-600 truncate ml-1">Rain</span>
@@ -266,7 +287,7 @@
                             </div>
 
                             <!-- Humidity -->
-                            <div class="bg-cyan-50 rounded-lg p-2 border border-cyan-200">
+                            <div class="bg-cyan-50 rounded-lg p-2 border border-cyan-200 shadow-md">
                                 <div class="flex items-center justify-between mb-1">
                                     <Icon icon="mdi:water" class="text-cyan-600 flex-shrink-0" width="14" />
                                     <span class="text-xs font-medium text-gray-600 truncate ml-1">Humidity</span>
@@ -276,7 +297,7 @@
                             </div>
 
                             <!-- Wind Speed -->
-                            <div class="bg-gray-50 rounded-lg p-2 border border-gray-200">
+                            <div class="bg-gray-50 rounded-lg p-2 border border-gray-200 shadow-md">
                                 <div class="flex items-center justify-between mb-1">
                                     <Icon icon="mdi:weather-windy" class="text-gray-600 flex-shrink-0" width="14" />
                                     <span class="text-xs font-medium text-gray-600 truncate ml-1">Wind</span>
@@ -286,7 +307,7 @@
                             </div>
 
                             <!-- Wind Gust -->
-                            <div class="bg-slate-50 rounded-lg p-2 border border-slate-200">
+                            <div class="bg-slate-50 rounded-lg p-2 border border-slate-200 shadow-md">
                                 <div class="flex items-center justify-between mb-1">
                                     <Icon icon="mdi:weather-windy-variant" class="text-slate-600 flex-shrink-0" width="14" />
                                     <span class="text-xs font-medium text-gray-600 truncate ml-1">Gust</span>
@@ -296,7 +317,7 @@
                             </div>
 
                             <!-- Pressure -->
-                            <div class="bg-purple-50 rounded-lg p-2 border border-purple-200">
+                            <div class="bg-purple-50 rounded-lg p-2 border border-purple-200 shadow-md">
                                 <div class="flex items-center justify-between mb-1">
                                     <Icon icon="mdi:gauge" class="text-purple-600 flex-shrink-0" width="14" />
                                     <span class="text-xs font-medium text-gray-600 truncate ml-1">Pressure</span>
@@ -306,7 +327,7 @@
                             </div>
 
                             <!-- Cloud Cover -->
-                            <div class="bg-gray-50 rounded-lg p-2 border border-gray-200">
+                            <div class="bg-gray-50 rounded-lg p-2 border border-gray-200 shadow-md">
                                 <div class="flex items-center justify-between mb-1">
                                     <Icon icon="mdi:weather-cloudy" class="text-gray-500 flex-shrink-0" width="14" />
                                     <span class="text-xs font-medium text-gray-600 truncate ml-1">Clouds</span>
@@ -316,7 +337,7 @@
                             </div>
 
                             <!-- UV Index -->
-                            <div class="bg-yellow-50 rounded-lg p-2 border border-yellow-200">
+                            <div class="bg-yellow-50 rounded-lg p-2 border border-yellow-200 shadow-md">
                                 <div class="flex items-center justify-between mb-1">
                                     <Icon icon="mdi:weather-sunny" class="text-yellow-600 flex-shrink-0" width="14" />
                                     <span class="text-xs font-medium text-gray-600 truncate ml-1">UV Index</span>
@@ -328,7 +349,7 @@
                             </div>
 
                             <!-- Solar Radiation -->
-                            <div class="bg-orange-50 rounded-lg p-2 border border-orange-200">
+                            <div class="bg-orange-50 rounded-lg p-2 border border-orange-200 shadow-md">
                                 <div class="flex items-center justify-between mb-1">
                                     <Icon icon="mdi:solar-power" class="text-orange-600 flex-shrink-0" width="14" />
                                     <span class="text-xs font-medium text-gray-600 truncate ml-1">Solar</span>
@@ -341,7 +362,14 @@
 
                     <!-- Compact Expand/Collapse Section for Hourly Forecast -->
                     <div class="border-t border-gray-200/50 bg-white/50 p-2">
-                        <details class="group">
+                        <details 
+                            class="group"
+                            ontoggle={(e) => {
+                                if (e.target.open && !locationForecasts[location]) {
+                                    loadLocationForecast(location);
+                                }
+                            }}
+                        >
                             <summary class="flex w-full cursor-pointer items-center justify-center rounded border border-dashed border-blue-300 bg-blue-50/50 px-2 py-1.5 text-xs font-medium text-blue-700 transition-all duration-200 hover:bg-blue-100">
                                 <Icon icon="mdi:chart-timeline-variant" class="mr-1 flex-shrink-0" width="14" />
                                 <span class="group-open:hidden truncate">Show 5-Day Hourly Forecast</span>
@@ -351,112 +379,120 @@
 
                             <!-- 5-Day Hourly Forecast -->
                             <div class="mt-2 space-y-2 p-2">
-                                <div class="rounded border border-blue-200 bg-blue-50 p-2">
-                                    <h6 class="mb-2 flex items-center justify-between text-xs font-bold text-blue-800">
-                                        <span class="flex items-center min-w-0 truncate">
-                                            <Icon icon="mdi:chart-timeline-variant" class="mr-1 flex-shrink-0" width="12" />
-                                            <span class="truncate">Hourly Forecast ({days.length} hours)</span>
-                                        </span>
-                                        <span class="text-blue-600 font-medium ml-2 whitespace-nowrap flex-shrink-0">Scroll →</span>
-                                    </h6>
-                                    
-                                    <!-- Horizontal scrollable container -->
-                                    <div class="overflow-x-auto pb-2 -mx-1 px-1">
-                                        <div class="flex gap-2 min-w-max">
-                                            {#each days as hour, index}
-                                                {@const isCurrentHour = moment(hour.datetime, 'YYYY-MM-DD HH:mm:ss').isSame(moment().utcOffset('+08:00').startOf('hour'), 'hour')}
-                                                <div class="flex-shrink-0 w-24 sm:w-28">
-                                                    <div class="rounded-lg border-2 {isCurrentHour ? 'border-blue-500 bg-blue-100' : 'border-gray-300 bg-white'} p-2 shadow hover:shadow-md transition-all h-full">
-                                                        <!-- Time -->
-                                                        <div class="text-center mb-2">
-                                                            <div class="text-xs font-bold text-gray-800 truncate">
-                                                                {moment(hour.datetime, 'YYYY-MM-DD HH:mm:ss').format('h:mm A')}
+                                {#if loadingForecasts[location]}
+                                    <div class="rounded border border-blue-200 bg-blue-50 p-4 text-center">
+                                        <Icon icon="eos-icons:loading" class="mx-auto mb-2 animate-spin text-blue-600" width="20" />
+                                        <p class="text-xs text-blue-700">Loading 5-day forecast...</p>
+                                    </div>
+                                {:else if locationForecasts[location]}
+                                    {@const forecastData = locationForecasts[location]}
+                                    <div class="rounded border border-blue-200 bg-blue-50 p-2">
+                                        <h6 class="mb-2 flex items-center justify-between text-xs font-bold text-blue-800">
+                                            <span class="flex items-center min-w-0 truncate">
+                                                <Icon icon="mdi:chart-timeline-variant" class="mr-1 flex-shrink-0" width="12" />
+                                                <span class="truncate">Hourly Forecast ({forecastData.length} hours)</span>
+                                            </span>
+                                            <span class="text-blue-600 font-medium ml-2 whitespace-nowrap flex-shrink-0">Scroll →</span>
+                                        </h6>
+                                        
+                                        <!-- Horizontal scrollable container -->
+                                        <div class="overflow-x-auto pb-2 -mx-1 px-1">
+                                            <div class="flex gap-2 min-w-max">
+                                                {#each forecastData as hour, index}
+                                                    {@const isCurrentHour = moment(hour.datetime, 'YYYY-MM-DD HH:mm:ss').isSame(moment().utcOffset('+08:00').startOf('hour'), 'hour')}
+                                                    <div class="flex-shrink-0 w-24 sm:w-28">
+                                                        <div class="rounded-lg border-2 {isCurrentHour ? 'border-blue-500 bg-blue-100' : 'border-gray-300 bg-white'} p-2 shadow hover:shadow-md transition-all h-full">
+                                                            <!-- Time -->
+                                                            <div class="text-center mb-2">
+                                                                <div class="text-xs font-bold text-gray-800 truncate">
+                                                                    {moment(hour.datetime, 'YYYY-MM-DD HH:mm:ss').format('h:mm A')}
+                                                                </div>
+                                                                <div class="text-xs text-gray-500 truncate">
+                                                                    {moment(hour.datetime, 'YYYY-MM-DD HH:mm:ss').format('MMM D')}
+                                                                </div>
                                                             </div>
-                                                            <div class="text-xs text-gray-500 truncate">
-                                                                {moment(hour.datetime, 'YYYY-MM-DD HH:mm:ss').format('MMM D')}
+                                                            
+                                                            <!-- Icon -->
+                                                            <div class="text-center mb-2">
+                                                                <Icon
+                                                                    icon={iconMap[hour.icon] || 'mdi:weather-partly-cloudy'}
+                                                                    class="mx-auto text-blue-600"
+                                                                    width="28"
+                                                                />
                                                             </div>
-                                                        </div>
-                                                        
-                                                        <!-- Icon -->
-                                                        <div class="text-center mb-2">
-                                                            <Icon
-                                                                icon={iconMap[hour.icon] || 'mdi:weather-partly-cloudy'}
-                                                                class="mx-auto text-blue-600"
-                                                                width="28"
-                                                            />
-                                                        </div>
-                                                        
-                                                        <!-- Temperature -->
-                                                        <div class="text-center mb-2">
-                                                            <div class="text-lg sm:text-xl font-bold text-gray-800">{hour.temp_c}°</div>
-                                                            <div class="text-xs text-gray-500 truncate">Feels {hour.feelslike_c}°</div>
-                                                        </div>
-                                                        
-                                                        <!-- Compact metrics -->
-                                                        <div class="space-y-1 text-xs">
-                                                            <div class="flex items-center justify-between">
-                                                                <Icon icon="mdi:water-percent" class="text-blue-500 flex-shrink-0" width="12" />
-                                                                <span class="font-semibold text-blue-700 ml-1">{hour.precipprob}%</span>
+                                                            
+                                                            <!-- Temperature -->
+                                                            <div class="text-center mb-2">
+                                                                <div class="text-lg sm:text-xl font-bold text-gray-800">{hour.temp_c}°</div>
+                                                                <div class="text-xs text-gray-500 truncate">Feels {hour.feelslike_c}°</div>
                                                             </div>
-                                                            <div class="flex items-center justify-between">
-                                                                <Icon icon="mdi:water" class="text-cyan-500 flex-shrink-0" width="12" />
-                                                                <span class="ml-1">{hour.humidity}%</span>
+                                                            
+                                                            <!-- Compact metrics -->
+                                                            <div class="space-y-1 text-xs">
+                                                                <div class="flex items-center justify-between">
+                                                                    <Icon icon="mdi:water-percent" class="text-blue-500 flex-shrink-0" width="12" />
+                                                                    <span class="font-semibold text-blue-700 ml-1">{hour.precipprob}%</span>
+                                                                </div>
+                                                                <div class="flex items-center justify-between">
+                                                                    <Icon icon="mdi:water" class="text-cyan-500 flex-shrink-0" width="12" />
+                                                                    <span class="ml-1">{hour.humidity}%</span>
+                                                                </div>
+                                                                <div class="flex items-center justify-between">
+                                                                    <Icon icon="mdi:weather-windy" class="text-gray-500 flex-shrink-0" width="12" />
+                                                                    <span class="ml-1 truncate">{hour.windspeed_kmh} km/h</span>
+                                                                </div>
                                                             </div>
-                                                            <div class="flex items-center justify-between">
-                                                                <Icon icon="mdi:weather-windy" class="text-gray-500 flex-shrink-0" width="12" />
-                                                                <span class="ml-1 truncate">{hour.windspeed_kmh} km/h</span>
-                                                            </div>
-                                                        </div>
-                                                        
-                                                        <!-- Expandable details -->
-                                                        <details class="mt-2">
-                                                            <summary class="text-xs text-blue-600 cursor-pointer hover:text-blue-800 text-center font-medium">
-                                                                + More
-                                                            </summary>
-                                                            <div class="mt-2 pt-2 border-t border-gray-200 space-y-1 text-xs">
-                                                                <div class="flex justify-between">
-                                                                    <span class="text-gray-600">Precip:</span>
-                                                                    <span class="font-medium truncate ml-1">{hour.precip_mm} mm</span>
-                                                                </div>
-                                                                <div class="flex justify-between">
-                                                                    <span class="text-gray-600">Gust:</span>
-                                                                    <span class="font-medium truncate ml-1">{hour.windgust_kmh} km/h</span>
-                                                                </div>
-                                                                <div class="flex justify-between">
-                                                                    <span class="text-gray-600">Pressure:</span>
-                                                                    <span class="font-medium truncate ml-1">{hour.pressure_mb} mb</span>
-                                                                </div>
-                                                                <div class="flex justify-between">
-                                                                    <span class="text-gray-600">Clouds:</span>
-                                                                    <span class="font-medium">{hour.cloudcover}%</span>
-                                                                </div>
-                                                                <div class="flex justify-between">
-                                                                    <span class="text-gray-600">UV:</span>
-                                                                    <span class="font-medium">{hour.uvindex}</span>
-                                                                </div>
-                                                                <div class="flex justify-between">
-                                                                    <span class="text-gray-600">Solar:</span>
-                                                                    <span class="font-medium truncate ml-1">{hour.solarradiation} W/m²</span>
-                                                                </div>
-                                                                <div class="mt-2 pt-1 border-t border-gray-200">
-                                                                    <div class="text-gray-700 font-medium text-center text-xs break-words">
-                                                                        {hour.conditions}
+                                                            
+                                                            <!-- Expandable details -->
+                                                            <details class="mt-2">
+                                                                <summary class="text-xs text-blue-600 cursor-pointer hover:text-blue-800 text-center font-medium">
+                                                                    + More
+                                                                </summary>
+                                                                <div class="mt-2 pt-2 border-t border-gray-200 space-y-1 text-xs">
+                                                                    <div class="flex justify-between">
+                                                                        <span class="text-gray-600">Precip:</span>
+                                                                        <span class="font-medium truncate ml-1">{hour.precip_mm} mm</span>
+                                                                    </div>
+                                                                    <div class="flex justify-between">
+                                                                        <span class="text-gray-600">Gust:</span>
+                                                                        <span class="font-medium truncate ml-1">{hour.windgust_kmh} km/h</span>
+                                                                    </div>
+                                                                    <div class="flex justify-between">
+                                                                        <span class="text-gray-600">Pressure:</span>
+                                                                        <span class="font-medium truncate ml-1">{hour.pressure_mb} mb</span>
+                                                                    </div>
+                                                                    <div class="flex justify-between">
+                                                                        <span class="text-gray-600">Clouds:</span>
+                                                                        <span class="font-medium">{hour.cloudcover}%</span>
+                                                                    </div>
+                                                                    <div class="flex justify-between">
+                                                                        <span class="text-gray-600">UV:</span>
+                                                                        <span class="font-medium">{hour.uvindex}</span>
+                                                                    </div>
+                                                                    <div class="flex justify-between">
+                                                                        <span class="text-gray-600">Solar:</span>
+                                                                        <span class="font-medium truncate ml-1">{hour.solarradiation} W/m²</span>
+                                                                    </div>
+                                                                    <div class="mt-2 pt-1 border-t border-gray-200">
+                                                                        <div class="text-gray-700 font-medium text-center text-xs break-words">
+                                                                            {hour.conditions}
+                                                                        </div>
                                                                     </div>
                                                                 </div>
-                                                            </div>
-                                                        </details>
+                                                            </details>
+                                                        </div>
                                                     </div>
-                                                </div>
-                                            {/each}
+                                                {/each}
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Scroll indicator -->
+                                        <div class="text-center mt-2 flex items-center justify-center gap-2">
+                                            <Icon icon="mdi:gesture-swipe-horizontal" class="text-blue-500 flex-shrink-0" width="16" />
+                                            <p class="text-xs text-blue-700 font-medium truncate">Swipe or scroll to view all forecasts</p>
                                         </div>
                                     </div>
-                                    
-                                    <!-- Scroll indicator -->
-                                    <div class="text-center mt-2 flex items-center justify-center gap-2">
-                                        <Icon icon="mdi:gesture-swipe-horizontal" class="text-blue-500 flex-shrink-0" width="16" />
-                                        <p class="text-xs text-blue-700 font-medium truncate">Swipe or scroll to view all forecasts</p>
-                                    </div>
-                                </div>
+                                {/if}
                             </div>
                         </details>
                     </div>

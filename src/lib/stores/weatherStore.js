@@ -21,3 +21,18 @@ export async function fetchWeatherData() {
     weatherData.set({ loading: false, data: [], error: 'Unable to load weather data' });
   }
 }
+
+export async function fetchLocationForecast(location) {
+  try {
+    const antiCacheToken = Date.now() + Math.random().toString(36).substring(2, 15);
+    const response = await fetch(`/api/get-weather?location=${encodeURIComponent(location)}&_=${antiCacheToken}`);
+    if (!response.ok) {
+      throw new Error(`Error fetching data: ${response.status}`);
+    }
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error(`Failed to load forecast for ${location}:`, error);
+    throw error;
+  }
+}
