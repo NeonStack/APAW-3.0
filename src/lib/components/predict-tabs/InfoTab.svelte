@@ -87,6 +87,7 @@
 	let floodPrediction = null;
 	let isPredicting = false;
 	let predictionError = null;
+	let predictionErrorDetails = null; // New: store error details
 	let locationLoadingState = false;
 	let locationLoadingMessage = '';
 	let expandedFacilities = {}; // Track expanded state of facilities
@@ -197,17 +198,20 @@
 	$: if ($selectedLocation) {
 		floodPrediction = null;
 		predictionError = null;
+		predictionErrorDetails = null;
 	}
 
 	// Request flood prediction from API
 	async function predictFlood() {
 		if (!$selectedLocation.lat || !$selectedLocation.lng) {
 			predictionError = 'Please select a location on the map first';
+			predictionErrorDetails = null;
 			return;
 		}
 
 		isPredicting = true;
 		predictionError = null;
+		predictionErrorDetails = null;
 		floodPrediction = null;
 
 		startFakeProgress();
@@ -222,19 +226,19 @@
 				`/api/flood-prediction?lat=${$selectedLocation.lat}&lng=${$selectedLocation.lng}&date=${userLocalDate}`
 			);
 
-			if (!response.ok) {
-				const errorData = await response.json();
-				throw new Error(errorData.error || 'Failed to fetch prediction');
-			}
-
 			const data = await response.json();
 			console.log('Flood prediction received:', data);
 
-			// Handle both array and direct object responses
+			// Check if response is an error
+			if (data.status === 'error') {
+				predictionErrorDetails = data;
+				throw new Error(data.message || 'Failed to fetch prediction');
+			}
+
+			// Handle success response
 			let predictionData = data;
 			if (Array.isArray(data) && data.length > 0) {
 				predictionData = data[0];
-				console.log('Extracted prediction data from array:', predictionData);
 			}
 
 			// Validate the structure
@@ -242,13 +246,11 @@
 				floodPrediction = predictionData;
 				console.log('Successfully set flood prediction:', floodPrediction);
 			} else {
-				console.error('Invalid prediction data structure:', predictionData);
 				throw new Error('Invalid response format: missing forecast_by_day');
 			}
 		} catch (error) {
 			console.error('Error predicting flood:', error);
 			predictionError = error.message || 'Failed to fetch flood prediction';
-			floodPrediction = null;
 		} finally {
 			completeProgress();
 			setTimeout(() => {
@@ -266,14 +268,19 @@
 
 	// Manage expanded state for each prediction
 	let expandedPredictions = {};
+	let selectedHourByDay = {}; // Track selected hour for each day
 
 	function toggleExpand(date) {
 		expandedPredictions[date] = !expandedPredictions[date];
+		// Initialize selected hour to first hour (0) when expanding
+		if (expandedPredictions[date] && !selectedHourByDay[date]) {
+			selectedHourByDay[date] = 0;
+		}
 	}
 
-	// Toggle expanded state for facility details
-	function toggleFacilityDetails(facilityId) {
-		expandedFacilities[facilityId] = !expandedFacilities[facilityId];
+	// Select hour for viewing details
+	function selectHour(date, hourIndex) {
+		selectedHourByDay[date] = hourIndex;
 	}
 
 	// Simple helper functions
@@ -369,10 +376,11 @@
 		const maxProbability = Math.max(...hourlyForecasts.map(h => h.final_prediction.flood_probability));
 		const maxHeight = Math.max(...hourlyForecasts.map(h => h.final_prediction.predicted_height_cm || 0));
 		
-		// Get peak flood hours (top 3) - convert to 12-hour format
+		// Get peak flood hours (top 3) - convert to 12-hour format and sort by time
 		const peakHours = floodedHours
 			.sort((a, b) => b.final_prediction.flood_probability - a.final_prediction.flood_probability)
 			.slice(0, 3)
+			.sort((a, b) => a.hour - b.hour) // Sort by hour in ascending order
 			.map(h => formatTo12Hour(h.hour))
 			.join(', ');
 
@@ -385,7 +393,8 @@
 			maxHeight,
 			peakHours,
 			hasFloodRisk: floodedHours.length > 0,
-			riskInfo
+			riskInfo,
+			floodedHoursList: floodedHours.map(h => h.hour) // Add list of flooded hours
 		};
 	}
 
@@ -408,13 +417,54 @@
 		return `${hour - 12}:00 PM`;
 	}
 
+	// Helper function to format error type for display
+	function getErrorTypeDisplay(errorType) {
+		const typeMap = {
+			'outside_service_area': { icon: 'mdi:map-marker-off', color: 'orange', label: 'Outside Service Area' },
+			'invalid_location': { icon: 'mdi:water-alert', color: 'blue', label: 'Invalid Location' },
+			'default': { icon: 'mdi:alert-circle', color: 'red', label: 'Error' }
+		};
+		return typeMap[errorType] || typeMap['default'];
+	}
+
+	// Helper function to format water body name
+	function formatWaterBodyName(name) {
+		if (!name || name === 'Unnamed Stream' || name === 'Unnamed River') {
+			return 'an unnamed water body';
+		}
+		return name;
+	}
+
+	// Helper function to get direction arrow icon
+	function getDirectionIcon(direction) {
+		const directionMap = {
+			'north': 'mdi:arrow-up',
+			'south': 'mdi:arrow-down',
+			'east': 'mdi:arrow-right',
+			'west': 'mdi:arrow-left',
+			'north-east': 'mdi:arrow-top-right',
+			'north-west': 'mdi:arrow-top-left',
+			'south-east': 'mdi:arrow-bottom-right',
+			'south-west': 'mdi:arrow-bottom-left'
+		};
+		return directionMap[direction] || 'mdi:arrow-right';
+	}
+
+	// Helper to format height display
+	function formatHeight(heightCm, isFlooded) {
+		if (!isFlooded || heightCm === 0 || heightCm === null) {
+			return isFlooded ? 'Unknown' : '—';
+		}
+		return `${heightCm.toFixed(2)}cm`; // Changed from toFixed(1) to toFixed(2)
+	}
+
 </script>
 
 <div class="info-tab space-y-3">
 	<!-- Data Sources Status -->
 	<div class="rounded-lg border border-gray-200 bg-white shadow-sm">
 		<button
-			on:click={() => (dataSourcesExpanded = !dataSourcesExpanded)}
+			onclick={() => (dataSourcesExpanded = !dataSourcesExpanded)}
 			class="flex w-full items-center justify-between p-3 text-left cursor-pointer hover:bg-gray-50"
 		>
 			<div class="flex items-center">
@@ -428,22 +478,42 @@
 			/>
 		</button>
 		{#if dataSourcesExpanded}
-			<div class="grid grid-cols-2 gap-2 border-t border-gray-200 p-3">
+			<div class="grid grid-cols-1 sm:grid-cols-2 gap-2 border-t border-gray-200 bg-gray-50 p-3">
 				{#each sources as source}
-					<div class="flex items-center space-x-2 rounded-md bg-gray-50 p-2">
-						{#if source.type === 'img'}
-							<img src={source.logo} alt={source.name} class="h-4 w-4" />
-						{:else}
-							<Icon icon={source.logo} class="h-4 w-4 flex-shrink-0" />
+					<div class="relative rounded-md border bg-white p-2.5 shadow-sm"
+						class:border-gray-300={source.status === 'pending'}
+						class:border-green-300={source.status === 'success'}
+						class:border-red-300={source.status === 'error'}
+					>
+						<div class="flex items-center space-x-2">
+							<!-- Logo/Icon -->
+							<div class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md bg-gray-100 p-1">
+								{#if source.type === 'img'}
+									<img src={source.logo} alt={source.name} class="h-full w-full object-contain" />
+								{:else}
+									<Icon icon={source.logo} class="h-5 w-5" />
+								{/if}
+							</div>
+
+							<!-- Name and Status Text -->
+							<div class="flex-grow min-w-0">
+								<p class="text-xs font-semibold text-gray-800 truncate">{source.name}</p>
+								{#if source.status === 'pending'}
+									<p class="text-xs text-blue-600 font-medium">Connecting...</p>
+								{:else if source.status === 'success'}
+									<p class="text-xs text-green-600 font-medium">Connected</p>
+								{:else if source.status === 'error'}
+									<p class="text-xs text-red-600 font-medium">Error</p>
+								{/if}
+							</div>
+						</div>
+
+						<!-- Connection Line Effect (only for pending) -->
+						{#if source.status === 'pending'}
+							<div class="absolute bottom-0 left-0 h-0.5 w-full overflow-hidden rounded-b-md bg-gray-200">
+								<div class="h-full w-1/3 animate-loading-bar bg-gradient-to-r from-transparent via-blue-500 to-transparent"></div>
+							</div>
 						{/if}
-						<span class="flex-grow truncate text-xs font-medium text-gray-700">{source.name}</span>
-						<div
-							class="relative h-3 w-3 flex-shrink-0 rounded-full"
-							class:bg-gray-400={source.status === 'pending'}
-							class:bg-green-500={source.status === 'success'}
-							class:bg-red-500={source.status === 'error'}
-							title={source.status}
-						></div>
 					</div>
 				{/each}
 			</div>
@@ -474,7 +544,7 @@
 			</p>
 
 			<button
-				on:click={predictFlood}
+				onclick={predictFlood}
 				disabled={isPredicting || !$selectedLocation.lat || locationLoadingState}
 				class="flex w-full cursor-pointer items-center justify-center rounded-md bg-[#0c3143] px-3 py-2 text-sm font-medium text-white shadow transition-all duration-200 hover:bg-[#1a4a5a] focus:ring-2 focus:ring-[#0c3143]/20 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
 			>
@@ -487,14 +557,91 @@
 				{/if}
 			</button>
 
+			<!-- Enhanced Error Display -->
 			{#if predictionError}
-				<div class="flex items-start rounded-md border border-red-200 bg-red-50 p-2">
-					<Icon
-						icon="mdi:alert-circle"
-						class="mt-0.5 mr-1.5 flex-shrink-0 text-red-500"
-						width="14"
-					/>
-					<p class="text-xs text-red-700">{predictionError}</p>
+				{@const errorDisplay = predictionErrorDetails ? getErrorTypeDisplay(predictionErrorDetails.error_type) : getErrorTypeDisplay('default')}
+				<div class="rounded-lg border-2 shadow-sm" 
+					class:border-orange-300={errorDisplay.color === 'orange'}
+					class:bg-orange-50={errorDisplay.color === 'orange'}
+					class:border-blue-300={errorDisplay.color === 'blue'}
+					class:bg-blue-50={errorDisplay.color === 'blue'}
+					class:border-red-300={errorDisplay.color === 'red'}
+					class:bg-red-50={errorDisplay.color === 'red'}
+				>
+					<div class="p-3">
+						<div class="flex items-start">
+							<div class="flex-1">
+								<p class="text-sm font-bold"
+									class:text-orange-800={errorDisplay.color === 'orange'}
+									class:text-blue-800={errorDisplay.color === 'blue'}
+									class:text-red-800={errorDisplay.color === 'red'}
+								>
+									{errorDisplay.label}
+								</p>
+								<p class="mt-1 text-xs"
+									class:text-orange-700={errorDisplay.color === 'orange'}
+									class:text-blue-700={errorDisplay.color === 'blue'}
+									class:text-red-700={errorDisplay.color === 'red'}
+								>
+									{predictionError}
+								</p>
+
+								<!-- Additional error details -->
+								{#if predictionErrorDetails?.details}
+									<div class="mt-2 space-y-1">
+										<!-- Water Body Details -->
+										{#if predictionErrorDetails.details.reason === 'water_body'}
+											<div class="rounded border border-blue-200 bg-blue-100 p-2">
+												<p class="text-xs font-semibold text-blue-800">
+													Location Details:
+												</p>
+												<div class="ml-4 mt-1 space-y-0.5 text-xs text-blue-700">
+													<p><span class="font-medium">Type:</span> {predictionErrorDetails.details.water_type?.replace('water_', '').replace('_', ' ') || 'Water body'}</p>
+													{#if predictionErrorDetails.details.water_name && predictionErrorDetails.details.water_name !== 'Unnamed Stream' && predictionErrorDetails.details.water_name !== 'Unnamed River'}
+														<p><span class="font-medium">Name:</span> {predictionErrorDetails.details.water_name}</p>
+													{/if}
+												</div>
+											</div>
+										{/if}
+
+										<!-- Outside NCR Details -->
+										{#if predictionErrorDetails.details.reason === 'outside_metro_manila'}
+											<div class="rounded border border-orange-200 bg-orange-100 p-2">
+												<p class="text-xs font-semibold text-orange-800">
+													Distance from Service Area:
+												</p>
+												<div class="ml-4 mt-1 space-y-0.5 text-xs text-orange-700">
+													<p class="flex items-center">
+														<Icon icon={getDirectionIcon(predictionErrorDetails.details.direction)} class="mr-1" width="12" />
+														<span class="font-bold">{Math.round(predictionErrorDetails.details.distance_to_boundary_m)}m</span>
+														<span class="ml-1">{predictionErrorDetails.details.direction}</span>
+													</p>
+												</div>
+											</div>
+										{/if}
+
+										<!-- Suggestion -->
+										{#if predictionErrorDetails.details.suggestion}
+											<div class="rounded border p-2"
+												class:border-orange-200={errorDisplay.color === 'orange'}
+												class:bg-orange-100={errorDisplay.color === 'orange'}
+												class:border-blue-200={errorDisplay.color === 'blue'}
+												class:bg-blue-100={errorDisplay.color === 'blue'}
+											>
+												<p class="flex items-start text-xs"
+													class:text-orange-700={errorDisplay.color === 'orange'}
+													class:text-blue-700={errorDisplay.color === 'blue'}
+												>
+													<Icon icon="mdi:lightbulb-on-outline" class="mr-1 mt-0.5 flex-shrink-0" width="12" />
+													<span class="font-medium">{predictionErrorDetails.details.suggestion}</span>
+												</p>
+											</div>
+										{/if}
+									</div>
+								{/if}
+							</div>
+						</div>
+					</div>
 				</div>
 			{/if}
 		</div>
@@ -507,7 +654,7 @@
 				<div class="flex items-center">
 					<Icon icon="eos-icons:loading" class="mr-2 animate-spin text-blue-600" width="16" />
 					<div>
-						<p class="text-sm font-semibold text-blue-800">Processing</p>
+						<p class="text-sm font-semibold text-blue-700">Processing</p>
 						<p class="text-xs text-blue-600">Analyzing data...</p>
 					</div>
 				</div>
@@ -546,10 +693,10 @@
 		</div>
 	{/if}
 
-	<!-- Compact Prediction Results -->
+	<!-- Enhanced Prediction Results -->
 	{#if !isPredicting && floodPrediction && floodPrediction.forecast_by_day && floodPrediction.forecast_by_day.length > 0}
 		<div class="space-y-3">
-			<!-- Compact Results Header -->
+			<!-- Compact Results Header (removed Location Validation Card) -->
 			<div class="rounded-lg border border-green-200 bg-gradient-to-r from-green-50 to-blue-50 p-3">
 				<div class="flex items-center justify-between">
 					<div class="flex items-center">
@@ -563,6 +710,21 @@
 						{floodPrediction.location?.start_date ? formatHeaderDate(floodPrediction.location.start_date) : 'Next 5 Days'}
 					</span>
 				</div>
+
+				<!-- Warnings if any -->
+				{#if floodPrediction.warnings && floodPrediction.warnings.length > 0}
+					<div class="mt-2 rounded border border-yellow-300 bg-yellow-50 p-2">
+						<p class="mb-1 flex items-center text-xs font-semibold text-yellow-800">
+							<Icon icon="mdi:alert" class="mr-1" width="14" />
+							Warnings:
+						</p>
+						<ul class="ml-4 list-disc space-y-0.5 text-xs text-yellow-700">
+							{#each floodPrediction.warnings as warning}
+								<li>{warning}</li>
+							{/each}
+						</ul>
+					</div>
+				{/if}
 			</div>
 
 			<!-- Daily Prediction Cards -->
@@ -595,27 +757,22 @@
 									</div>
 								</div>
 
-								<!-- Flood Hours Summary -->
-								{#if summary.floodedHours > 0}
+								<!-- Peak Hours (removed confusing Flood Risk Hours text) -->
+								{#if summary.floodedHours > 0 && summary.peakHours}
 									<div class="mt-2 flex items-center rounded border p-2 {summary.riskInfo.borderStyle}">
 										<Icon icon="mdi:clock-alert-outline" class="mr-1.5 {summary.riskInfo.textColor}" width="16" />
 										<div class="flex-1">
 											<span class="text-xs font-medium {summary.riskInfo.textColor}">
-												Flood Risk Hours:
+												Peak Flood Times:
 											</span>
 											<span class="ml-1 text-xs font-bold {summary.riskInfo.boldTextColor}">
-												{summary.floodedHours}/{summary.totalHours} hours
+												{summary.peakHours}
 											</span>
-											{#if summary.peakHours}
-												<span class="ml-2 text-xs {summary.riskInfo.textColor}">
-													(Peak: {summary.peakHours})
-												</span>
-											{/if}
 										</div>
 									</div>
 								{/if}
 
-								<!-- Height Information -->
+								<!-- Height Information (updated to handle 0cm) -->
 								{#if summary.maxHeight > 0}
 									<div class="mt-2 flex items-center rounded border p-2 {summary.riskInfo.borderStyle}">
 										<Icon icon="mdi:water" class="mr-1.5 {summary.riskInfo.textColor}" width="14" />
@@ -624,7 +781,19 @@
 												Max Height:
 											</span>
 											<span class="ml-1 font-mono {summary.riskInfo.textColor}">
-												{summary.maxHeight.toFixed(1)}cm
+												{summary.maxHeight.toFixed(2)}cm
+											</span>
+										</div>
+									</div>
+								{:else if summary.floodedHours > 0}
+									<div class="mt-2 flex items-center rounded border p-2 {summary.riskInfo.borderStyle}">
+										<Icon icon="mdi:water-alert" class="mr-1.5 {summary.riskInfo.textColor}" width="14" />
+										<div class="text-xs">
+											<span class="font-semibold {summary.riskInfo.textColor}">
+												Flood Height:
+											</span>
+											<span class="ml-1 italic {summary.riskInfo.textColor}">
+												Not measured
 											</span>
 										</div>
 									</div>
@@ -644,7 +813,7 @@
 							<!-- Expand/Collapse Section -->
 							<div class="border-t border-gray-200/50 bg-white/50 p-2">
 								<button
-									on:click={() => toggleExpand(day.date)}
+									onclick={() => toggleExpand(day.date)}
 									class="flex w-full cursor-pointer items-center justify-center rounded border border-dashed border-blue-300 bg-blue-50/50 px-2 py-1.5 text-xs font-medium text-blue-700 transition-all duration-200 hover:bg-blue-100 focus:ring-1 focus:ring-blue-500 focus:outline-none"
 								>
 									<Icon icon={expandedPredictions[day.date] ? 'mdi:chevron-up' : 'mdi:chevron-down'} width="14" class="mr-1" />
@@ -654,40 +823,94 @@
 
 							<!-- Expanded Details - Hourly Breakdown -->
 							{#if expandedPredictions[day.date]}
+								{@const selectedHourIndex = selectedHourByDay[day.date] ?? 0}
+								{@const selectedHourData = day.hourly_forecast[selectedHourIndex]}
+								
 								<div class="space-y-3 border-t border-gray-200 bg-gray-50 p-3">
-									<!-- Hourly Forecast Grid -->
+									<!-- Hourly Forecast Grid (now clickable with flood indicators) -->
 									<div class="rounded border border-blue-200 bg-blue-50 p-2">
-										<h6 class="mb-2 flex items-center text-xs font-bold text-blue-800">
-											<Icon icon="mdi:clock-outline" class="mr-1" width="12" />
-											24-Hour Breakdown
+										<h6 class="mb-2 flex items-center justify-between text-xs font-bold text-blue-800">
+											<span class="flex items-center">
+												<Icon icon="mdi:clock-outline" class="mr-1" width="12" />
+												24-Hour Breakdown
+											</span>
+											{#if summary.floodedHours > 0}
+												<span class="flex items-center gap-1 text-xs font-medium {summary.riskInfo.textColor}">
+													<Icon icon="mdi:water-alert" width="12" />
+													{summary.floodedHours} flood risk {summary.floodedHours === 1 ? 'hour' : 'hours'}
+												</span>
+											{/if}
 										</h6>
+										<p class="mb-2 text-xs text-blue-700">Click any hour to view detailed data</p>
 										<div class="grid grid-cols-6 gap-1 text-xs">
-											{#each day.hourly_forecast as hour}
+											{#each day.hourly_forecast as hour, hourIndex}
 												{@const hourRisk = getRiskLevel(hour.final_prediction.flood_probability)}
-												<div class="rounded border p-1 text-center {hourRisk.borderStyle}">
+												{@const isSelected = selectedHourIndex === hourIndex}
+												{@const isFlooded = hour.final_prediction.is_flooded === 1}
+												<button
+													onclick={() => selectHour(day.date, hourIndex)}
+													class="rounded border p-1 text-center transition-all cursor-pointer hover:shadow-md relative {hourRisk.borderStyle} {isSelected ? 'ring-2 ring-blue-500 shadow-md' : ''}"
+												>
+													<!-- Flood indicator badge (changed to warning triangle) -->
+													{#if isFlooded}
+														<div class="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-orange-500 border-2 border-white flex items-center justify-center">
+															<Icon icon="mdi:alert" class="text-white" width="10" />
+														</div>
+													{/if}
 													<div class="font-bold text-gray-800">{formatTo12Hour(hour.hour)}</div>
 													<div class="text-xs font-semibold {hourRisk.boldTextColor}">
 														{Math.round(hour.final_prediction.flood_probability * 100)}%
 													</div>
-													{#if hour.final_prediction.predicted_height_cm > 0}
-														<div class="text-xs text-gray-600">
-															{hour.final_prediction.predicted_height_cm.toFixed(1)}cm
-														</div>
-													{/if}
-												</div>
+													<div class="text-xs text-gray-600">
+														{formatHeight(hour.final_prediction.predicted_height_cm, isFlooded)}
+													</div>
+												</button>
 											{/each}
 										</div>
+										
+										<!-- Legend removed as requested -->
 									</div>
 
-									<!-- Complete Key Features from First Hour -->
-									{#if day.hourly_forecast[0]?.key_features}
+									<!-- Complete Key Features from Selected Hour -->
+									{#if selectedHourData?.key_features}
 										<div class="rounded border border-gray-300 bg-white p-2">
-											<h6 class="mb-1 flex items-center text-xs font-bold text-gray-800">
-												<Icon icon="mdi:weather-partly-cloudy" class="mr-1 text-gray-600" width="12" />
-												Complete Environmental Data (Sample from {formatTo12Hour(day.hourly_forecast[0].hour)})
+											<h6 class="mb-1 flex items-center justify-between text-xs font-bold text-gray-800">
+												<span class="flex items-center">
+													<Icon icon="mdi:weather-partly-cloudy" class="mr-1 text-gray-600" width="12" />
+													Complete Environmental Data
+												</span>
+												<span class="flex items-center gap-1 rounded bg-blue-100 px-2 py-0.5 text-blue-800">
+													{#if selectedHourData.final_prediction.is_flooded === 1}
+														<Icon icon="mdi:water-alert" class="text-orange-600" width="12" />
+													{/if}
+													{formatTo12Hour(selectedHourData.hour)}
+												</span>
 											</h6>
+											
+											<!-- Prediction info for selected hour -->
+											<div class="mb-2 rounded bg-gray-50 p-2 space-y-1">
+												<div class="flex items-center justify-between text-xs">
+													<span class="text-gray-600">Flood Status:</span>
+													<span class="font-bold {selectedHourData.final_prediction.is_flooded === 1 ? 'text-red-700' : 'text-green-700'}">
+														{selectedHourData.final_prediction.is_flooded === 1 ? 'Flooded' : 'Safe'}
+													</span>
+												</div>
+												<div class="flex items-center justify-between text-xs">
+													<span class="text-gray-600">Flood Probability:</span>
+													<span class="font-bold text-gray-800">
+														{Math.round(selectedHourData.final_prediction.flood_probability * 100)}%
+													</span>
+												</div>
+												<div class="flex items-center justify-between text-xs">
+													<span class="text-gray-600">Predicted Height:</span>
+													<span class="font-bold text-gray-800">
+														{formatHeight(selectedHourData.final_prediction.predicted_height_cm, selectedHourData.final_prediction.is_flooded === 1)}
+													</span>
+												</div>
+											</div>
+
 											<div class="space-y-0.5">
-												{#each Object.entries(day.hourly_forecast[0].key_features) as [key, value]}
+												{#each Object.entries(selectedHourData.key_features) as [key, value]}
 													<div class="flex items-center justify-between text-xs">
 														<span class="truncate text-gray-600" title={key}>
 															{key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}:
@@ -811,7 +1034,7 @@
 					{#each $nearestFacilities as facility}
 						<div class="rounded border border-gray-300 bg-white">
 							<button
-								on:click={() => toggleFacilityDetails(facility.id)}
+								onclick={() => toggleFacilityDetails(facility.id)}
 								class="flex w-full cursor-pointer items-center p-2 transition-colors duration-150 hover:bg-gray-50"
 							>
 								<Icon
@@ -975,5 +1198,19 @@
 
 	.space-y-1 > :not([hidden]) ~ :not([hidden]) {
 		margin-top: 0.25rem;
+	}
+
+	/* Loading bar animation */
+	@keyframes loading-bar {
+		0% {
+			transform: translateX(-100%);
+		}
+		100% {
+			transform: translateX(400%);
+		}
+	}
+
+	.animate-loading-bar {
+		animation: loading-bar 1.5s ease-in-out infinite;
 	}
 </style>
