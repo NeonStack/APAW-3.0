@@ -4,6 +4,21 @@
   html {
     scroll-behavior: smooth;
     font-family: "Inter Tight", sans-serif;
+    width: 100%;
+    max-width: 100%;
+  }
+  
+  body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+  
+  #svelte {
+    width: 100%;
+    max-width: 100%;
   }
   
   :root {
