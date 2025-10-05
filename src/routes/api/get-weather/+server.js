@@ -1,7 +1,18 @@
 import { createClient } from '@supabase/supabase-js';
 import { SUPABASE_URL, SUPABASE_SERVICE_KEY } from '$env/static/private';
+import { json } from '@sveltejs/kit';
 
 export async function GET({ request }) {
+  // Add server-side protection - verify request is from our own site
+  const referer = request.headers.get('referer');
+  const host = request.headers.get('host');
+  
+  // Only allow requests from our own website
+  if (!referer || !referer.includes(host)) {
+    console.warn('Potential unauthorized weather API access attempt');
+    return json({ error: 'Unauthorized access' }, { status: 403 });
+  }
+
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
   const url = new URL(request.url);
   const location = url.searchParams.get('location');
@@ -65,8 +76,8 @@ export async function GET({ request }) {
 
   if (error) {
     console.log(error);
-    return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: { 'Content-Type': 'application/json' } });
+    return json({ error: error.message }, { status: 500 });
   }
 
-  return new Response(JSON.stringify(data), { headers: { 'Content-Type': 'application/json' } });
+  return json(data);
 }
