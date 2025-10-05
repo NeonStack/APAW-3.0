@@ -400,10 +400,6 @@
 			console.warn(`Failed to pre-load ${facilitiesConfig.name}:`, err)
 		);
 
-		// Fetch water stations data immediately when map loads
-		console.log('Fetching water stations on map mount...');
-		await fetchWaterStations();
-
 		// Subscribe to water stations data
 		waterStationSubscription = waterStations.subscribe((value) => {
 			console.log('Water stations subscription triggered:', value);
