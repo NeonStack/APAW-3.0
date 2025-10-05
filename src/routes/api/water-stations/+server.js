@@ -71,7 +71,7 @@ export async function GET({ request }) {
 
 		return json(processedData, {
 			headers: {
-				'Cache-Control': 'public, s-maxage=300'
+				'Cache-Control': 'private, max-age=300'
 			}
 		});
 	} catch (error) {
