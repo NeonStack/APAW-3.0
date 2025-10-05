@@ -9,7 +9,7 @@
 		nearestFacilities,
 		facilitiesLayerActive
 	} from '$lib/stores/locationStore.js';
-	import { waterStations, focusedWaterStation } from '$lib/stores/waterStationStore.js';
+	import { waterStations, focusedWaterStation, fetchWaterStations } from '$lib/stores/waterStationStore.js';
 	import { get } from 'svelte/store';
 	import Icon from '@iconify/svelte';
 	import MapSearchBar from './MapSearchBar.svelte';
@@ -49,6 +49,7 @@
 		setupGroupedLayerControl,
 		addWeatherLayersToGroupedControl
 	} from './map_components/GroupedLayerControl.js';
+	import { loadAndProcessGeoJson } from './map_components/GeoJsonUtils.js';
 
 	const dispatch = createEventDispatcher();
 	const OPENWEATHER_MAP_API_KEY = import.meta.env.VITE_OPENWEATHER_MAP_API_KEY || '';
@@ -399,14 +400,24 @@
 			console.warn(`Failed to pre-load ${facilitiesConfig.name}:`, err)
 		);
 
+		// Fetch water stations data immediately when map loads
+		console.log('Fetching water stations on map mount...');
+		await fetchWaterStations();
+
 		// Subscribe to water stations data
 		waterStationSubscription = waterStations.subscribe((value) => {
-			if (!map || !L) return;
+			console.log('Water stations subscription triggered:', value);
+			if (!map || !L) {
+				console.log('Map or L not ready yet');
+				return;
+			}
 
+			// Clear existing markers
 			waterStationMarkers.forEach((m) => map.removeLayer(m));
 			waterStationMarkers = [];
 
 			if (!value.loading && value.data && value.data.length > 0) {
+				console.log(`Processing ${value.data.length} water stations`);
 				value.data.forEach((station) => {
 					if (station.lat && station.lon) {
 						try {
@@ -415,19 +426,30 @@
 
 							if (!isNaN(lat) && !isNaN(lon)) {
 								const { status } = getStationAlertInfo(station);
-								const icon = createWaterIcon(L, status);
-								const popupContent = createWaterStationPopup(station);
+                                const icon = createWaterIcon(L, status);
+                                const popupContent = createWaterStationPopup(station);
 
-								const stationMarker = L.marker([lat, lon], { icon: icon })
-									.addTo(map)
-									.bindPopup(popupContent);
-								waterStationMarkers.push(stationMarker);
+                                const stationMarker = L.marker([lat, lon], { icon: icon })
+                                    .addTo(map)
+                                    .bindPopup(popupContent);
+                                waterStationMarkers.push(stationMarker);
+							} else {
+								console.warn('Invalid lat/lon for station:', station.obscd);
 							}
 						} catch (err) {
-							console.error('Error processing station:', err);
+							console.error('Error processing station:', station.obscd, err);
 						}
+					} else {
+						console.warn('Station missing lat/lon:', station.obscd);
 					}
 				});
+				console.log(`Added ${waterStationMarkers.length} water station markers to map`);
+			} else if (value.loading) {
+				console.log('Water stations still loading...');
+			} else if (value.error) {
+				console.error('Water stations error:', value.error);
+			} else {
+				console.log('No water station data available');
 			}
 		});
 

@@ -1,6 +1,6 @@
 <script>
 	import { createEventDispatcher, onMount } from 'svelte';
-	import { waterStations, fetchWaterStations } from '$lib/stores/waterStationStore.js';
+	import { waterStations } from '$lib/stores/waterStationStore.js';
 	import InfoTab from './predict-tabs/InfoTab.svelte';
 	import WaterStationsTab from './predict-tabs/WaterStationsTab.svelte';
 	import { weatherData, fetchWeatherData } from '$lib/stores/weatherStore.js';
@@ -22,8 +22,8 @@
 	}
 
 	onMount(async () => {
-		fetchWaterStations();
-
+		// Water stations are now fetched in Map.svelte, so we don't need to fetch here
+		// Just fetch weather data
 		fetchWeatherData();
 
 		console.log('weatherData on mount:', $weatherData);

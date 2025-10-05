@@ -37,15 +37,30 @@ export function createWaterIcon(L, alertStatus = 'normal') {
       color = '#ffffff';
   }
   
-  const iconContainer = document.createElement('div');
-  iconContainer.className = 'water-station-icon';
-  iconContainer.dataset.status = alertStatus;
-  const svgIcon = `<svg width="30" height="30" viewBox="0 0 24 24"><defs><filter id="glow" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="2" result="blur" /><feFlood flood-color="${color}" result="glow" /><feComposite in="glow" in2="blur" operator="in" result="glowBlur" /><feComposite in="SourceGraphic" in2="glowBlur" operator="over" /></filter></defs><circle cx="12" cy="14" r="9" fill="#0055aa" opacity="0.3" /><path d="M12 20a6 6 0 0 1-6-6c0-4 6-10.75 6-10.75S18 10 18 14a6 6 0 0 1-6 6Z" fill="#00b3ff" stroke="${color}" stroke-width="1.5" filter="url(#glow)" /></svg>`;
-  iconContainer.innerHTML = svgIcon;
+  // Return HTML string directly instead of wrapping in a div
+  const svgIcon = `
+    <div class="water-station-icon status-${alertStatus}">
+      <svg width="30" height="30" viewBox="0 0 24 24">
+        <defs>
+          <filter id="glow-${alertStatus}" x="-30%" y="-30%" width="160%" height="160%">
+            <feGaussianBlur stdDeviation="2" result="blur" />
+            <feFlood flood-color="${color}" result="glow" />
+            <feComposite in="glow" in2="blur" operator="in" result="glowBlur" />
+            <feComposite in="SourceGraphic" in2="glowBlur" operator="over" />
+          </filter>
+        </defs>
+        <circle cx="12" cy="14" r="9" fill="#0055aa" opacity="0.3" />
+        <path d="M12 20a6 6 0 0 1-6-6c0-4 6-10.75 6-10.75S18 10 18 14a6 6 0 0 1-6 6Z" 
+              fill="#00b3ff" 
+              stroke="${color}" 
+              stroke-width="1.5" 
+              filter="url(#glow-${alertStatus})" />
+      </svg>
+    </div>`;
   
   return L.divIcon({
-    html: iconContainer,
-    className: `water-station-marker status-${alertStatus}`,
+    html: svgIcon,
+    className: 'water-station-marker',
     iconSize: [30, 30],
     iconAnchor: [15, 30],
     popupAnchor: [0, -30]
@@ -55,8 +70,6 @@ export function createWaterIcon(L, alertStatus = 'normal') {
 export function createWaterStationPopup(station) {
   let content = '';
 
-  console.log(station)
-  
   // Add station name at the top of popup
   if (station.obsnm) {
     content += `<h3 style="font-weight: bold; font-size: 1.1em; margin-bottom: 5px; color: #0c3143;">${station.obsnm} Station</h3>`;
