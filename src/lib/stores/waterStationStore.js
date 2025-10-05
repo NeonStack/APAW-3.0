@@ -9,8 +9,7 @@ export const waterStations = writable({
 export async function fetchWaterStations() {
     waterStations.update((store) => ({ ...store, loading: true, error: null }));
     try {
-        const antiCacheToken = Date.now() + Math.random().toString(36).substring(2, 15);
-        const response = await fetch(`/api/water-stations?_=${antiCacheToken}`);
+        const response = await fetch('/api/water-stations');
         if (!response.ok) {
             throw new Error(`Error fetching data: ${response.status}`);
         }

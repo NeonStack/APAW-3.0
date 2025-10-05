@@ -9,8 +9,7 @@ export const weatherData = writable({
 export async function fetchWeatherData() {
   weatherData.update((store) => ({ ...store, loading: true, error: null }));
   try {
-    const antiCacheToken = Date.now() + Math.random().toString(36).substring(2, 15);
-    const response = await fetch(`/api/get-weather?_=${antiCacheToken}`);
+    const response = await fetch('/api/get-weather');
     if (!response.ok) {
       throw new Error(`Error fetching data: ${response.status}`);
     }
@@ -24,8 +23,7 @@ export async function fetchWeatherData() {
 
 export async function fetchLocationForecast(location) {
   try {
-    const antiCacheToken = Date.now() + Math.random().toString(36).substring(2, 15);
-    const response = await fetch(`/api/get-weather?location=${encodeURIComponent(location)}&_=${antiCacheToken}`);
+    const response = await fetch(`/api/get-weather?location=${encodeURIComponent(location)}`);
     if (!response.ok) {
       throw new Error(`Error fetching data: ${response.status}`);
     }
