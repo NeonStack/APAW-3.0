@@ -78,13 +78,13 @@
 		{/each}
 	</div>
 
-	<div class="relative z-10 container mx-auto px-6 pt-16 pb-8 md:px-16 md:pt-24 md:pb-20 lg:pt-10">
+	<div class="relative z-10 container mx-auto px-6 pt-12 pb-4 lg:pt-12 lg:pb-3">
 		<!-- Content with enhanced layout -->
 		<div class="mx-auto max-w-6xl">
-			<div class="mb-12 text-center">
+			<div class="mb-8 lg:mb-10 text-center">
 				<!-- Badge -->
 				<div
-					class="bg-primary-light/10 mb-6 inline-flex items-center gap-2 rounded-full px-4 py-2 backdrop-blur-sm"
+					class="bg-primary-light/10 mb-4 lg:mb-6 inline-flex items-center gap-2 rounded-full px-4 py-2 backdrop-blur-sm"
 				>
 					<div class="bg-primary-light h-2 w-2 animate-pulse rounded-full"></div>
 					<span class="text-primary text-sm font-medium">Flood Risk Prediction System</span>
@@ -92,15 +92,15 @@
 
 				<!-- Improved heading design with better mobile responsiveness -->
 				<div class="relative">
-					<h1 class="text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl">
-						<span class="text-primary whitespace-nowrap hidden md:inline">Advanced Predictive Analysis of</span>
-						<span class="text-primary md:hidden">Advanced Predictive Analysis of</span>
-						<br class="hidden md:block" />
-						<span class="text-primary-light block md:inline md:whitespace-nowrap"> Water-Related Flood Risk </span>
+					<h1 class="font-bold tracking-tight hero-heading">
+						<span class="text-primary whitespace-nowrap hidden lg:inline">Advanced Predictive Analysis of</span>
+						<span class="text-primary lg:hidden">Advanced Predictive Analysis of</span>
+						<br class="hidden lg:block" />
+						<span class="text-primary-light block lg:inline lg:whitespace-nowrap"> Water-Related Flood Risk </span>
 					</h1>
 
 					<!-- Decorative element -->
-					<div class="mt-6 flex items-center justify-center gap-2">
+					<div class="mt-4 lg:mt-6 flex items-center justify-center gap-2">
 						<div class="bg-primary-light/30 h-1 w-12 rounded-full"></div>
 						<div class="bg-primary-light h-1 w-24 rounded-full"></div>
 						<div class="bg-primary-light/30 h-1 w-12 rounded-full"></div>
@@ -109,34 +109,34 @@
 
 				<!-- Improved subheading with better spacing and readability -->
 				<p
-					class="mx-auto mt-8 max-w-3xl px-4 text-base leading-relaxed text-gray-700 md:text-lg lg:text-xl"
+					class="mx-auto mt-6 lg:mt-8 max-w-3xl px-4 text-base leading-relaxed text-gray-700 lg:text-xl"
 				>
 					Applying supervised learning models to analyze integrated hydrometeorological data and
 					predict potential flood occurrences at specific locations.
 				</p>
 			</div>
 
-			<!-- Stats Section - NEW -->
-			<div class="mx-auto mb-12 grid max-w-3xl grid-cols-3 gap-4 md:gap-8">
+			<!-- Stats Section -->
+			<div class="mx-auto mb-8 lg:mb-10 grid max-w-3xl grid-cols-3 gap-4 lg:gap-8">
 				<div class="text-center">
-					<div class="text-primary mb-1 text-2xl font-bold md:text-4xl">5</div>
-					<div class="text-xs text-gray-600 md:text-sm">Days Forecast</div>
+					<div class="text-primary mb-1 text-2xl font-bold lg:text-3xl">5</div>
+					<div class="text-xs text-gray-600 lg:text-sm">Days Forecast</div>
 				</div>
 				<div class="border-x border-gray-200 text-center">
-					<div class="text-primary mb-1 text-2xl font-bold md:text-4xl">NCR</div>
-					<div class="text-xs text-gray-600 md:text-sm">Coverage Area</div>
+					<div class="text-primary mb-1 text-2xl font-bold lg:text-3xl">NCR</div>
+					<div class="text-xs text-gray-600 lg:text-sm">Coverage Area</div>
 				</div>
 				<div class="text-center">
-					<div class="text-primary mb-1 text-2xl font-bold md:text-4xl">AI</div>
-					<div class="text-xs text-gray-600 md:text-sm">Powered</div>
+					<div class="text-primary mb-1 text-2xl font-bold lg:text-3xl">AI</div>
+					<div class="text-xs text-gray-600 lg:text-sm">Powered</div>
 				</div>
 			</div>
 
 			<!-- CTA Buttons with improved spacing and design -->
-			<div class="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row sm:gap-6">
+			<div class="mt-6 lg:mt-8 flex flex-col items-center justify-center gap-4 lg:flex-row lg:gap-6">
 				<a
 					href="/predict"
-					class="group bg-primary-light relative w-full overflow-hidden rounded-xl px-8 py-4 text-center font-semibold text-white shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-xl sm:w-auto"
+					class="group bg-primary-light relative w-full overflow-hidden rounded-xl px-8 py-4 text-center font-semibold text-white shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-xl lg:w-auto"
 				>
 					<span class="relative z-10 flex items-center justify-center gap-2">
 						View Predictions
@@ -148,7 +148,7 @@
 				</a>
 				<a
 					href="/about"
-					class="group border-primary-light/30 text-primary hover:border-primary-light w-full rounded-xl border-2 bg-white/80 px-8 py-4 text-center font-semibold backdrop-blur-sm transition-all duration-300 hover:scale-105 hover:bg-white hover:shadow-lg sm:w-auto"
+					class="group border-primary-light/30 text-primary hover:border-primary-light w-full rounded-xl border-2 bg-white/80 px-8 py-4 text-center font-semibold backdrop-blur-sm transition-all duration-300 hover:scale-105 hover:bg-white hover:shadow-lg lg:w-auto"
 				>
 					<span class="flex items-center justify-center gap-2">
 						Learn More
@@ -187,22 +187,22 @@
 
 <!-- Features Section -->
 <section class="bg-primary-light py-20 text-white">
-	<div class="container mx-auto px-6 md:px-16">
+	<div class="container mx-auto px-6 lg:px-16">
 		<div class="mb-16 text-center">
 			<span
 				class="mb-4 inline-block rounded-full bg-white/20 px-4 py-2 text-sm font-semibold text-white backdrop-blur-sm"
 				>OUR PLATFORM</span
 			>
-			<h2 class="mb-4 text-3xl font-bold text-white md:text-4xl lg:text-5xl">
+			<h2 class="mb-4 text-3xl font-bold text-white lg:text-5xl">
 				Proactive Flood Preparedness Tools
 			</h2>
-			<p class="mx-auto max-w-3xl px-4 text-lg text-blue-50 md:text-xl">
+			<p class="mx-auto max-w-3xl px-4 text-lg text-blue-50 lg:text-xl">
 				Leveraging predictive models to generate location-specific flood risk forecasts, enabling
 				communities and individuals to prepare more effectively for potential water-related events.
 			</p>
 		</div>
 
-		<div class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
+		<div class="grid grid-cols-1 gap-6 lg:grid-cols-4">
 			{#each features as feature}
 				<div
 					class="group relative overflow-hidden rounded-2xl border border-white/20 bg-white/10 p-8 shadow-lg backdrop-blur-sm transition-all duration-300 hover:-translate-y-2 hover:bg-white/15 hover:shadow-2xl"
@@ -228,10 +228,10 @@
 </section>
 
 <!-- Call to Action Section -->
-<section class="py-20 md:py-28">
-	<div class="container mx-auto px-6 md:px-16">
+<section class="py-20 lg:py-28">
+	<div class="container mx-auto px-6 lg:px-16">
 		<div
-			class="from-primary relative overflow-hidden rounded-3xl bg-gradient-to-br to-[#154a67] p-10 text-center shadow-2xl md:p-16"
+			class="from-primary relative overflow-hidden rounded-3xl bg-gradient-to-br to-[#154a67] p-10 text-center shadow-2xl lg:p-16"
 		>
 			<!-- Decorative elements -->
 			<div class="absolute -top-24 -right-24 h-48 w-48 rounded-full bg-white/10 blur-3xl"></div>
@@ -245,10 +245,10 @@
 					<span class="text-sm font-semibold text-white">Get Started Today</span>
 				</div>
 
-				<h2 class="mb-6 text-3xl font-bold text-white md:text-4xl lg:text-5xl">
-					Ready to explore APAW's<br class="hidden md:block" /> flood prediction?
+				<h2 class="mb-6 text-3xl font-bold text-white lg:text-5xl">
+					Ready to explore APAW's<br class="hidden lg:block" /> flood prediction?
 				</h2>
-				<p class="mb-10 px-4 text-base leading-relaxed text-blue-100 md:text-lg">
+				<p class="mb-10 px-4 text-base leading-relaxed text-blue-100 lg:text-lg">
 					Access our advanced prediction now and see how APAW can help your community stay safe from
 					water-related flood risk.
 				</p>
@@ -265,11 +265,16 @@
 </section>
 
 <style>
+	.hero-heading {
+		font-size: clamp(1.875rem, 5vw, 4rem);
+	}
+
 	.waves-container {
 		position: relative;
 		width: 100%;
-		height: 150px;
+		height: 100px;
 		overflow: hidden;
+		margin-top: -10px;
 	}
 
 	.waves {
@@ -277,8 +282,8 @@
 		bottom: 0;
 		width: 100%;
 		height: 100%;
-		min-height: 100px;
-		max-height: 150px;
+		min-height: 60px;
+		max-height: 100px;
 	}
 
 	.parallax > use {
@@ -314,15 +319,17 @@
 		}
 	}
 
-	/* Responsive adjustments for mobile */
-	@media (max-width: 768px) {
+	/* Single breakpoint for large screens */
+	@media (min-width: 1024px) {
 		.waves-container {
-			height: 80px;
+			height: 180px;
+			margin-top: -20px;
 		}
 
 		.waves {
-			height: 40px;
-			min-height: 40px;
+			height: 100%;
+			min-height: 120px;
+			max-height: 180px;
 		}
 	}
 
@@ -359,10 +366,10 @@
 		}
 	}
 
-	/* Responsive adjustments for the rain effect */
-	@media (max-width: 768px) {
+	/* Hide rain on small screens for better performance */
+	@media (max-width: 1023px) {
 		.raindrops-container {
-			display: none; /* Hide rain on small screens for better performance */
+			display: none;
 		}
 	}
 </style>
