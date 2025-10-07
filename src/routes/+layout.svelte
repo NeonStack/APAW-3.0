@@ -14,6 +14,10 @@
 	let isPredictPage = $derived($page.url.pathname === '/predict');
 	let activeRoute = $derived($page.url.pathname);
 
+	// Link references for position calculation
+	let navLinks = $state({});
+	let indicatorStyle = $state({ width: 0, left: 0 });
+
 	// Menu toggle handler
 	function toggleMenu() {
 		isMenuOpen = !isMenuOpen;
@@ -32,6 +36,20 @@
 		'/resources': 4
 	};
 
+	// Calculate indicator position based on active link
+	$effect(() => {
+		const activeLink = navLinks[activeRoute];
+		if (activeLink) {
+			const rect = activeLink.getBoundingClientRect();
+			const parentRect = activeLink.parentElement.getBoundingClientRect();
+			
+			indicatorStyle = {
+				width: rect.width,
+				left: rect.left - parentRect.left
+			};
+		}
+	});
+
 	// Manage body overflow
 	$effect(() => {
 		if (isPredictPage || isMenuOpen) {
@@ -46,7 +64,7 @@
 	});
 
 	// line indicator below link offset adjustment 
-	const indicatorOffset = 5;
+	const indicatorOffset = 8;
 </script>
 
 <!-- Header -->
@@ -61,8 +79,9 @@
 			</div>
 
 			<!-- Desktop Navigation -->
-			<div class="hidden md:grid grid-cols-4 gap-10 relative">
+			<div class="hidden md:grid grid-cols-4 gap-6 relative">
 				<a
+					bind:this={navLinks['/']}
 					href="/"
 					class="relative pb-2 font-medium text-gray-800 transition-colors hover:text-primary text-center"
 					class:text-primary={activeRoute === '/'
@@ -71,6 +90,7 @@
 					Home
 				</a>
 				<a
+					bind:this={navLinks['/predict']}
 					href="/predict"
 					class="relative pb-2 font-medium text-gray-800 transition-colors hover:text-primary text-center"
 					class:text-primary={activeRoute === '/predict'}
@@ -78,6 +98,7 @@
 					Predict
 				</a>
 				<a
+					bind:this={navLinks['/about']}
 					href="/about"
 					class="relative pb-2 font-medium text-gray-800 transition-colors hover:text-primary text-center"
 					class:text-primary={activeRoute === '/about'}
@@ -85,6 +106,7 @@
 					About
 				</a>
 				<a
+					bind:this={navLinks['/resources']}
 					href="/resources"
 					class="relative pb-2 font-medium text-gray-800 transition-colors hover:text-primary text-center"
 					class:text-primary={activeRoute === '/resources'}
@@ -93,12 +115,12 @@
 				</a>
 				
 				<!-- Sliding indicator -->
-				{#if routePositions[activeRoute]}
+				{#if indicatorStyle.width > 0}
 					<span 
 						class="absolute bottom-0 h-1 bg-primary-light rounded-full transition-all duration-300 ease-out"
 						style="
-							width: 60px;
-							left: calc(({routePositions[activeRoute] - 1} * (100% + 2.5rem) / 4) + ((100% - 10rem) / 8) - 30px + {indicatorOffset}px);
+							width: {indicatorStyle.width}px;
+							left: {indicatorStyle.left}px;
 						"
 					></span>
 				{/if}

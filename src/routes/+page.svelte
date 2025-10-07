@@ -47,7 +47,7 @@
 </svelte:head>
 
 <!-- Premium Contest-Worthy Hero Section -->
-<section class="relative overflow-hidden bg-gradient-to-br from-gray-50 to-blue-50">
+<section class="relative overflow-hidden bg-gradient-to-br from-gray-50 via-blue-50 to-gray-50">
 	<!-- Decorative Elements -->
 	<div class="absolute top-0 left-0 z-0 h-full w-full overflow-hidden">
 		<div
@@ -55,6 +55,9 @@
 		></div>
 		<div
 			class="bg-primary-light absolute top-1/4 -right-32 h-96 w-96 rounded-full opacity-10 blur-3xl"
+		></div>
+		<div
+			class="absolute bottom-1/4 left-1/3 h-72 w-72 rounded-full bg-blue-200 opacity-20 blur-3xl"
 		></div>
 	</div>
 
@@ -75,50 +78,88 @@
 		{/each}
 	</div>
 
-	<div class="relative z-10 container mx-auto px-8 pt-12 md:px-16 md:pt-20 md:pb-20">
+	<div class="relative z-10 container mx-auto px-6 pt-16 pb-8 md:px-16 md:pt-24 md:pb-20 lg:pt-10">
 		<!-- Content with enhanced layout -->
-		<div class="mx-auto max-w-5xl">
+		<div class="mx-auto max-w-6xl">
 			<div class="mb-12 text-center">
-				<!-- Improved heading design with better spacing and visual hierarchy -->
-				<div class="relative inline-block">
-					<h1
-						class="text-primary mb-2 text-3xl leading-tight font-bold tracking-tight md:mb-3 md:text-5xl lg:text-6xl"
-					>
-						Advanced Predictive Analysis<br />
-						<span class="text-primary-light">of Water-Related Flood Risk</span>
-					</h1>
-					<!-- Subtle accent line -->
-					<div
-						class="bg-primary-light absolute -bottom-6 left-1/2 hidden h-1 w-24 -translate-x-1/2 transform rounded-full opacity-70 md:block"
-					></div>
+				<!-- Badge -->
+				<div
+					class="bg-primary-light/10 mb-6 inline-flex items-center gap-2 rounded-full px-4 py-2 backdrop-blur-sm"
+				>
+					<div class="bg-primary-light h-2 w-2 animate-pulse rounded-full"></div>
+					<span class="text-primary text-sm font-medium">Flood Risk Prediction System</span>
 				</div>
 
-				<!-- Improved subheading with better spacing -->
-				<p class="mx-auto mt-10 max-w-3xl text-lg leading-relaxed text-gray-700 md:text-xl">
+				<!-- Improved heading design with better mobile responsiveness -->
+				<div class="relative">
+					<h1 class="text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl">
+						<span class="text-primary whitespace-nowrap hidden md:inline">Advanced Predictive Analysis of</span>
+						<span class="text-primary md:hidden">Advanced Predictive Analysis of</span>
+						<br class="hidden md:block" />
+						<span class="text-primary-light block md:inline md:whitespace-nowrap"> Water-Related Flood Risk </span>
+					</h1>
+
+					<!-- Decorative element -->
+					<div class="mt-6 flex items-center justify-center gap-2">
+						<div class="bg-primary-light/30 h-1 w-12 rounded-full"></div>
+						<div class="bg-primary-light h-1 w-24 rounded-full"></div>
+						<div class="bg-primary-light/30 h-1 w-12 rounded-full"></div>
+					</div>
+				</div>
+
+				<!-- Improved subheading with better spacing and readability -->
+				<p
+					class="mx-auto mt-8 max-w-3xl px-4 text-base leading-relaxed text-gray-700 md:text-lg lg:text-xl"
+				>
 					Applying supervised learning models to analyze integrated hydrometeorological data and
 					predict potential flood occurrences at specific locations.
 				</p>
 			</div>
 
-			<!-- CTA Buttons with improved spacing -->
-			<div class="mt-8 flex flex-col items-center justify-center gap-5 sm:flex-row">
+			<!-- Stats Section - NEW -->
+			<div class="mx-auto mb-12 grid max-w-3xl grid-cols-3 gap-4 md:gap-8">
+				<div class="text-center">
+					<div class="text-primary mb-1 text-2xl font-bold md:text-4xl">5</div>
+					<div class="text-xs text-gray-600 md:text-sm">Days Forecast</div>
+				</div>
+				<div class="border-x border-gray-200 text-center">
+					<div class="text-primary mb-1 text-2xl font-bold md:text-4xl">NCR</div>
+					<div class="text-xs text-gray-600 md:text-sm">Coverage Area</div>
+				</div>
+				<div class="text-center">
+					<div class="text-primary mb-1 text-2xl font-bold md:text-4xl">AI</div>
+					<div class="text-xs text-gray-600 md:text-sm">Powered</div>
+				</div>
+			</div>
+
+			<!-- CTA Buttons with improved spacing and design -->
+			<div class="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row sm:gap-6">
 				<a
 					href="/predict"
-					class="bg-primary-light w-48 transform rounded-lg px-8 py-3 text-center font-medium text-white shadow-md transition-all duration-300 hover:-translate-y-1 hover:bg-[#2d8fb3] hover:shadow-lg sm:w-48"
+					class="group bg-primary-light relative w-full overflow-hidden rounded-xl px-8 py-4 text-center font-semibold text-white shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-xl sm:w-auto"
 				>
-					View Predictions
+					<span class="relative z-10 flex items-center justify-center gap-2">
+						View Predictions
+						<Icon icon="mdi:arrow-right" class="transition-transform group-hover:translate-x-1" />
+					</span>
+					<div
+						class="from-primary-light to-primary absolute inset-0 bg-gradient-to-r opacity-0 transition-opacity group-hover:opacity-100"
+					></div>
 				</a>
 				<a
 					href="/about"
-					class="text-primary w-48 transform rounded-lg border border-gray-300 bg-white px-8 py-3 text-center font-medium shadow-md transition-all duration-300 hover:-translate-y-1 hover:bg-gray-50 hover:shadow-lg sm:w-48"
+					class="group border-primary-light/30 text-primary hover:border-primary-light w-full rounded-xl border-2 bg-white/80 px-8 py-4 text-center font-semibold backdrop-blur-sm transition-all duration-300 hover:scale-105 hover:bg-white hover:shadow-lg sm:w-auto"
 				>
-					Learn More
+					<span class="flex items-center justify-center gap-2">
+						Learn More
+						<Icon icon="mdi:information-outline" />
+					</span>
 				</a>
 			</div>
 		</div>
 	</div>
 
-	<!-- Enhanced Wave Animation with perspective - UNCHANGED as requested -->
+	<!-- Enhanced Wave Animation -->
 	<div class="waves-container">
 		<svg
 			class="waves"
@@ -146,33 +187,40 @@
 
 <!-- Features Section -->
 <section class="bg-primary-light py-20 text-white">
-	<div class="container mx-auto px-8 md:px-16">
+	<div class="container mx-auto px-6 md:px-16">
 		<div class="mb-16 text-center">
 			<span
-				class="bg-opacity-30 bg-primary mb-4 inline-block rounded-full px-3 py-1 text-sm font-medium text-white"
+				class="mb-4 inline-block rounded-full bg-white/20 px-4 py-2 text-sm font-semibold text-white backdrop-blur-sm"
 				>OUR PLATFORM</span
 			>
-			<h2 class="mb-4 text-3xl font-bold text-white md:text-4xl">
+			<h2 class="mb-4 text-3xl font-bold text-white md:text-4xl lg:text-5xl">
 				Proactive Flood Preparedness Tools
 			</h2>
-			<p class="text-opacity-90 mx-auto max-w-3xl text-xl text-white">
+			<p class="mx-auto max-w-3xl px-4 text-lg text-blue-50 md:text-xl">
 				Leveraging predictive models to generate location-specific flood risk forecasts, enabling
 				communities and individuals to prepare more effectively for potential water-related events.
 			</p>
 		</div>
 
-		<div class="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-4">
+		<div class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
 			{#each features as feature}
 				<div
-					class="bg-opacity-40 border-opacity-30 border-primary bg-primary rounded-xl border p-8 shadow-lg transition duration-300 hover:translate-y-[-5px] hover:shadow-xl"
+					class="group relative overflow-hidden rounded-2xl border border-white/20 bg-white/10 p-8 shadow-lg backdrop-blur-sm transition-all duration-300 hover:-translate-y-2 hover:bg-white/15 hover:shadow-2xl"
 				>
+					<!-- Decorative gradient overlay on hover -->
 					<div
-						class="bg-opacity-50 bg-primary mb-5 flex h-14 w-14 items-center justify-center rounded-full text-3xl text-white"
-					>
-						<Icon icon={feature.icon} />
+						class="absolute inset-0 bg-gradient-to-br from-white/0 to-white/10 opacity-0 transition-opacity group-hover:opacity-100"
+					></div>
+
+					<div class="relative z-10">
+						<div
+							class="mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-white/20 text-3xl text-white shadow-lg backdrop-blur-sm transition-transform group-hover:scale-110 group-hover:rotate-3"
+						>
+							<Icon icon={feature.icon} />
+						</div>
+						<h3 class="mb-3 text-xl font-bold text-white">{feature.title}</h3>
+						<p class="leading-relaxed text-blue-50">{feature.description}</p>
 					</div>
-					<h3 class="mb-3 text-xl font-semibold text-white">{feature.title}</h3>
-					<p class="text-opacity-90 text-white">{feature.description}</p>
 				</div>
 			{/each}
 		</div>
@@ -180,24 +228,36 @@
 </section>
 
 <!-- Call to Action Section -->
-<section class="py-24">
-	<div class="container mx-auto px-8 md:px-16">
+<section class="py-20 md:py-28">
+	<div class="container mx-auto px-6 md:px-16">
 		<div
-			class="from-primary rounded-2xl bg-gradient-to-r to-[#154a67] p-12 text-center shadow-xl md:p-16"
+			class="from-primary relative overflow-hidden rounded-3xl bg-gradient-to-br to-[#154a67] p-10 text-center shadow-2xl md:p-16"
 		>
-			<div class="mx-auto max-w-3xl">
-				<h2 class="mb-6 text-3xl font-bold text-white">
-					Ready to explore APAW's flood prediction?
+			<!-- Decorative elements -->
+			<div class="absolute -top-24 -right-24 h-48 w-48 rounded-full bg-white/10 blur-3xl"></div>
+			<div class="absolute -bottom-24 -left-24 h-48 w-48 rounded-full bg-white/10 blur-3xl"></div>
+
+			<div class="relative z-10 mx-auto max-w-3xl">
+				<div
+					class="mb-6 inline-flex items-center gap-2 rounded-full bg-white/20 px-4 py-2 backdrop-blur-sm"
+				>
+					<Icon icon="mdi:alert-circle-outline" class="text-white" />
+					<span class="text-sm font-semibold text-white">Get Started Today</span>
+				</div>
+
+				<h2 class="mb-6 text-3xl font-bold text-white md:text-4xl lg:text-5xl">
+					Ready to explore APAW's<br class="hidden md:block" /> flood prediction?
 				</h2>
-				<p class="mb-10 text-lg text-blue-100">
+				<p class="mb-10 px-4 text-base leading-relaxed text-blue-100 md:text-lg">
 					Access our advanced prediction now and see how APAW can help your community stay safe from
 					water-related flood risk.
 				</p>
 				<a
 					href="/predict"
-					class="bg-primary-light inline-block rounded-lg px-8 py-3 font-medium text-white shadow-md transition-colors hover:bg-[#2d8fb3]"
+					class="group text-primary inline-flex items-center gap-2 rounded-xl bg-white px-8 py-4 font-semibold shadow-lg transition-all hover:scale-105 hover:shadow-xl"
 				>
 					Get Started
+					<Icon icon="mdi:arrow-right" class="transition-transform group-hover:translate-x-1" />
 				</a>
 			</div>
 		</div>

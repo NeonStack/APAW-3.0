@@ -25,3 +25,4 @@ vite.config.ts.timestamp-*
 
 # Text
 *.txt
+docs/WEATHER_AUTOMATION.md
