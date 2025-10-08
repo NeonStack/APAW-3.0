@@ -81,10 +81,10 @@
 	<div class="relative z-10 container mx-auto px-6 pt-12 pb-4 lg:pt-12 lg:pb-3">
 		<!-- Content with enhanced layout -->
 		<div class="mx-auto max-w-6xl">
-			<div class="mb-8 lg:mb-10 text-center">
+			<div class="mb-8 text-center lg:mb-10">
 				<!-- Badge -->
 				<div
-					class="bg-primary-light/10 mb-4 lg:mb-6 inline-flex items-center gap-2 rounded-full px-4 py-2 backdrop-blur-sm"
+					class="bg-primary-light/10 mb-4 inline-flex items-center shadow-xs gap-2 rounded-full px-4 py-2 backdrop-blur-sm lg:mb-6"
 				>
 					<div class="bg-primary-light h-2 w-2 animate-pulse rounded-full"></div>
 					<span class="text-primary text-sm font-medium">Flood Risk Prediction System</span>
@@ -92,15 +92,19 @@
 
 				<!-- Improved heading design with better mobile responsiveness -->
 				<div class="relative">
-					<h1 class="font-bold tracking-tight hero-heading">
-						<span class="text-primary whitespace-nowrap hidden lg:inline">Advanced Predictive Analysis of</span>
+					<h1 class="hero-heading font-bold tracking-tight">
+						<span class="text-primary hidden whitespace-nowrap lg:inline"
+							>Advanced Predictive Analysis of</span
+						>
 						<span class="text-primary lg:hidden">Advanced Predictive Analysis of</span>
 						<br class="hidden lg:block" />
-						<span class="text-primary-light block lg:inline lg:whitespace-nowrap"> Water-Related Flood Risk </span>
+						<span class="text-primary-light block lg:inline lg:whitespace-nowrap">
+							Water-Related Flood Risk
+						</span>
 					</h1>
 
 					<!-- Decorative element -->
-					<div class="mt-4 lg:mt-6 flex items-center justify-center gap-2">
+					<div class="mt-4 flex items-center justify-center gap-2 lg:mt-6">
 						<div class="bg-primary-light/30 h-1 w-12 rounded-full"></div>
 						<div class="bg-primary-light h-1 w-24 rounded-full"></div>
 						<div class="bg-primary-light/30 h-1 w-12 rounded-full"></div>
@@ -109,42 +113,25 @@
 
 				<!-- Improved subheading with better spacing and readability -->
 				<p
-					class="mx-auto mt-6 lg:mt-8 max-w-3xl px-4 text-base leading-relaxed text-gray-700 lg:text-xl"
+					class="mx-auto mt-6 max-w-3xl px-4 text-base leading-relaxed text-gray-700 lg:mt-8 lg:text-xl"
 				>
 					Applying supervised learning models to analyze integrated hydrometeorological data and
 					predict potential flood occurrences at specific locations.
 				</p>
 			</div>
 
-			<!-- Stats Section -->
-			<div class="mx-auto mb-8 lg:mb-10 grid max-w-3xl grid-cols-3 gap-4 lg:gap-8">
-				<div class="text-center">
-					<div class="text-primary mb-1 text-2xl font-bold lg:text-3xl">5</div>
-					<div class="text-xs text-gray-600 lg:text-sm">Days Forecast</div>
-				</div>
-				<div class="border-x border-gray-200 text-center">
-					<div class="text-primary mb-1 text-2xl font-bold lg:text-3xl">NCR</div>
-					<div class="text-xs text-gray-600 lg:text-sm">Coverage Area</div>
-				</div>
-				<div class="text-center">
-					<div class="text-primary mb-1 text-2xl font-bold lg:text-3xl">AI</div>
-					<div class="text-xs text-gray-600 lg:text-sm">Powered</div>
-				</div>
-			</div>
-
 			<!-- CTA Buttons with improved spacing and design -->
-			<div class="mt-6 lg:mt-8 flex flex-col items-center justify-center gap-4 lg:flex-row lg:gap-6">
+			<div
+				class="mt-6 flex flex-col items-center justify-center gap-4 lg:mt-8 lg:flex-row lg:gap-6"
+			>
 				<a
 					href="/predict"
-					class="group bg-primary-light relative w-full overflow-hidden rounded-xl px-8 py-4 text-center font-semibold text-white shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-xl lg:w-auto"
+					class="group bg-primary-light relative w-full overflow-hidden rounded-xl border-2 border-transparent px-8 py-4 text-center font-semibold text-white transition-all duration-300 hover:scale-105 hover:shadow-xl lg:w-auto"
 				>
 					<span class="relative z-10 flex items-center justify-center gap-2">
 						View Predictions
 						<Icon icon="mdi:arrow-right" class="transition-transform group-hover:translate-x-1" />
 					</span>
-					<div
-						class="from-primary-light to-primary absolute inset-0 bg-gradient-to-r opacity-0 transition-opacity group-hover:opacity-100"
-					></div>
 				</a>
 				<a
 					href="/about"
@@ -186,11 +173,17 @@
 </section>
 
 <!-- Features Section -->
-<section class="bg-primary-light py-20 text-white">
-	<div class="container mx-auto px-6 lg:px-16">
+<section class="features-section relative py-20">
+	<!-- Subtle Background Pattern -->
+	<div class="absolute inset-0 opacity-20">
+		<div class="absolute top-10 left-10 h-72 w-72 rounded-full bg-white/30 blur-3xl"></div>
+		<div class="absolute right-20 bottom-20 h-96 w-96 rounded-full bg-white/20 blur-3xl"></div>
+	</div>
+
+	<div class="relative z-10 container mx-auto px-6 lg:px-16">
 		<div class="mb-16 text-center">
 			<span
-				class="mb-4 inline-block rounded-full bg-white/20 px-4 py-2 text-sm font-semibold text-white backdrop-blur-sm"
+				class="mb-4 inline-block rounded-full border border-white/30 bg-white/20 px-4 py-2 text-sm font-semibold text-white backdrop-blur-sm"
 				>OUR PLATFORM</span
 			>
 			<h2 class="mb-4 text-3xl font-bold text-white lg:text-5xl">
@@ -202,25 +195,52 @@
 			</p>
 		</div>
 
+		<!-- Stats Section -->
+		<div class="mx-auto mb-12 grid max-w-4xl grid-cols-1 gap-4 lg:mb-16 lg:grid-cols-3 lg:gap-8">
+			<div
+				class="rounded-2xl border border-white/20 bg-white/10 p-6 text-center shadow-lg backdrop-blur-sm transition-all hover:bg-white/15 hover:shadow-xl"
+			>
+				<div class="mb-2 text-3xl font-bold text-white lg:text-4xl">5</div>
+				<div class="text-sm font-medium text-blue-100 lg:text-base">Days Forecast</div>
+			</div>
+			<div
+				class="rounded-2xl border border-white/20 bg-white/10 p-6 text-center shadow-lg backdrop-blur-sm transition-all hover:bg-white/15 hover:shadow-xl"
+			>
+				<div class="mb-2 text-3xl font-bold text-white lg:text-4xl">Metro Manila</div>
+				<div class="text-sm font-medium text-blue-100 lg:text-base">Coverage Area</div>
+			</div>
+			<div
+				class="rounded-2xl border border-white/20 bg-white/10 p-6 text-center shadow-lg backdrop-blur-sm transition-all hover:bg-white/15 hover:shadow-xl"
+			>
+				<div class="mb-2 text-3xl font-bold text-white lg:text-4xl">AI</div>
+				<div class="text-sm font-medium text-blue-100 lg:text-base">Powered</div>
+			</div>
+		</div>
+
 		<div class="grid grid-cols-1 gap-6 lg:grid-cols-4">
 			{#each features as feature}
 				<div
-					class="group relative overflow-hidden rounded-2xl border border-white/20 bg-white/10 p-8 shadow-lg backdrop-blur-sm transition-all duration-300 hover:-translate-y-2 hover:bg-white/15 hover:shadow-2xl"
+					class="feature-card group relative overflow-hidden rounded-2xl border border-white/20 bg-white/10 p-8 shadow-lg backdrop-blur-sm transition-all duration-300 hover:-translate-y-2 hover:bg-white/15 hover:shadow-2xl"
 				>
-					<!-- Decorative gradient overlay on hover -->
+					<!-- Gradient overlay on hover -->
 					<div
-						class="absolute inset-0 bg-gradient-to-br from-white/0 to-white/10 opacity-0 transition-opacity group-hover:opacity-100"
+						class="feature-card-overlay absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
 					></div>
 
 					<div class="relative z-10">
 						<div
-							class="mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-white/20 text-3xl text-white shadow-lg backdrop-blur-sm transition-transform group-hover:scale-110 group-hover:rotate-3"
+							class="mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-white/20 text-3xl text-white shadow-lg backdrop-blur-sm transition-all duration-300 group-hover:scale-110 group-hover:rotate-3"
 						>
 							<Icon icon={feature.icon} />
 						</div>
 						<h3 class="mb-3 text-xl font-bold text-white">{feature.title}</h3>
 						<p class="leading-relaxed text-blue-50">{feature.description}</p>
 					</div>
+
+					<!-- Accent border that appears on hover -->
+					<div
+						class="absolute bottom-0 left-0 h-1 w-0 bg-white/50 transition-all duration-300 group-hover:w-full"
+					></div>
 				</div>
 			{/each}
 		</div>
@@ -229,44 +249,35 @@
 
 <!-- Call to Action Section -->
 <section class="py-20 lg:py-28">
-	<div class="container mx-auto px-6 lg:px-16">
+	<div
+		class="mx-auto flex w-fit flex-col items-center justify-center text-center px-5 lg:px-3"
+	>
 		<div
-			class="from-primary relative overflow-hidden rounded-3xl bg-gradient-to-br to-[#154a67] p-10 text-center shadow-2xl lg:p-16"
+			class="bg-primary-light/10 mb-4 inline-flex items-center shadow-xs gap-2 rounded-full px-4 py-2 backdrop-blur-sm lg:mb-6"
 		>
-			<!-- Decorative elements -->
-			<div class="absolute -top-24 -right-24 h-48 w-48 rounded-full bg-white/10 blur-3xl"></div>
-			<div class="absolute -bottom-24 -left-24 h-48 w-48 rounded-full bg-white/10 blur-3xl"></div>
-
-			<div class="relative z-10 mx-auto max-w-3xl">
-				<div
-					class="mb-6 inline-flex items-center gap-2 rounded-full bg-white/20 px-4 py-2 backdrop-blur-sm"
-				>
-					<Icon icon="mdi:alert-circle-outline" class="text-white" />
-					<span class="text-sm font-semibold text-white">Get Started Today</span>
-				</div>
-
-				<h2 class="mb-6 text-3xl font-bold text-white lg:text-5xl">
-					Ready to explore APAW's<br class="hidden lg:block" /> flood prediction?
-				</h2>
-				<p class="mb-10 px-4 text-base leading-relaxed text-blue-100 lg:text-lg">
-					Access our advanced prediction now and see how APAW can help your community stay safe from
-					water-related flood risk.
-				</p>
-				<a
-					href="/predict"
-					class="group text-primary inline-flex items-center gap-2 rounded-xl bg-white px-8 py-4 font-semibold shadow-lg transition-all hover:scale-105 hover:shadow-xl"
-				>
-					Get Started
-					<Icon icon="mdi:arrow-right" class="transition-transform group-hover:translate-x-1" />
-				</a>
-			</div>
+			<Icon icon="mdi:alert-circle-outline" class="text-primary-light w-5" />
+			<span class="text-primary text-sm font-medium">Get Started Today</span>
 		</div>
+		<h2 class="text-primary text-[clamp(1.6rem,5vw,3rem)] mb-6 font-bold leading-tight lg:w-8/12">
+			Ready to explore APAW's flood prediction?
+		</h2>
+		<p class="mb-10 px-1 text-base leading-relaxed text-gray-700 lg:w-8/12 lg:px-4 lg:text-lg">
+			Access our advanced prediction now and see how APAW can help your community stay safe from
+			water-related flood risk.
+		</p>
+		<a
+			href="/predict"
+			class="group bg-primary-light inline-flex items-center gap-2 rounded-xl border-2 border-transparent px-8 py-4 font-semibold text-white shadow-lg transition-all hover:scale-105 hover:border-white hover:shadow-xl"
+		>
+			Get Started
+			<Icon icon="mdi:arrow-right" class="transition-transform group-hover:translate-x-1" />
+		</a>
 	</div>
 </section>
 
 <style>
 	.hero-heading {
-		font-size: clamp(1.875rem, 5vw, 4rem);
+		font-size: clamp(1.7rem, 5vw, 4rem);
 	}
 
 	.waves-container {
@@ -371,5 +382,14 @@
 		.raindrops-container {
 			display: none;
 		}
+	}
+
+	/* Features Section Styles */
+	.features-section {
+		background: linear-gradient(180deg, #3ba6d0 0%, #2d8db5 50%, #1e6a8a 100%);
+	}
+
+	.feature-card-overlay {
+		background: linear-gradient(135deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.1) 100%);
 	}
 </style>
