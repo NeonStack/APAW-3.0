@@ -84,7 +84,7 @@
 			<div class="mb-8 text-center lg:mb-10">
 				<!-- Badge -->
 				<div
-					class="bg-primary-light/10 mb-4 inline-flex items-center shadow-xs gap-2 rounded-full px-4 py-2 backdrop-blur-sm lg:mb-6"
+					class="bg-primary-light/10 mb-4 inline-flex items-center gap-2 rounded-full px-4 py-2 shadow-xs backdrop-blur-sm lg:mb-6"
 				>
 					<div class="bg-primary-light h-2 w-2 animate-pulse rounded-full"></div>
 					<span class="text-primary text-sm font-medium">Flood Risk Prediction System</span>
@@ -116,7 +116,7 @@
 					class="mx-auto mt-6 max-w-3xl px-4 text-base leading-relaxed text-gray-700 lg:mt-8 lg:text-xl"
 				>
 					Applying supervised learning models to analyze integrated hydrometeorological data and
-					predict potential flood occurrences at specific locations.
+					predict potential flood occurrences within Metro Manila.
 				</p>
 			</div>
 
@@ -249,16 +249,14 @@
 
 <!-- Call to Action Section -->
 <section class="py-20 lg:py-28">
-	<div
-		class="mx-auto flex w-fit flex-col items-center justify-center text-center px-5 lg:px-3"
-	>
+	<div class="mx-auto flex w-fit flex-col items-center justify-center px-5 text-center lg:px-3">
 		<div
-			class="bg-primary-light/10 mb-4 inline-flex items-center shadow-xs gap-2 rounded-full px-4 py-2 backdrop-blur-sm lg:mb-6"
+			class="bg-primary-light/10 mb-4 inline-flex items-center gap-2 rounded-full px-4 py-2 shadow-xs backdrop-blur-sm lg:mb-6"
 		>
 			<Icon icon="mdi:alert-circle-outline" class="text-primary-light w-5" />
 			<span class="text-primary text-sm font-medium">Get Started Today</span>
 		</div>
-		<h2 class="text-primary text-[clamp(1.6rem,5vw,3rem)] mb-6 font-bold leading-tight lg:w-8/12">
+		<h2 class="text-primary mb-6 text-[clamp(1.6rem,5vw,3rem)] leading-tight font-bold lg:w-8/12">
 			Ready to explore APAW's flood prediction?
 		</h2>
 		<p class="mb-10 px-1 text-base leading-relaxed text-gray-700 lg:w-8/12 lg:px-4 lg:text-lg">

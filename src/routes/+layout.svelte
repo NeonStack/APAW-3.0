@@ -280,7 +280,7 @@
 					</div>
 					<p class="mb-5 max-w-md text-blue-100">
 						Applying supervised learning models to analyze integrated hydrometeorological data and
-						predict potential flood occurrences at specific locations.
+						predict potential flood occurrences within Metro Manila, Philippines.
 					</p>
 				</div>
 
