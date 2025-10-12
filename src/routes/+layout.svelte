@@ -74,7 +74,7 @@
 			<!-- Logo -->
 			<div class="flex items-center">
 				<a href="/">
-					<img src="/APAW_TRANSPARENT.png" alt="APAW Logo" class="h-7" />
+					<img src="/APAW_TRANSPARENT.webp" alt="APAW Logo" class="h-7" />
 				</a>
 			</div>
 
@@ -236,7 +236,7 @@
 			<!-- Footer info in sidebar -->
 			<div class="mt-auto pb-8">
 				<div class="border-t border-gray-200 pt-6">
-					<img src="/APAW_TRANSPARENT.png" alt="APAW Logo" class="h-8 mb-3" />
+					<img src="/APAW_TRANSPARENT.webp" alt="APAW Logo" class="h-8 mb-3" />
 					<p class="text-xs text-gray-600">
 						© {new Date().getFullYear()} APAW
 					</p>
@@ -276,7 +276,7 @@
 				<!-- About Section -->
 				<div class="md:col-span-5 lg:col-span-5">
 					<div class="mb-4 inline-block rounded-lg bg-white p-3 shadow-lg">
-						<img src="/APAW_TRANSPARENT.png" alt="APAW Logo" class="h-12" />
+						<img src="/APAW_TRANSPARENT.webp" alt="APAW Logo" class="h-12" />
 					</div>
 					<p class="mb-5 max-w-md text-blue-100">
 						Applying supervised learning models to analyze integrated hydrometeorological data and

@@ -157,7 +157,7 @@
 				<div class="mb-8 flex items-start">
 					<div class="mr-6 hidden flex-shrink-0 lg:block">
 						<div class="rounded-xl bg-gradient-to-br from-blue-50 to-cyan-50 p-4">
-							<img src="/APAW_SHORT_TRANSPARENT.png" alt="APAW LOGO" class="w-10">
+							<img src="/APAW_SHORT_TRANSPARENT.webp" alt="APAW LOGO" class="w-10">
 						</div>
 					</div>
 					<div>
