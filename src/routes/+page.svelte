@@ -1,6 +1,7 @@
 <script>
 	import { onMount } from 'svelte';
 	import Icon from '@iconify/svelte';
+	import ButtonLink from '$lib/components/ButtonLink.svelte';
 
 	const features = [
 		{
@@ -124,24 +125,21 @@
 			<div
 				class="mt-6 flex flex-col items-center justify-center gap-4 lg:mt-8 lg:flex-row lg:gap-6"
 			>
-				<a
-					href="/predict"
-					class="group bg-primary-light relative w-full overflow-hidden rounded-xl border-2 border-transparent px-8 py-4 text-center font-semibold text-white transition-all duration-300 hover:scale-105 hover:shadow-xl lg:w-auto"
-				>
-					<span class="relative z-10 flex items-center justify-center gap-2">
-						View Predictions
-						<Icon icon="mdi:arrow-right" class="transition-transform group-hover:translate-x-1" />
-					</span>
-				</a>
-				<a
+				<ButtonLink href="/predict" className="group bg-primary-light text-white" nowrap>
+					View Predictions
+					<Icon icon="mdi:arrow-right" class="transition-transform group-hover:translate-x-1" />
+				</ButtonLink>
+				<ButtonLink
 					href="/about"
-					class="group border-primary-light/30 text-primary hover:border-primary-light w-full rounded-xl border-2 bg-white/80 px-8 py-4 text-center font-semibold backdrop-blur-sm transition-all duration-300 hover:scale-105 hover:bg-white hover:shadow-lg lg:w-auto"
+					className="border-primary-light/30 text-primary hover:border-primary-light w-full rounded-xl border-2 bg-white/80"
+					nowrap
 				>
-					<span class="flex items-center justify-center gap-2">
-						Learn More
-						<Icon icon="mdi:information-outline" />
-					</span>
-				</a>
+					Learn More
+					<Icon
+						icon="mdi:information-outline"
+						class="transition-transform group-hover:translate-x-1"
+					/>
+				</ButtonLink>
 			</div>
 		</div>
 	</div>
@@ -220,7 +218,7 @@
 		<div class="grid grid-cols-1 gap-6 lg:grid-cols-4">
 			{#each features as feature}
 				<div
-					class="feature-card group relative overflow-hidden rounded-2xl border border-white/20 bg-white/10 p-8 shadow-lg backdrop-blur-sm transition-all duration-300 hover:-translate-y-2 hover:bg-white/15 hover:shadow-2xl"
+					class="feature-card group relative overflow-hidden rounded-2xl border border-white/20 bg-white/10 p-8 shadow-lg backdrop-blur-sm transition-all duration-300 hover:scale-102 hover:bg-white/15 hover:shadow-2xl"
 				>
 					<!-- Gradient overlay on hover -->
 					<div
@@ -263,13 +261,15 @@
 			Access our advanced prediction now and see how APAW can help your community stay safe from
 			water-related flood risk.
 		</p>
-		<a
+		<ButtonLink
 			href="/predict"
-			class="group bg-primary-light inline-flex items-center gap-2 rounded-xl border-2 border-transparent px-8 py-4 font-semibold text-white shadow-lg transition-all hover:scale-105 hover:border-white hover:shadow-xl"
+			className="group bg-primary-light text-white hover:border-white"
+			width="w-auto"
+			nowrap
 		>
 			Get Started
 			<Icon icon="mdi:arrow-right" class="transition-transform group-hover:translate-x-1" />
-		</a>
+		</ButtonLink>
 	</div>
 </section>
 
@@ -296,27 +296,23 @@
 	}
 
 	.parallax > use {
-		animation: move-forever 25s cubic-bezier(0.55, 0.5, 0.45, 0.5) infinite;
+		animation: move-forever 20s cubic-bezier(0.55, 0.5, 0.45, 0.5) infinite;
 	}
 
 	.parallax > use:nth-child(1) {
 		animation-delay: -2s;
-		animation-duration: 7s;
 	}
 
 	.parallax > use:nth-child(2) {
 		animation-delay: -3s;
-		animation-duration: 10s;
 	}
 
 	.parallax > use:nth-child(3) {
 		animation-delay: -4s;
-		animation-duration: 13s;
 	}
 
 	.parallax > use:nth-child(4) {
 		animation-delay: -5s;
-		animation-duration: 20s;
 	}
 
 	@keyframes move-forever {
@@ -324,7 +320,7 @@
 			transform: translate3d(-90px, 0, 0);
 		}
 		100% {
-			transform: translate3d(85px, 0, 0);
+			transform: translate3d(86px, 0, 0);
 		}
 	}
 
