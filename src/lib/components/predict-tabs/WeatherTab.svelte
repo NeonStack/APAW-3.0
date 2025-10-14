@@ -264,7 +264,7 @@
 							<div class="flex min-w-0 flex-1 items-center">
 								<Icon
 									icon={iconMap[currentData.icon] || 'mdi:weather-partly-cloudy'}
-									class="mr-2 flex-shrink-0 text-blue-600 sm:mr-3"
+									class="mr-2 flex-shrink-0 text-blue-600 drop-shadow-[0_0_1px_#000] filter sm:mr-3"
 									width="40"
 								/>
 								<div class="min-w-0">
