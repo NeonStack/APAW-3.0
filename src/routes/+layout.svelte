@@ -6,10 +6,10 @@
 	import { fly, fade } from 'svelte/transition';
 
 	let { children } = $props();
-	
+
 	// State management
 	let isMenuOpen = $state(false);
-	
+
 	// Derived states
 	let isPredictPage = $derived($page.url.pathname === '/predict');
 	let activeRoute = $derived($page.url.pathname);
@@ -42,7 +42,7 @@
 		if (activeLink) {
 			const rect = activeLink.getBoundingClientRect();
 			const parentRect = activeLink.parentElement.getBoundingClientRect();
-			
+
 			indicatorStyle = {
 				width: rect.width,
 				left: rect.left - parentRect.left
@@ -57,13 +57,13 @@
 		} else {
 			document.body.style.overflow = '';
 		}
-		
+
 		return () => {
 			document.body.style.overflow = '';
 		};
 	});
 
-	// line indicator below link offset adjustment 
+	// line indicator below link offset adjustment
 	const indicatorOffset = 8;
 </script>
 
@@ -79,20 +79,19 @@
 			</div>
 
 			<!-- Desktop Navigation -->
-			<div class="hidden md:grid grid-cols-4 gap-6 relative">
+			<div class="relative hidden grid-cols-4 gap-6 md:grid">
 				<a
 					bind:this={navLinks['/']}
 					href="/"
-					class="relative pb-2 font-medium text-gray-800 transition-colors hover:text-primary text-center"
-					class:text-primary={activeRoute === '/'
-}
+					class="hover:text-primary relative pb-2 text-center font-medium text-gray-800 transition-colors"
+					class:text-primary={activeRoute === '/'}
 				>
 					Home
 				</a>
 				<a
 					bind:this={navLinks['/predict']}
 					href="/predict"
-					class="relative pb-2 font-medium text-gray-800 transition-colors hover:text-primary text-center"
+					class="hover:text-primary relative pb-2 text-center font-medium text-gray-800 transition-colors"
 					class:text-primary={activeRoute === '/predict'}
 				>
 					Predict
@@ -100,7 +99,7 @@
 				<a
 					bind:this={navLinks['/about']}
 					href="/about"
-					class="relative pb-2 font-medium text-gray-800 transition-colors hover:text-primary text-center"
+					class="hover:text-primary relative pb-2 text-center font-medium text-gray-800 transition-colors"
 					class:text-primary={activeRoute === '/about'}
 				>
 					About
@@ -108,16 +107,16 @@
 				<a
 					bind:this={navLinks['/resources']}
 					href="/resources"
-					class="relative pb-2 font-medium text-gray-800 transition-colors hover:text-primary text-center"
+					class="hover:text-primary relative pb-2 text-center font-medium text-gray-800 transition-colors"
 					class:text-primary={activeRoute === '/resources'}
 				>
 					Resources
 				</a>
-				
+
 				<!-- Sliding indicator -->
 				{#if indicatorStyle.width > 0}
-					<span 
-						class="absolute bottom-0 h-1 bg-primary-light rounded-full transition-all duration-300 ease-out"
+					<span
+						class="bg-primary-light absolute bottom-0 h-1 rounded-full transition-all duration-300 ease-out"
 						style="
 							width: {indicatorStyle.width}px;
 							left: {indicatorStyle.left}px;
@@ -127,7 +126,11 @@
 			</div>
 
 			<!-- Mobile Menu Button -->
-			<button class="focus:outline-none md:hidden z-[60] relative" onclick={toggleMenu} aria-label="Toggle menu">
+			<button
+				class="relative z-[60] focus:outline-none md:hidden"
+				onclick={toggleMenu}
+				aria-label="Toggle menu"
+			>
 				{#if !isMenuOpen}
 					<svg
 						xmlns="http://www.w3.org/2000/svg"
@@ -167,30 +170,28 @@
 <!-- Mobile Navigation Overlay -->
 {#if isMenuOpen}
 	<!-- Backdrop -->
-	<div 
-		class="fixed inset-0 bg-black/50 z-[58] md:hidden"
+	<div
+		class="fixed inset-0 z-[58] bg-black/50 md:hidden"
 		onclick={closeMenu}
 		transition:fade={{ duration: 200 }}
 	></div>
-	
+
 	<!-- Sidebar -->
-	<div 
-		class="fixed top-0 right-0 bottom-0 w-64 bg-white shadow-2xl z-[59] md:hidden"
+	<div
+		class="fixed top-0 right-0 bottom-0 z-[59] w-64 bg-white shadow-2xl md:hidden"
 		transition:fly={{ x: 300, duration: 300 }}
 	>
-		<div class="flex flex-col h-full pt-20 px-6">
+		<div class="flex h-full flex-col px-6 pt-20">
 			<!-- Navigation Links -->
 			<nav class="flex flex-col space-y-6">
-				<a 
-					href="/" 
+				<a
+					href="/"
 					onclick={closeMenu}
-					class="relative flex items-center text-lg font-medium text-gray-800 hover:text-primary transition-colors py-2 -mx-6 px-6"
-					class:text-primary={activeRoute === '/'
-}
+					class="hover:text-primary relative -mx-6 flex items-center px-6 py-2 text-lg font-medium text-gray-800 transition-colors"
+					class:text-primary={activeRoute === '/'}
 				>
-					{#if activeRoute === '/'
-}
-						<span class="absolute left-0 top-0 bottom-0 w-1 bg-primary-light rounded-r-full"></span>
+					{#if activeRoute === '/'}
+						<span class="bg-primary-light absolute top-0 bottom-0 left-0 w-1 rounded-r-full"></span>
 					{/if}
 					<Icon icon="mdi:home" class="mr-3" width="24" height="24" />
 					Home
@@ -198,11 +199,11 @@
 				<a
 					href="/predict"
 					onclick={closeMenu}
-					class="relative flex items-center text-lg font-medium text-gray-800 hover:text-primary transition-colors py-2 -mx-6 px-6"
+					class="hover:text-primary relative -mx-6 flex items-center px-6 py-2 text-lg font-medium text-gray-800 transition-colors"
 					class:text-primary={activeRoute === '/predict'}
 				>
 					{#if activeRoute === '/predict'}
-						<span class="absolute left-0 top-0 bottom-0 w-1 bg-primary-light rounded-r-full"></span>
+						<span class="bg-primary-light absolute top-0 bottom-0 left-0 w-1 rounded-r-full"></span>
 					{/if}
 					<Icon icon="mdi:chart-line" class="mr-3" width="24" height="24" />
 					Predict
@@ -210,11 +211,11 @@
 				<a
 					href="/about"
 					onclick={closeMenu}
-					class="relative flex items-center text-lg font-medium text-gray-800 hover:text-primary transition-colors py-2 -mx-6 px-6"
+					class="hover:text-primary relative -mx-6 flex items-center px-6 py-2 text-lg font-medium text-gray-800 transition-colors"
 					class:text-primary={activeRoute === '/about'}
 				>
 					{#if activeRoute === '/about'}
-						<span class="absolute left-0 top-0 bottom-0 w-1 bg-primary-light rounded-r-full"></span>
+						<span class="bg-primary-light absolute top-0 bottom-0 left-0 w-1 rounded-r-full"></span>
 					{/if}
 					<Icon icon="mdi:information" class="mr-3" width="24" height="24" />
 					About
@@ -222,11 +223,11 @@
 				<a
 					href="/resources"
 					onclick={closeMenu}
-					class="relative flex items-center text-lg font-medium text-gray-800 hover:text-primary transition-colors py-2 -mx-6 px-6"
+					class="hover:text-primary relative -mx-6 flex items-center px-6 py-2 text-lg font-medium text-gray-800 transition-colors"
 					class:text-primary={activeRoute === '/resources'}
 				>
 					{#if activeRoute === '/resources'}
-						<span class="absolute left-0 top-0 bottom-0 w-1 bg-primary-light rounded-r-full"></span>
+						<span class="bg-primary-light absolute top-0 bottom-0 left-0 w-1 rounded-r-full"></span>
 					{/if}
 					<Icon icon="mdi:bookshelf" class="mr-3" width="24" height="24" />
 					Resources
@@ -236,7 +237,7 @@
 			<!-- Footer info in sidebar -->
 			<div class="mt-auto pb-8">
 				<div class="border-t border-gray-200 pt-6">
-					<img src="/APAW_TRANSPARENT.webp" alt="APAW Logo" class="h-8 mb-3" />
+					<img src="/APAW_TRANSPARENT.webp" alt="APAW Logo" class="mb-3 h-8" />
 					<p class="text-xs text-gray-600">
 						© {new Date().getFullYear()} APAW
 					</p>
@@ -250,7 +251,7 @@
 <Toaster richColors position="top-center" expand={true} />
 
 <!-- Main Content -->
-<main class="w-full {isPredictPage ? '' : ''}">
+<main class="min-h-dvh w-full">
 	{@render children()}
 </main>
 
@@ -289,25 +290,37 @@
 					<h3 class="mb-4 text-lg font-bold text-white">Navigation</h3>
 					<ul class="space-y-3">
 						<li>
-							<a href="/" class="flex items-center text-blue-100 transition-colors hover:text-white">
+							<a
+								href="/"
+								class="flex items-center text-blue-100 transition-colors hover:text-white"
+							>
 								<Icon icon="mdi:home" class="mr-2" width="16" height="16" />
 								Home
 							</a>
 						</li>
 						<li>
-							<a href="/predict" class="flex items-center text-blue-100 transition-colors hover:text-white">
+							<a
+								href="/predict"
+								class="flex items-center text-blue-100 transition-colors hover:text-white"
+							>
 								<Icon icon="mdi:chart-line" class="mr-2" width="16" height="16" />
 								Predict
 							</a>
 						</li>
 						<li>
-							<a href="/about" class="flex items-center text-blue-100 transition-colors hover:text-white">
+							<a
+								href="/about"
+								class="flex items-center text-blue-100 transition-colors hover:text-white"
+							>
 								<Icon icon="mdi:information" class="mr-2" width="16" height="16" />
 								About
 							</a>
 						</li>
 						<li>
-							<a href="/resources" class="flex items-center text-blue-100 transition-colors hover:text-white">
+							<a
+								href="/resources"
+								class="flex items-center text-blue-100 transition-colors hover:text-white"
+							>
 								<Icon icon="mdi:bookshelf" class="mr-2" width="16" height="16" />
 								Resources
 							</a>

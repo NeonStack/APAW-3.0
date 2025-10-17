@@ -218,10 +218,10 @@
 
 		try {
 			const userToday = new Date();
-			const userLocalDate = new Date(userToday.getTime() - (userToday.getTimezoneOffset() * 60000))
+			const userLocalDate = new Date(userToday.getTime() - userToday.getTimezoneOffset() * 60000)
 				.toISOString()
 				.split('T')[0];
-			
+
 			const response = await fetch(
 				`/api/flood-prediction?lat=${$selectedLocation.lat}&lng=${$selectedLocation.lng}&date=${userLocalDate}`
 			);
@@ -242,7 +242,11 @@
 			}
 
 			// Validate the structure
-			if (predictionData && predictionData.forecast_by_day && predictionData.forecast_by_day.length > 0) {
+			if (
+				predictionData &&
+				predictionData.forecast_by_day &&
+				predictionData.forecast_by_day.length > 0
+			) {
 				floodPrediction = predictionData;
 				console.log('Successfully set flood prediction:', floodPrediction);
 			} else {
@@ -286,64 +290,73 @@
 	// Helper function to extract formatted address from facility properties
 	function getFormattedAddress(properties) {
 		if (!properties) return null;
-		
+
 		const addressParts = [];
-		
+
 		if (properties['addr:housenumber'] && properties['addr:street']) {
 			addressParts.push(`${properties['addr:housenumber']} ${properties['addr:street']}`);
 		} else if (properties['addr:street']) {
 			addressParts.push(properties['addr:street']);
 		}
-		
+
 		if (properties['addr:city']) {
 			addressParts.push(properties['addr:city']);
 		} else if (properties['addr:district']) {
 			addressParts.push(properties['addr:district']);
 		}
-		
+
 		if (properties['addr:province']) {
 			addressParts.push(properties['addr:province']);
 		}
-		
+
 		if (properties['addr:postcode']) {
 			addressParts.push(properties['addr:postcode']);
 		}
-		
+
 		return addressParts.length > 0 ? addressParts.join(', ') : null;
 	}
 
 	// Helper function to get additional properties for display
 	function getAdditionalProperties(properties) {
 		if (!properties) return [];
-		
+
 		const additionalProps = [];
 		const interestingProps = [
-			'amenity', 'emergency', 'evacuation_center', 'leisure', 'operator', 'capacity'
+			'amenity',
+			'emergency',
+			'evacuation_center',
+			'leisure',
+			'operator',
+			'capacity'
 		];
-		
-		interestingProps.forEach(prop => {
+
+		interestingProps.forEach((prop) => {
 			if (properties[prop] && properties[prop] !== 'yes') {
 				let label = prop;
 				if (prop.includes(':')) {
 					label = prop.split(':')[1];
 				}
-				
+
 				label = label
 					.split('_')
-					.map(word => word.charAt(0).toUpperCase() + word.slice(1))
+					.map((word) => word.charAt(0).toUpperCase() + word.slice(1))
 					.join(' ');
-				
-				const value = typeof properties[prop] === 'string' 
-					? properties[prop].split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')
-					: properties[prop];
-				
+
+				const value =
+					typeof properties[prop] === 'string'
+						? properties[prop]
+								.split('_')
+								.map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+								.join(' ')
+						: properties[prop];
+
 				additionalProps.push({
 					label,
 					value
 				});
 			}
 		});
-		
+
 		return additionalProps;
 	}
 
@@ -393,7 +406,7 @@
 	// Helper function to get risk level and colors based on probability
 	function getRiskLevel(probability) {
 		const percentage = probability * 100;
-		
+
 		if (percentage <= 50) {
 			return {
 				level: 'Low Flood Risk',
@@ -441,16 +454,20 @@
 	function getDailySummary(hourlyForecasts) {
 		if (!hourlyForecasts || hourlyForecasts.length === 0) return null;
 
-		const floodedHours = hourlyForecasts.filter(h => h.final_prediction.is_flooded === 1);
-		const maxProbability = Math.max(...hourlyForecasts.map(h => h.final_prediction.flood_probability));
-		const maxHeight = Math.max(...hourlyForecasts.map(h => h.final_prediction.predicted_height_cm || 0));
-		
+		const floodedHours = hourlyForecasts.filter((h) => h.final_prediction.is_flooded === 1);
+		const maxProbability = Math.max(
+			...hourlyForecasts.map((h) => h.final_prediction.flood_probability)
+		);
+		const maxHeight = Math.max(
+			...hourlyForecasts.map((h) => h.final_prediction.predicted_height_cm || 0)
+		);
+
 		// Get peak flood hours (top 3) - convert to 12-hour format and sort by time
 		const peakHours = floodedHours
 			.sort((a, b) => b.final_prediction.flood_probability - a.final_prediction.flood_probability)
 			.slice(0, 3)
 			.sort((a, b) => a.hour - b.hour) // Sort by hour in ascending order
-			.map(h => formatTo12Hour(h.hour))
+			.map((h) => formatTo12Hour(h.hour))
 			.join(', ');
 
 		const riskInfo = getRiskLevel(maxProbability);
@@ -463,7 +480,7 @@
 			peakHours,
 			hasFloodRisk: floodedHours.length > 0,
 			riskInfo,
-			floodedHoursList: floodedHours.map(h => h.hour) // Add list of flooded hours
+			floodedHoursList: floodedHours.map((h) => h.hour) // Add list of flooded hours
 		};
 	}
 
@@ -471,7 +488,10 @@
 	function getKeyWeatherFeatures(hourlyForecasts) {
 		if (!hourlyForecasts || hourlyForecasts.length === 0) return null;
 
-		const totalPrecip = hourlyForecasts.reduce((sum, h) => sum + (h.key_features.precip_mm || 0), 0);
+		const totalPrecip = hourlyForecasts.reduce(
+			(sum, h) => sum + (h.key_features.precip_mm || 0),
+			0
+		);
 
 		return {
 			totalPrecip
@@ -489,9 +509,13 @@
 	// Helper function to format error type for display
 	function getErrorTypeDisplay(errorType) {
 		const typeMap = {
-			'outside_service_area': { icon: 'mdi:map-marker-off', color: 'orange', label: 'Outside Service Area' },
-			'invalid_location': { icon: 'mdi:water-alert', color: 'blue', label: 'Invalid Location' },
-			'default': { icon: 'mdi:alert-circle', color: 'red', label: 'Error' }
+			outside_service_area: {
+				icon: 'mdi:map-marker-off',
+				color: 'orange',
+				label: 'Outside Service Area'
+			},
+			invalid_location: { icon: 'mdi:water-alert', color: 'blue', label: 'Invalid Location' },
+			default: { icon: 'mdi:alert-circle', color: 'red', label: 'Error' }
 		};
 		return typeMap[errorType] || typeMap['default'];
 	}
@@ -507,10 +531,10 @@
 	// Helper function to get direction arrow icon
 	function getDirectionIcon(direction) {
 		const directionMap = {
-			'north': 'mdi:arrow-up',
-			'south': 'mdi:arrow-down',
-			'east': 'mdi:arrow-right',
-			'west': 'mdi:arrow-left',
+			north: 'mdi:arrow-up',
+			south: 'mdi:arrow-down',
+			east: 'mdi:arrow-right',
+			west: 'mdi:arrow-left',
 			'north-east': 'mdi:arrow-top-right',
 			'north-west': 'mdi:arrow-top-left',
 			'south-east': 'mdi:arrow-bottom-right',
@@ -526,7 +550,6 @@
 		}
 		return `${heightCm.toFixed(2)}cm`; // Changed from toFixed(1) to toFixed(2)
 	}
-
 </script>
 
 <div class="info-tab space-y-3">
@@ -534,7 +557,7 @@
 	<div class="rounded-lg border border-gray-200 bg-white shadow-sm">
 		<button
 			onclick={() => (dataSourcesExpanded = !dataSourcesExpanded)}
-			class="flex w-full items-center justify-between p-3 text-left cursor-pointer hover:bg-gray-50"
+			class="flex w-full cursor-pointer items-center justify-between p-3 text-left hover:bg-gray-50"
 		>
 			<div class="flex items-center">
 				<Icon icon="mdi:database-check-outline" class="mr-2 text-[#0c3143]" width="16" />
@@ -547,16 +570,19 @@
 			/>
 		</button>
 		{#if dataSourcesExpanded}
-			<div class="grid grid-cols-1 sm:grid-cols-2 gap-2 border-t border-gray-200 bg-gray-50 p-3">
+			<div class="grid grid-cols-1 gap-2 border-t border-gray-200 bg-gray-50 p-3 sm:grid-cols-2">
 				{#each sources as source}
-					<div class="relative rounded-md border bg-white p-2.5 shadow-sm"
+					<div
+						class="relative rounded-md border bg-white p-2.5 shadow-sm"
 						class:border-gray-300={source.status === 'pending'}
 						class:border-green-300={source.status === 'success'}
 						class:border-red-300={source.status === 'error'}
 					>
 						<div class="flex items-center space-x-2">
 							<!-- Logo/Icon -->
-							<div class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md bg-gray-100 p-1">
+							<div
+								class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md bg-gray-100 p-1"
+							>
 								{#if source.type === 'img'}
 									<img src={source.logo} alt={source.name} class="h-full w-full object-contain" />
 								{:else}
@@ -565,22 +591,26 @@
 							</div>
 
 							<!-- Name and Status Text -->
-							<div class="flex-grow min-w-0">
-								<p class="text-xs font-semibold text-gray-800 truncate">{source.name}</p>
+							<div class="min-w-0 flex-grow">
+								<p class="truncate text-xs font-semibold text-gray-800">{source.name}</p>
 								{#if source.status === 'pending'}
-									<p class="text-xs text-blue-600 font-medium">Connecting...</p>
+									<p class="text-xs font-medium text-blue-600">Connecting...</p>
 								{:else if source.status === 'success'}
-									<p class="text-xs text-green-600 font-medium">Connected</p>
+									<p class="text-xs font-medium text-green-600">Connected</p>
 								{:else if source.status === 'error'}
-									<p class="text-xs text-red-600 font-medium">Error</p>
+									<p class="text-xs font-medium text-red-600">Error</p>
 								{/if}
 							</div>
 						</div>
 
 						<!-- Connection Line Effect (only for pending) -->
 						{#if source.status === 'pending'}
-							<div class="absolute bottom-0 left-0 h-0.5 w-full overflow-hidden rounded-b-md bg-gray-200">
-								<div class="h-full w-1/3 animate-loading-bar bg-gradient-to-r from-transparent via-blue-500 to-transparent"></div>
+							<div
+								class="absolute bottom-0 left-0 h-0.5 w-full overflow-hidden rounded-b-md bg-gray-200"
+							>
+								<div
+									class="animate-loading-bar h-full w-1/3 bg-gradient-to-r from-transparent via-blue-500 to-transparent"
+								></div>
 							</div>
 						{/if}
 					</div>
@@ -598,7 +628,9 @@
 	</div>
 
 	<!-- Compact Prediction Controls -->
-	<div class="rounded-lg border border-blue-200 bg-gradient-to-r from-blue-50 to-blue-100 p-3 shadow-sm">
+	<div
+		class="rounded-lg border border-blue-200 bg-gradient-to-r from-blue-50 to-blue-100 p-3 shadow-sm"
+	>
 		<div class="mb-2 flex items-center space-x-2">
 			<div class="rounded bg-[#0c3143] p-1">
 				<Icon icon="mdi:chart-box" class="text-white" width="12" />
@@ -628,8 +660,11 @@
 
 			<!-- Enhanced Error Display -->
 			{#if predictionError}
-				{@const errorDisplay = predictionErrorDetails ? getErrorTypeDisplay(predictionErrorDetails.error_type) : getErrorTypeDisplay('default')}
-				<div class="rounded-lg border-2 shadow-sm" 
+				{@const errorDisplay = predictionErrorDetails
+					? getErrorTypeDisplay(predictionErrorDetails.error_type)
+					: getErrorTypeDisplay('default')}
+				<div
+					class="rounded-lg border-2 shadow-sm"
 					class:border-orange-300={errorDisplay.color === 'orange'}
 					class:bg-orange-50={errorDisplay.color === 'orange'}
 					class:border-blue-300={errorDisplay.color === 'blue'}
@@ -640,14 +675,16 @@
 					<div class="p-3">
 						<div class="flex items-start">
 							<div class="flex-1">
-								<p class="text-sm font-bold"
+								<p
+									class="text-sm font-bold"
 									class:text-orange-800={errorDisplay.color === 'orange'}
 									class:text-blue-800={errorDisplay.color === 'blue'}
 									class:text-red-800={errorDisplay.color === 'red'}
 								>
 									{errorDisplay.label}
 								</p>
-								<p class="mt-1 text-xs"
+								<p
+									class="mt-1 text-xs"
 									class:text-orange-700={errorDisplay.color === 'orange'}
 									class:text-blue-700={errorDisplay.color === 'blue'}
 									class:text-red-700={errorDisplay.color === 'red'}
@@ -661,13 +698,19 @@
 										<!-- Water Body Details -->
 										{#if predictionErrorDetails.details.reason === 'water_body'}
 											<div class="rounded border border-blue-200 bg-blue-100 p-2">
-												<p class="text-xs font-semibold text-blue-800">
-													Location Details:
-												</p>
-												<div class="ml-4 mt-1 space-y-0.5 text-xs text-blue-700">
-													<p><span class="font-medium">Type:</span> {predictionErrorDetails.details.water_type?.replace('water_', '').replace('_', ' ') || 'Water body'}</p>
+												<p class="text-xs font-semibold text-blue-800">Location Details:</p>
+												<div class="mt-1 ml-4 space-y-0.5 text-xs text-blue-700">
+													<p>
+														<span class="font-medium">Type:</span>
+														{predictionErrorDetails.details.water_type
+															?.replace('water_', '')
+															.replace('_', ' ') || 'Water body'}
+													</p>
 													{#if predictionErrorDetails.details.water_name && predictionErrorDetails.details.water_name !== 'Unnamed Stream' && predictionErrorDetails.details.water_name !== 'Unnamed River'}
-														<p><span class="font-medium">Name:</span> {predictionErrorDetails.details.water_name}</p>
+														<p>
+															<span class="font-medium">Name:</span>
+															{predictionErrorDetails.details.water_name}
+														</p>
 													{/if}
 												</div>
 											</div>
@@ -679,10 +722,18 @@
 												<p class="text-xs font-semibold text-orange-800">
 													Distance from Service Area:
 												</p>
-												<div class="ml-4 mt-1 space-y-0.5 text-xs text-orange-700">
+												<div class="mt-1 ml-4 space-y-0.5 text-xs text-orange-700">
 													<p class="flex items-center">
-														<Icon icon={getDirectionIcon(predictionErrorDetails.details.direction)} class="mr-1" width="12" />
-														<span class="font-bold">{Math.round(predictionErrorDetails.details.distance_to_boundary_m)}m</span>
+														<Icon
+															icon={getDirectionIcon(predictionErrorDetails.details.direction)}
+															class="mr-1"
+															width="12"
+														/>
+														<span class="font-bold"
+															>{Math.round(
+																predictionErrorDetails.details.distance_to_boundary_m
+															)}m</span
+														>
 														<span class="ml-1">{predictionErrorDetails.details.direction}</span>
 													</p>
 												</div>
@@ -691,18 +742,26 @@
 
 										<!-- Suggestion -->
 										{#if predictionErrorDetails.details.suggestion}
-											<div class="rounded border p-2"
+											<div
+												class="rounded border p-2"
 												class:border-orange-200={errorDisplay.color === 'orange'}
 												class:bg-orange-100={errorDisplay.color === 'orange'}
 												class:border-blue-200={errorDisplay.color === 'blue'}
 												class:bg-blue-100={errorDisplay.color === 'blue'}
 											>
-												<p class="flex items-start text-xs"
+												<p
+													class="flex items-start text-xs"
 													class:text-orange-700={errorDisplay.color === 'orange'}
 													class:text-blue-700={errorDisplay.color === 'blue'}
 												>
-													<Icon icon="mdi:lightbulb-on-outline" class="mr-1 mt-0.5 flex-shrink-0" width="12" />
-													<span class="font-medium">{predictionErrorDetails.details.suggestion}</span>
+													<Icon
+														icon="mdi:lightbulb-on-outline"
+														class="mt-0.5 mr-1 flex-shrink-0"
+														width="12"
+													/>
+													<span class="font-medium"
+														>{predictionErrorDetails.details.suggestion}</span
+													>
 												</p>
 											</div>
 										{/if}
@@ -776,7 +835,9 @@
 						</div>
 					</div>
 					<span class="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-800">
-						{floodPrediction.location?.start_date ? formatHeaderDate(floodPrediction.location.start_date) : 'Next 5 Days'}
+						{floodPrediction.location?.start_date
+							? formatHeaderDate(floodPrediction.location.start_date)
+							: 'Next 5 Days'}
 					</span>
 				</div>
 
@@ -801,7 +862,7 @@
 				{#each floodPrediction.forecast_by_day as day, index}
 					{@const summary = getDailySummary(day.hourly_forecast)}
 					{@const weather = getKeyWeatherFeatures(day.hourly_forecast)}
-					
+
 					{#if summary}
 						<div class="rounded-lg border shadow-sm {summary.riskInfo.cardStyle}">
 							<div class="p-3">
@@ -816,7 +877,10 @@
 								<!-- Flood Status -->
 								<div class="mb-2 flex flex-col space-y-2">
 									<div class="flex flex-col items-center justify-between gap-1 md:flex-row">
-										<p class="flex items-center gap-2 rounded-full px-2 py-0.5 text-xs font-semibold {summary.riskInfo.badgeStyle}">
+										<p
+											class="flex items-center gap-2 rounded-full px-2 py-0.5 text-xs font-semibold {summary
+												.riskInfo.badgeStyle}"
+										>
 											<Icon icon={summary.riskInfo.icon} width="16" />
 											{summary.riskInfo.level}
 										</p>
@@ -828,8 +892,14 @@
 
 								<!-- Peak Hours (removed confusing Flood Risk Hours text) -->
 								{#if summary.floodedHours > 0 && summary.peakHours}
-									<div class="mt-2 flex items-center rounded border p-2 {summary.riskInfo.borderStyle}">
-										<Icon icon="mdi:clock-alert-outline" class="mr-1.5 {summary.riskInfo.textColor}" width="16" />
+									<div
+										class="mt-2 flex items-center rounded border p-2 {summary.riskInfo.borderStyle}"
+									>
+										<Icon
+											icon="mdi:clock-alert-outline"
+											class="mr-1.5 {summary.riskInfo.textColor}"
+											width="16"
+										/>
 										<div class="flex-1">
 											<span class="text-xs font-medium {summary.riskInfo.textColor}">
 												Peak Flood Times:
@@ -843,27 +913,31 @@
 
 								<!-- Height Information (updated to handle 0cm) -->
 								{#if summary.maxHeight > 0}
-									<div class="mt-2 flex items-center rounded border p-2 {summary.riskInfo.borderStyle}">
+									<div
+										class="mt-2 flex items-center rounded border p-2 {summary.riskInfo.borderStyle}"
+									>
 										<Icon icon="mdi:water" class="mr-1.5 {summary.riskInfo.textColor}" width="14" />
 										<div class="text-xs">
-											<span class="font-semibold {summary.riskInfo.textColor}">
-												Max Height:
-											</span>
+											<span class="font-semibold {summary.riskInfo.textColor}"> Max Height: </span>
 											<span class="ml-1 font-mono {summary.riskInfo.textColor}">
 												{summary.maxHeight.toFixed(2)}cm
 											</span>
 										</div>
 									</div>
 								{:else if summary.floodedHours > 0}
-									<div class="mt-2 flex items-center rounded border p-2 {summary.riskInfo.borderStyle}">
-										<Icon icon="mdi:water-alert" class="mr-1.5 {summary.riskInfo.textColor}" width="14" />
+									<div
+										class="mt-2 flex items-center rounded border p-2 {summary.riskInfo.borderStyle}"
+									>
+										<Icon
+											icon="mdi:water-alert"
+											class="mr-1.5 {summary.riskInfo.textColor}"
+											width="14"
+										/>
 										<div class="text-xs">
 											<span class="font-semibold {summary.riskInfo.textColor}">
 												Flood Height:
 											</span>
-											<span class="ml-1 italic {summary.riskInfo.textColor}">
-												Not measured
-											</span>
+											<span class="ml-1 italic {summary.riskInfo.textColor}"> Not measured </span>
 										</div>
 									</div>
 								{/if}
@@ -873,7 +947,8 @@
 									<div class="mt-2 rounded border border-blue-200 bg-blue-50 p-2">
 										<div class="flex justify-between text-xs">
 											<span class="text-gray-600">Total Rain:</span>
-											<span class="font-bold text-blue-700">{weather.totalPrecip.toFixed(1)}mm</span>
+											<span class="font-bold text-blue-700">{weather.totalPrecip.toFixed(1)}mm</span
+											>
 										</div>
 									</div>
 								{/if}
@@ -885,7 +960,11 @@
 									onclick={() => toggleExpand(day.date)}
 									class="flex w-full cursor-pointer items-center justify-center rounded border border-dashed border-blue-300 bg-blue-50/50 px-2 py-1.5 text-xs font-medium text-blue-700 transition-all duration-200 hover:bg-blue-100 focus:ring-1 focus:ring-blue-500 focus:outline-none"
 								>
-									<Icon icon={expandedPredictions[day.date] ? 'mdi:chevron-up' : 'mdi:chevron-down'} width="14" class="mr-1" />
+									<Icon
+										icon={expandedPredictions[day.date] ? 'mdi:chevron-up' : 'mdi:chevron-down'}
+										width="14"
+										class="mr-1"
+									/>
 									{expandedPredictions[day.date] ? 'Hide Hourly Details' : 'Show Hourly Details'}
 								</button>
 							</div>
@@ -894,35 +973,46 @@
 							{#if expandedPredictions[day.date]}
 								{@const selectedHourIndex = selectedHourByDay[day.date] ?? 0}
 								{@const selectedHourData = day.hourly_forecast[selectedHourIndex]}
-								
+
 								<div class="space-y-3 border-t border-gray-200 bg-gray-50 p-3">
 									<!-- Hourly Forecast Grid (now clickable with flood indicators) -->
 									<div class="rounded border border-blue-200 bg-blue-50 p-2">
-										<h6 class="mb-2 flex items-center justify-between text-xs font-bold text-blue-800">
+										<h6
+											class="mb-2 flex items-center justify-between text-xs font-bold text-blue-800"
+										>
 											<span class="flex items-center">
 												<Icon icon="mdi:clock-outline" class="mr-1" width="12" />
 												24-Hour Breakdown
 											</span>
 											{#if summary.floodedHours > 0}
-												<span class="flex items-center gap-1 text-xs font-medium {summary.riskInfo.textColor}">
+												<span
+													class="flex items-center gap-1 text-xs font-medium {summary.riskInfo
+														.textColor}"
+												>
 													<Icon icon="mdi:water-alert" width="12" />
-													{summary.floodedHours} flood risk {summary.floodedHours === 1 ? 'hour' : 'hours'}
+													{summary.floodedHours} flood risk {summary.floodedHours === 1
+														? 'hour'
+														: 'hours'}
 												</span>
 											{/if}
 										</h6>
 										<p class="mb-2 text-xs text-blue-700">Click any hour to view detailed data</p>
-										<div class="grid grid-cols-6 gap-1 text-xs">
+										<div class="grid grid-cols-4 gap-1 text-xs lg:grid-cols-6">
 											{#each day.hourly_forecast as hour, hourIndex}
 												{@const hourRisk = getRiskLevel(hour.final_prediction.flood_probability)}
 												{@const isSelected = selectedHourIndex === hourIndex}
 												{@const isFlooded = hour.final_prediction.is_flooded === 1}
 												<button
 													onclick={() => selectHour(day.date, hourIndex)}
-													class="rounded border p-1 text-center transition-all cursor-pointer hover:shadow-md relative {hourRisk.borderStyle} {isSelected ? 'ring-2 ring-blue-500 shadow-md' : ''}"
+													class="relative cursor-pointer rounded border p-1 text-center transition-all hover:shadow-md {hourRisk.borderStyle} {isSelected
+														? 'shadow-md ring-2 ring-blue-500'
+														: ''}"
 												>
 													<!-- Flood indicator badge (changed to warning triangle) -->
 													{#if isFlooded}
-														<div class="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-orange-500 border-2 border-white flex items-center justify-center">
+														<div
+															class="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full border-2 border-white bg-orange-500"
+														>
 															<Icon icon="mdi:alert" class="text-white" width="10" />
 														</div>
 													{/if}
@@ -936,32 +1026,46 @@
 												</button>
 											{/each}
 										</div>
-										
+
 										<!-- Legend removed as requested -->
 									</div>
 
 									<!-- Complete Key Features from Selected Hour -->
 									{#if selectedHourData?.key_features}
 										<div class="rounded border border-gray-300 bg-white p-2">
-											<h6 class="mb-1 flex items-center justify-between text-xs font-bold text-gray-800">
+											<h6
+												class="mb-1 flex items-center justify-between text-xs font-bold text-gray-800"
+											>
 												<span class="flex items-center">
-													<Icon icon="mdi:weather-partly-cloudy" class="mr-1 text-gray-600" width="12" />
+													<Icon
+														icon="mdi:weather-partly-cloudy"
+														class="mr-1 text-gray-600"
+														width="12"
+													/>
 													Complete Environmental Data
 												</span>
-												<span class="flex items-center gap-1 rounded bg-blue-100 px-2 py-0.5 text-blue-800">
+												<span
+													class="flex items-center gap-1 rounded bg-blue-100 px-2 py-0.5 text-blue-800"
+												>
 													{#if selectedHourData.final_prediction.is_flooded === 1}
 														<Icon icon="mdi:water-alert" class="text-orange-600" width="12" />
 													{/if}
 													{formatTo12Hour(selectedHourData.hour)}
 												</span>
 											</h6>
-											
+
 											<!-- Prediction info for selected hour -->
-											<div class="mb-2 rounded bg-gray-50 p-2 space-y-1">
+											<div class="mb-2 space-y-1 rounded bg-gray-50 p-2">
 												<div class="flex items-center justify-between text-xs">
 													<span class="text-gray-600">Flood Status:</span>
-													<span class="font-bold {selectedHourData.final_prediction.is_flooded === 1 ? 'text-red-700' : 'text-green-700'}">
-														{selectedHourData.final_prediction.is_flooded === 1 ? 'Flooded' : 'Safe'}
+													<span
+														class="font-bold {selectedHourData.final_prediction.is_flooded === 1
+															? 'text-red-700'
+															: 'text-green-700'}"
+													>
+														{selectedHourData.final_prediction.is_flooded === 1
+															? 'Flooded'
+															: 'Safe'}
 													</span>
 												</div>
 												<div class="flex items-center justify-between text-xs">
@@ -973,7 +1077,10 @@
 												<div class="flex items-center justify-between text-xs">
 													<span class="text-gray-600">Predicted Height:</span>
 													<span class="font-bold text-gray-800">
-														{formatHeight(selectedHourData.final_prediction.predicted_height_cm, selectedHourData.final_prediction.is_flooded === 1)}
+														{formatHeight(
+															selectedHourData.final_prediction.predicted_height_cm,
+															selectedHourData.final_prediction.is_flooded === 1
+														)}
 													</span>
 												</div>
 											</div>
@@ -982,11 +1089,17 @@
 												{#each Object.entries(selectedHourData.key_features) as [key, value]}
 													<div class="flex items-center justify-between text-xs">
 														<span class="truncate text-gray-600" title={key}>
-															{key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}:
+															{key.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())}:
 														</span>
 														<span class="ml-2 font-bold text-gray-800">
 															{typeof value === 'number' ? value.toFixed(2) : value}
-															{key.includes('temp') ? '°C' : key.includes('precip') ? 'mm' : key.includes('waterlevel') ? 'm' : ''}
+															{key.includes('temp')
+																? '°C'
+																: key.includes('precip')
+																	? 'mm'
+																	: key.includes('waterlevel')
+																		? 'm'
+																		: ''}
 														</span>
 													</div>
 												{/each}
@@ -1049,7 +1162,9 @@
 					<div class="space-y-1">
 						<div class="flex justify-between text-xs">
 							<span class="font-medium text-gray-600">Coordinates:</span>
-							<span class="font-mono text-gray-800">{$selectedLocation.lat}, {$selectedLocation.lng}</span>
+							<span class="font-mono text-gray-800"
+								>{$selectedLocation.lat}, {$selectedLocation.lng}</span
+							>
 						</div>
 						<div class="flex justify-between text-xs">
 							<span class="font-medium text-gray-600">Elevation:</span>
@@ -1091,7 +1206,9 @@
 				Nearby Facilities
 			</h4>
 			{#if !$facilitiesLayerActive}
-				<div class="flex items-center rounded border-2 border-dashed border-yellow-300 bg-yellow-50 p-3">
+				<div
+					class="flex items-center rounded border-2 border-dashed border-yellow-300 bg-yellow-50 p-3"
+				>
 					<Icon icon="mdi:layers-off" class="mr-2 flex-shrink-0 text-yellow-600" width="20" />
 					<div>
 						<p class="text-sm font-semibold text-gray-800">"Nearby Facilities" Is Disabled</p>
@@ -1115,9 +1232,10 @@
 								<div class="min-w-0 flex-1 text-left">
 									<p class="truncate text-sm font-bold text-gray-800">{facility.name}</p>
 									<p class="truncate text-xs text-gray-600">{facility.type}</p>
-									
 								</div>
-								<span class="mr-1 flex-shrink-0 rounded-full bg-gray-200 px-1.5 py-0.5 text-xs font-semibold text-gray-700">
+								<span
+									class="mr-1 flex-shrink-0 rounded-full bg-gray-200 px-1.5 py-0.5 text-xs font-semibold text-gray-700"
+								>
 									{formatDistance(facility.distance)}
 								</span>
 								<Icon

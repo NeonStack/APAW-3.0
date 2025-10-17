@@ -8,16 +8,6 @@ const NCR_BOUNDS = {
 };
 
 export async function GET({ url, request }) {
-	// Basic security check - verify request is from our own site
-	const referer = request.headers.get('referer');
-	const host = request.headers.get('host');
-
-	// Only allow requests from our own website
-	if (!referer || !referer.includes(host)) {
-		console.warn('Potential unauthorized Elevation API access attempt');
-		return json({ error: 'Unauthorized access' }, { status: 403 });
-	}
-
 	const latStr = url.searchParams.get('lat');
 	const lngStr = url.searchParams.get('lng');
 

@@ -74,10 +74,5 @@ export function addWeatherLayersToGroupedControl(layerControl, weatherLayers) {
 	layerControl.addOverlay(weatherLayers.none, 'None', 'Weather');
 	layerControl.addOverlay(weatherLayers.pagasaSatellite, 'Himawari', 'Weather');
 	// Add each weather layer to the "Weather" group
-	layerControl.addOverlay(weatherLayers.precipitation, 'Precipitation', 'Weather');
-	layerControl.addOverlay(weatherLayers.temperature, 'Temperature', 'Weather');
-	layerControl.addOverlay(weatherLayers.windGroup, 'Wind', 'Weather');
-	layerControl.addOverlay(weatherLayers.clouds, 'Clouds', 'Weather');
-	layerControl.addOverlay(weatherLayers.pressure, 'Pressure', 'Weather');
-	layerControl.addOverlay(weatherLayers.humidity, 'Humidity', 'Weather');
+	layerControl.addOverlay(weatherLayers.windGroup, 'Wind Direction', 'Weather');
 }

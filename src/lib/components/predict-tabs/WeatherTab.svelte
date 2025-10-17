@@ -482,7 +482,7 @@
 															<div class="mb-2 text-center">
 																<Icon
 																	icon={iconMap[hour.icon] || 'mdi:weather-partly-cloudy'}
-																	class="mx-auto text-blue-600"
+																	class="mx-auto text-blue-600 drop-shadow-[0_0_0.1px_#000] filter"
 																	width="28"
 																/>
 															</div>

@@ -25,16 +25,6 @@ function isStationFunctioning(station) {
 
 // Add server-side protection
 export async function GET({ request }) {
-	// Basic security check - verify request is from our own site
-	const referer = request.headers.get('referer');
-	const host = request.headers.get('host');
-
-	// Only allow requests from our own website
-	if (!referer || !referer.includes(host)) {
-		console.warn('Potential unauthorized API access attempt');
-		return json({ error: 'Unauthorized access' }, { status: 403 });
-	}
-
 	const apiUrl = 'https://pasig-marikina-tullahanffws.pagasa.dost.gov.ph/water/main_list.do';
 
 	try {
