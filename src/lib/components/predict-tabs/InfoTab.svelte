@@ -997,7 +997,7 @@
 											{/if}
 										</h6>
 										<p class="mb-2 text-xs text-blue-700">Click any hour to view detailed data</p>
-										<div class="grid grid-cols-3 gap-1 text-xs lg:grid-cols-4">
+										<div class="lg:grid-cols-4h grid grid-cols-3 gap-1 text-xs">
 											{#each day.hourly_forecast as hour, hourIndex}
 												{@const hourRisk = getRiskLevel(hour.final_prediction.flood_probability)}
 												{@const isSelected = selectedHourIndex === hourIndex}
