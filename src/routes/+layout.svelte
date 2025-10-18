@@ -4,6 +4,7 @@
 	import Icon from '@iconify/svelte';
 	import { Toaster } from 'svelte-sonner';
 	import { fly, fade } from 'svelte/transition';
+	import { browser } from '$app/environment';
 
 	let { children } = $props();
 
@@ -38,29 +39,35 @@
 
 	// Calculate indicator position based on active link
 	$effect(() => {
-		const activeLink = navLinks[activeRoute];
-		if (activeLink) {
-			const rect = activeLink.getBoundingClientRect();
-			const parentRect = activeLink.parentElement.getBoundingClientRect();
+		if (browser) {
+			// <-- 2. ADD THIS CHECK
+			const activeLink = navLinks[activeRoute];
+			if (activeLink) {
+				const rect = activeLink.getBoundingClientRect();
+				const parentRect = activeLink.parentElement.getBoundingClientRect();
 
-			indicatorStyle = {
-				width: rect.width,
-				left: rect.left - parentRect.left
-			};
+				indicatorStyle = {
+					width: rect.width,
+					left: rect.left - parentRect.left
+				};
+			}
 		}
 	});
 
 	// Manage body overflow
 	$effect(() => {
-		if (isPredictPage || isMenuOpen) {
-			document.body.style.overflow = 'hidden';
-		} else {
-			document.body.style.overflow = '';
-		}
+		if (browser) {
+			// <-- 3. ADD THIS CHECK
+			if (isPredictPage || isMenuOpen) {
+				document.body.style.overflow = 'hidden';
+			} else {
+				document.body.style.overflow = '';
+			}
 
-		return () => {
-			document.body.style.overflow = '';
-		};
+			return () => {
+				document.body.style.overflow = '';
+			};
+		}
 	});
 
 	// line indicator below link offset adjustment
