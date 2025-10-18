@@ -6,6 +6,7 @@
 	} from '$lib/stores/weatherStore.js';
 	import Icon from '@iconify/svelte';
 	import moment from 'moment';
+	import FilterButton from '$lib/components/FilterButton.svelte';
 
 	// Define districts
 	const districts = {
@@ -125,47 +126,36 @@
 </script>
 
 <div class="weather-tab space-y-3">
-	<!-- Header -->
-	<div class="flex items-center space-x-2">
-		<div class="rounded-md bg-gradient-to-br from-[#0c3143] to-[#1a4a5a] p-1.5">
-			<Icon icon="mdi:weather-partly-cloudy" class="text-white" width="18" />
-		</div>
-		<h2 class="text-xs font-bold text-[#0c3143] xl:text-lg">Weather Forecast</h2>
+	<div class="flex items-center justify-center gap-5">
+		<FilterButton onclick={refreshWeather} className="grow max-w-48">
+			<Icon icon="mdi:refresh" width="15" />
+			<span class="hidden sm:inline">Refresh</span>
+		</FilterButton>
 
-		<div class="ml-auto flex flex-wrap gap-2">
-			<button
-				class="flex cursor-pointer items-center gap-1 rounded bg-gray-100 px-2 py-1 text-xs text-gray-600 transition-colors hover:bg-gray-200 hover:text-gray-900"
-				onclick={refreshWeather}
-			>
-				<Icon icon="mdi:refresh" width="12" />
-				<span class="hidden sm:inline">Refresh</span>
-			</button>
-
-			<button
-				class="flex cursor-pointer items-center gap-1 rounded bg-gray-100 px-2 py-1 text-xs text-gray-600 transition-colors hover:bg-gray-200 hover:text-gray-900"
-				onclick={() => (showFilters = !showFilters)}
-			>
-				<Icon icon={showFilters ? 'mdi:filter-off' : 'mdi:filter'} width="12" />
-				<span class="hidden sm:inline">{showFilters ? 'Hide' : 'Filters'}</span>
-			</button>
-		</div>
+		<FilterButton onclick={() => (showFilters = !showFilters)} className="grow max-w-48">
+			<Icon icon={showFilters ? 'mdi:filter-off' : 'mdi:filter'} width="15" />
+			<span class="hidden sm:inline">{showFilters ? 'Hide' : 'Filters'}</span>
+		</FilterButton>
 	</div>
 
 	<!-- Filters -->
 	{#if showFilters}
 		<div class="rounded-lg border border-gray-200 bg-gray-50 p-3 shadow-sm">
 			<div class="mb-2 flex items-center space-x-2">
-				<div class="rounded bg-[#0c3143] p-1">
+				<div class="bg-primary rounded p-1">
 					<Icon icon="mdi:filter" class="text-white" width="12" />
 				</div>
-				<h3 class="text-sm font-semibold text-[#0c3143]">Filter & Sort</h3>
+				<h3 class="text-primary text-sm font-semibold">Filter & Sort</h3>
 			</div>
 
 			<div class="space-y-2">
 				<div>
-					<label class="mb-1 block text-xs font-medium text-gray-600">District</label>
+					<label class="mb-1 block text-xs font-medium text-gray-600" for="distict-filter"
+						>District</label
+					>
 					<select
 						bind:value={districtFilter}
+						id="distict-filter"
 						class="w-full cursor-pointer rounded border border-gray-300 bg-white px-2 py-1.5 text-xs focus:border-blue-500 focus:outline-none"
 					>
 						<option value="all">All Districts</option>
@@ -176,9 +166,12 @@
 				</div>
 
 				<div>
-					<label class="mb-1 block text-xs font-medium text-gray-600">Sort by</label>
+					<label class="mb-1 block text-xs font-medium text-gray-600" for="sort-option"
+						>Sort by</label
+					>
 					<select
 						bind:value={sortOption}
+						id="sort-option"
 						class="w-full cursor-pointer rounded border border-gray-300 bg-white px-2 py-1.5 text-xs focus:border-blue-500 focus:outline-none"
 					>
 						<option value="location-asc">Location A-Z</option>
@@ -635,7 +628,7 @@
 	}
 
 	.weather-tab button:focus-visible {
-		outline: 2px solid #0c3143;
+		outline: 2px solid var(--color-primary);
 		outline-offset: 1px;
 	}
 

@@ -125,7 +125,7 @@
 			<div
 				class="mt-6 flex flex-col items-center justify-center gap-4 lg:mt-8 lg:flex-row lg:gap-6"
 			>
-				<ButtonLink href="/predict" className="group bg-primary-light text-white" nowrap>
+				<ButtonLink href="/predict" className="group bg-primary text-white" nowrap>
 					View Predictions
 					<Icon icon="mdi:arrow-right" class="transition-transform group-hover:translate-x-1" />
 				</ButtonLink>
@@ -133,6 +133,7 @@
 					href="/about"
 					className="border-primary-light/30 text-primary hover:border-primary-light w-full rounded-xl border-2 bg-white/80"
 					nowrap
+					ariaLabel="Learn more about APAW"
 				>
 					Learn More
 					<Icon
@@ -263,7 +264,7 @@
 		</p>
 		<ButtonLink
 			href="/predict"
-			className="group bg-primary-light text-white hover:border-white"
+			className="group bg-primary text-white hover:border-white"
 			width="w-auto"
 			nowrap
 		>

@@ -560,8 +560,8 @@
 			class="flex w-full cursor-pointer items-center justify-between p-3 text-left hover:bg-gray-50"
 		>
 			<div class="flex items-center">
-				<Icon icon="mdi:database-check-outline" class="mr-2 text-[#0c3143]" width="16" />
-				<h3 class="text-sm font-bold text-[#0c3143]">Data Sources Status</h3>
+				<Icon icon="mdi:database-check-outline" class="text-primary mr-2" width="16" />
+				<h3 class="text-primary text-sm font-bold">Data Sources Status</h3>
 			</div>
 			<Icon
 				icon={dataSourcesExpanded ? 'mdi:chevron-up' : 'mdi:chevron-down'}
@@ -619,23 +619,15 @@
 		{/if}
 	</div>
 
-	<!-- Compact Header -->
-	<div class="flex items-center space-x-2">
-		<div class="rounded-md bg-gradient-to-br from-[#0c3143] to-[#1a4a5a] p-1.5">
-			<Icon icon="mdi:weather-flood" class="text-white" width="18" />
-		</div>
-		<h2 class="text-lg font-bold text-[#0c3143]">Flood Prediction Tool</h2>
-	</div>
-
 	<!-- Compact Prediction Controls -->
 	<div
 		class="rounded-lg border border-blue-200 bg-gradient-to-r from-blue-50 to-blue-100 p-3 shadow-sm"
 	>
 		<div class="mb-2 flex items-center space-x-2">
-			<div class="rounded bg-[#0c3143] p-1">
+			<div class="bg-primary rounded p-1">
 				<Icon icon="mdi:chart-box" class="text-white" width="12" />
 			</div>
-			<h3 class="text-sm font-semibold text-[#0c3143]">Get Prediction</h3>
+			<h3 class="text-primary text-sm font-semibold">Get Prediction</h3>
 		</div>
 
 		<div class="space-y-2">
@@ -647,7 +639,7 @@
 			<button
 				onclick={predictFlood}
 				disabled={isPredicting || !$selectedLocation.lat || locationLoadingState}
-				class="flex w-full cursor-pointer items-center justify-center rounded-md bg-[#0c3143] px-3 py-2 text-sm font-medium text-white shadow transition-all duration-200 hover:bg-[#1a4a5a] focus:ring-2 focus:ring-[#0c3143]/20 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+				class="bg-primary hover:bg-primary/90 focus:ring-primary/20 flex w-full cursor-pointer items-center justify-center rounded-md px-3 py-2 text-sm font-medium text-white shadow transition-all duration-200 focus:ring-2 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
 			>
 				{#if isPredicting}
 					<Icon icon="eos-icons:loading" class="mr-1.5 animate-spin" width="14" />
@@ -830,7 +822,7 @@
 					<div class="flex items-center">
 						<Icon icon="mdi:calendar-clock" class="mr-2 text-green-600" width="18" />
 						<div>
-							<h3 class="text-sm font-bold text-[#0c3143]">Hourly Prediction Results</h3>
+							<h3 class="text-primary text-sm font-bold">Hourly Prediction Results</h3>
 							<p class="text-xs text-gray-600">5-day hourly forecast complete</p>
 						</div>
 					</div>
@@ -1118,7 +1110,7 @@
 	<!-- Compact Location Information Card -->
 	<div class="rounded-lg border border-gray-200 bg-white shadow-sm">
 		<div class="border-b border-gray-200 bg-gray-50 p-3">
-			<h3 class="flex items-center text-sm font-bold text-[#0c3143]">
+			<h3 class="text-primary flex items-center text-sm font-bold">
 				<Icon icon="mdi:map-marker" class="mr-2" width="16" />
 				Location Information
 			</h3>
@@ -1201,7 +1193,7 @@
 
 		<!-- Facilities Section -->
 		<div class="border-t border-gray-200 bg-gray-50 p-3">
-			<h4 class="mb-2 flex items-center text-sm font-bold text-[#0c3143]">
+			<h4 class="text-primary mb-2 flex items-center text-sm font-bold">
 				<Icon icon="mdi:near-me" class="mr-2" width="14" />
 				Nearby Facilities
 			</h4>
@@ -1287,7 +1279,7 @@
 
 	<!-- Compact Instructions Card -->
 	<div class="rounded-lg border border-gray-200 bg-white shadow-sm">
-		<div class="bg-gradient-to-r from-[#0c3143] to-[#1a4a5a] p-3">
+		<div class="from-primary to-primary/90 bg-gradient-to-r p-3">
 			<h3 class="flex items-center text-sm font-bold text-white">
 				<Icon icon="mdi:help-circle-outline" class="mr-2" width="16" />
 				How to Use
@@ -1298,7 +1290,7 @@
 			<div class="space-y-2">
 				<div class="flex items-start rounded border border-blue-200 bg-blue-50 p-2">
 					<div
-						class="mr-2 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-[#0c3143] text-xs font-bold text-white"
+						class="bg-primary mr-2 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full text-xs font-bold text-white"
 					>
 						1
 					</div>
@@ -1309,7 +1301,7 @@
 				</div>
 				<div class="flex items-start rounded border border-blue-200 bg-blue-50 p-2">
 					<div
-						class="mr-2 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-[#0c3143] text-xs font-bold text-white"
+						class="bg-primary mr-2 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full text-xs font-bold text-white"
 					>
 						2
 					</div>
@@ -1320,7 +1312,7 @@
 				</div>
 				<div class="flex items-start rounded border border-blue-200 bg-blue-50 p-2">
 					<div
-						class="mr-2 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-[#0c3143] text-xs font-bold text-white"
+						class="bg-primary mr-2 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full text-xs font-bold text-white"
 					>
 						3
 					</div>
@@ -1331,7 +1323,7 @@
 				</div>
 				<div class="flex items-start rounded border border-blue-200 bg-blue-50 p-2">
 					<div
-						class="mr-2 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-[#0c3143] text-xs font-bold text-white"
+						class="bg-primary mr-2 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full text-xs font-bold text-white"
 					>
 						4
 					</div>

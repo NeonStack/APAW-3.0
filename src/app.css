@@ -1,52 +1,51 @@
 @import 'tailwindcss';
 
 @layer base {
-  html {
-    scroll-behavior: smooth;
-    font-family: "Inter Tight", sans-serif;
-    width: 100%;
-    max-width: 100%;
-  }
-  
-  body {
-    margin: 0;
-    padding: 0;
-    width: 100%;
-    max-width: 100%;
-    overflow-x: hidden;
-  }
-  
-  #svelte {
-    width: 100%;
-    max-width: 100%;
-  }
-  
-  :root {
-    --color-primary: #0c3143;
-    --color-primary-light: #3ba6d0;
-  }
+	html {
+		scroll-behavior: smooth;
+		font-family: 'Inter Tight', sans-serif;
+		width: 100%;
+		max-width: 100%;
+	}
+
+	body {
+		margin: 0;
+		padding: 0;
+		width: 100%;
+		max-width: 100%;
+		overflow-x: hidden;
+	}
+
+	#svelte {
+		width: 100%;
+		max-width: 100%;
+	}
+
+	:root {
+		--color-primary: #0c3143;
+		--color-primary-light: #3ba6d0;
+	}
 }
 
 @theme {
-    --color-primary: #0c3143;
-    --color-primary-light: #3ba6d0;
+	--color-primary: #0c3143;
+	--color-primary-light: #3ba6d0;
 }
 
 @layer utilities {
-  .text-primary {
-    color: var(--color-primary);
-  }
-  
-  .text-primary-light {
-    color: var(--color-primary-light);
-  }
-  
-  .bg-primary {
-    background-color: var(--color-primary);
-  }
-  
-  .bg-primary-light {
-    background-color: var(--color-primary-light);
-  }
-}
+	.text-primary {
+		color: var(--color-primary);
+	}
 
+	.text-primary-light {
+		color: var(--color-primary-light);
+	}
+
+	.bg-primary {
+		background-color: var(--color-primary);
+	}
+
+	.bg-primary-light {
+		background-color: var(--color-primary-light);
+	}
+}

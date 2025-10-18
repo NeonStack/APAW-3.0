@@ -11,7 +11,7 @@
 
 	let activeTab = 'info';
 	let tabs = [
-		{ id: 'info', name: 'Information', icon: 'mdi:information-outline' },
+		{ id: 'info', name: 'Predict', icon: 'mdi:information-outline' },
 		{ id: 'water', name: 'Water Level', icon: 'mdi:water' },
 		{ id: 'weather', name: 'Weather', icon: 'mdi:weather-partly-cloudy' }
 	];
@@ -27,9 +27,7 @@
 </script>
 
 <div class="flex h-full flex-col bg-white shadow-md">
-	<div
-		class="flex items-center justify-between border-b border-gray-200 bg-[#0c3143] p-3 text-white"
-	>
+	<div class="bg-primary flex items-center justify-between border-b border-gray-200 p-3 text-white">
 		<h2 class="text-sm font-semibold tracking-wide">FLOOD PREDICTION PANEL</h2>
 
 		<!-- Mobile close button with proper event dispatch -->
