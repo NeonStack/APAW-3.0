@@ -9,7 +9,11 @@
 		nearestFacilities,
 		facilitiesLayerActive
 	} from '$lib/stores/locationStore.js';
-	import { waterStations, focusedWaterStation, fetchWaterStations } from '$lib/stores/waterStationStore.js';
+	import {
+		waterStations,
+		focusedWaterStation,
+		fetchWaterStations
+	} from '$lib/stores/waterStationStore.js';
 	import { get } from 'svelte/store';
 	import Icon from '@iconify/svelte';
 	import MapSearchBar from './MapSearchBar.svelte';
@@ -320,18 +324,25 @@
 		// Handle layer toggle events
 		map.on('overlayadd', function (e) {
 			const addedLayerName = e.name;
-			
+
 			// Check if this is a weather layer
-			const isWeatherLayer = ['None', 'Himawari', 'Precipitation', 'Temperature', 'Wind', 'Clouds', 'Pressure', 'Humidity'].some(
-				weatherName => addedLayerName.includes(weatherName)
-			);
-			
+			const isWeatherLayer = [
+				'None',
+				'Himawari',
+				'Precipitation',
+				'Temperature',
+				'Wind',
+				'Clouds',
+				'Pressure',
+				'Humidity'
+			].some((weatherName) => addedLayerName.includes(weatherName));
+
 			// Only show toast for non-"None" weather layers
 			if (isWeatherLayer && !addedLayerName.includes('None')) {
 				const cleanName = addedLayerName.replace(/<[^>]*>/g, '').trim(); // Remove HTML tags
 				toast.success(`${cleanName} layer activated`);
 			}
-			
+
 			// Handle facility and hazard layers
 			const layerConfig = allLayerConfigs.find(
 				(lc) => addedLayerName && addedLayerName.includes(lc.name)
@@ -364,9 +375,9 @@
 
 		map.on('overlayremove', function (e) {
 			const removedLayerName = e.name;
-			
+
 			// No toast for removing weather layers anymore
-			
+
 			// Handle facility and hazard layers
 			const layerConfig = allLayerConfigs.find(
 				(lc) => removedLayerName && removedLayerName.includes(lc.name)
@@ -422,13 +433,13 @@
 
 							if (!isNaN(lat) && !isNaN(lon)) {
 								const { status } = getStationAlertInfo(station);
-                                const icon = createWaterIcon(L, status);
-                                const popupContent = createWaterStationPopup(station);
+								const icon = createWaterIcon(L, status);
+								const popupContent = createWaterStationPopup(station);
 
-                                const stationMarker = L.marker([lat, lon], { icon: icon })
-                                    .addTo(map)
-                                    .bindPopup(popupContent);
-                                waterStationMarkers.push(stationMarker);
+								const stationMarker = L.marker([lat, lon], { icon: icon })
+									.addTo(map)
+									.bindPopup(popupContent);
+								waterStationMarkers.push(stationMarker);
 							} else {
 								console.warn('Invalid lat/lon for station:', station.obscd);
 							}
@@ -858,7 +869,7 @@
 		border-bottom: solid 1px black;
 		margin-bottom: 2px;
 	}
-	
+
 	:global(.leaflet-control-layers-group-name) {
 		font-weight: bold;
 		margin-top: 5px;

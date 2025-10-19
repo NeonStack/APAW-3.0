@@ -8,18 +8,26 @@
 	} from '$lib/stores/locationStore.js';
 	import { waterStations, nearestWaterStation } from '$lib/stores/waterStationStore.js';
 	import { weatherData } from '$lib/stores/weatherStore.js';
+	import { typhoonTrackerStore } from '$lib/stores/typhoonTrackerStore.js';
 	import { onMount, createEventDispatcher } from 'svelte';
 	import Icon from '@iconify/svelte';
+	import moment from 'moment';
 
 	const dispatch = createEventDispatcher();
 
 	// Data source status
 	let sources = [
 		{
-			name: 'PAGASA',
+			name: 'PAGASA Water Level',
 			logo: 'logo/pagasa.png',
 			type: 'img',
 			status: 'pending' // pending, success, error
+		},
+		{
+			name: 'PAGASA Typhoon Tracker',
+			logo: 'logo/pagasa.png',
+			type: 'img',
+			status: 'pending'
 		},
 		{
 			name: 'Visual Crossing',
@@ -51,37 +59,47 @@
 			sources[0].status = 'success';
 		}
 
+		// PAGASA (Typhoon Tracker)
+		if ($typhoonTrackerStore.loading) {
+			sources[1].status = 'pending';
+		} else if ($typhoonTrackerStore.error) {
+			sources[1].status = 'error';
+		} else if ($typhoonTrackerStore.data && $typhoonTrackerStore.data.length > 0) {
+			sources[1].status = 'success';
+		}
+
 		// Visual Crossing (Weather Data)
 		if ($weatherData.loading) {
-			sources[1].status = 'pending';
+			sources[2].status = 'pending';
 		} else if ($weatherData.error) {
-			sources[1].status = 'error';
+			sources[2].status = 'error';
 		} else if ($weatherData.data && $weatherData.data.length > 0) {
-			sources[1].status = 'success';
+			sources[2].status = 'success';
 		}
 
 		// OpenStreetMap (Location Name)
 		if ($selectedLocation.loading) {
-			sources[2].status = 'pending';
+			sources[3].status = 'pending';
 		} else if ($selectedLocation.lat && $selectedLocation.locationName) {
-			sources[2].status = 'success';
+			sources[3].status = 'success';
 		} else if ($selectedLocation.lat && !$selectedLocation.locationName) {
 			// If we have lat but no name, it could be an error or just not fetched yet.
 			// Assuming an attempt was made if lat is present.
-			sources[2].status = 'pending';
+			sources[3].status = 'pending';
 		}
 
 		// Open Topo Data (Elevation)
 		if ($selectedLocation.loading) {
-			sources[3].status = 'pending';
+			sources[4].status = 'pending';
 		} else if ($selectedLocation.error) {
-			sources[3].status = 'error';
+			sources[4].status = 'error';
 		} else if ($selectedLocation.elevation !== null) {
-			sources[3].status = 'success';
+			sources[4].status = 'success';
 		}
 	}
 
 	let dataSourcesExpanded = false;
+	let typhoonTrackerExpanded = false;
 
 	// Flood prediction state
 	let floodPrediction = null;
@@ -168,6 +186,27 @@
 		setTimeout(() => {
 			fakeProgress = 0;
 		}, 1000);
+	}
+
+	// Add this helper function to get the nearest forecast track hour
+	function getNearestForecastHour(forecastTracks) {
+		const now = new Date();
+		let nearestIndex = 0;
+		let nearestDiff = Infinity;
+
+		forecastTracks.forEach((track, index) => {
+			const trackDate = new Date(track.date_time);
+
+			// Calculate difference in milliseconds
+			const diff = Math.abs(trackDate.getTime() - now.getTime());
+
+			if (diff < nearestDiff) {
+				nearestDiff = diff;
+				nearestIndex = index;
+			}
+		});
+
+		return nearestIndex;
 	}
 
 	// Subscribe to location loading status
@@ -1104,6 +1143,134 @@
 					{/if}
 				{/each}
 			</div>
+		</div>
+	{/if}
+
+	{#if $typhoonTrackerStore.data.length > 0 && !$typhoonTrackerStore.loading}
+		<!-- Typhoon Tracker Collapsible Card -->
+		<div class="rounded-lg border border-gray-200 bg-white shadow-sm">
+			<button
+				onclick={() => (typhoonTrackerExpanded = !typhoonTrackerExpanded)}
+				class="flex w-full cursor-pointer items-center justify-between p-3 text-left hover:bg-gray-50"
+			>
+				<div class="flex items-center">
+					<Icon icon="mdi:weather-hurricane" class="mr-2 text-orange-600" width="18" />
+					<div>
+						<h3 class="text-primary text-sm font-bold">Weather Systems Tracker</h3>
+						<p class="mt-0.5 text-xs text-gray-500">
+							{$typhoonTrackerStore.data.length} active storm{$typhoonTrackerStore.data.length !== 1
+								? 's'
+								: ''}
+						</p>
+					</div>
+				</div>
+				<div class="flex items-center gap-2">
+					<p class="flex items-center gap-1 rounded-full bg-orange-100 px-2 py-1 text-sm">
+						<Icon icon="mdi:alert-circle" class="text-orange-600" />
+						<span class="leading-none font-semibold text-orange-700"
+							>{$typhoonTrackerStore.data.length}</span
+						>
+					</p>
+					<Icon
+						icon={typhoonTrackerExpanded ? 'mdi:chevron-up' : 'mdi:chevron-down'}
+						class="text-gray-500"
+						width="20"
+					/>
+				</div>
+			</button>
+
+			{#if typhoonTrackerExpanded}
+				<div class="border-t border-gray-200 bg-gray-50 p-3">
+					<div class="space-y-2">
+						{#each $typhoonTrackerStore.data as storm, stormIdx}
+							{@const stormExpanded = expandedFacilities[`storm_${stormIdx}`]}
+							<div class="rounded-lg border border-orange-200 bg-white shadow-xs">
+								<!-- Storm Header - Always Visible -->
+								<button
+									onclick={() => toggleFacilityDetails(`storm_${stormIdx}`)}
+									class="flex w-full cursor-pointer items-center justify-between p-2.5 text-left transition-colors hover:bg-orange-50"
+								>
+									<div class="min-w-0 flex-1">
+										<h4 class="text-sm font-bold text-gray-900">{storm.storm_name}</h4>
+										<p class="mt-0.5 text-xs text-gray-500">
+											Issued: {moment(storm.issued_at).format('MMM DD, YYYY - h:mm A')}
+										</p>
+									</div>
+									<div class="ml-2 flex flex-shrink-0 items-center gap-2">
+										<div class="flex items-center gap-1 rounded-full bg-orange-100 px-2 py-0.5">
+											<Icon icon="mdi:wind" class="text-orange-700" width="12" />
+											<span class="text-xs font-bold text-orange-800">Active</span>
+										</div>
+										<Icon
+											icon={stormExpanded ? 'mdi:chevron-up' : 'mdi:chevron-down'}
+											class="flex-shrink-0 text-gray-500"
+											width="16"
+										/>
+									</div>
+								</button>
+
+								<!-- Storm Details - Expandable -->
+								{#if stormExpanded}
+									{@const nearestTrackIndex = getNearestForecastHour(storm.forecast_track)}
+									<div class="space-y-2 border-t border-orange-100 bg-orange-50 p-2.5">
+										{#each storm.forecast_track as track, trackIndex}
+											<div
+												class="rounded border bg-white p-2"
+												class:border-orange-200={trackIndex !== nearestTrackIndex}
+												class:border-blue-500={trackIndex === nearestTrackIndex}
+												class:border-2={trackIndex === nearestTrackIndex}
+											>
+												<!-- Time & Category Row -->
+												<div class="mb-1.5 flex items-center justify-between">
+													<p class="text-xs font-bold text-gray-800">
+														{moment(track.date_time).format('MMM DD, YYYY - h:mm A')}
+													</p>
+													<span
+														class="inline-flex flex-shrink-0 items-center rounded px-2 py-0.5 text-xs font-bold"
+														class:bg-yellow-100={track.category === 'TD'}
+														class:text-yellow-800={track.category === 'TD'}
+														class:bg-orange-100={track.category === 'TS'}
+														class:text-orange-800={track.category === 'TS'}
+														class:bg-orange-200={track.category === 'STS'}
+														class:text-orange-900={track.category === 'STS'}
+														class:bg-red-100={track.category?.includes('TY')}
+														class:text-red-800={track.category?.includes('TY')}
+													>
+														{track.category}
+													</span>
+												</div>
+
+												<!-- Location -->
+												<p class="mb-1.5 line-clamp-2 text-xs text-gray-700">
+													{track.location}
+												</p>
+
+												<!-- Stats Grid - 3 columns, readable -->
+												<div class="grid grid-cols-3 gap-1.5 text-xs">
+													<div class="rounded bg-gray-50 p-1.5">
+														<p class="text-2xs font-medium text-gray-500">Pos</p>
+														<p class="font-mono font-bold text-gray-800">
+															{track.lat.toFixed(1)}° {Math.abs(track.lon).toFixed(1)}°
+														</p>
+													</div>
+													<div class="rounded bg-gray-50 p-1.5">
+														<p class="text-2xs font-medium text-gray-500">Wind</p>
+														<p class="font-bold text-orange-700">{track.msw_kmh} km/h</p>
+													</div>
+													<div class="rounded bg-gray-50 p-1.5">
+														<p class="text-2xs font-medium text-gray-500">Move</p>
+														<p class="font-semibold text-gray-800">{track.movement}</p>
+													</div>
+												</div>
+											</div>
+										{/each}
+									</div>
+								{/if}
+							</div>
+						{/each}
+					</div>
+				</div>
+			{/if}
 		</div>
 	{/if}
 
