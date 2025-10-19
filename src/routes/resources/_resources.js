@@ -172,6 +172,14 @@ const resources = [
 		icon: 'devicon:python',
 		url: 'https://www.python.org/'
 	},
+    {
+        title: 'Google Gemini AI',
+        description: `Google AI model for parsing PAGASA's public cyclone data.`,
+        category: 'Core Algorithms & Libraries',
+        iconType: 'iconify',
+        icon: 'material-icon-theme:gemini-ai',
+        url: 'https://deepmind.google/models/gemini/'
+    },
 	{
 		title: 'Google Colab',
 		description:

@@ -2,77 +2,58 @@
  * Implementation of grouped layer control for better layer organization
  */
 
-import { facilitiesConfig, floodHazardLayers } from './MapConfig.js';
+import { baseLayers, allOverlayLayers } from './LayerRegistry.js';
 
-export function setupGroupedLayerControl(L, map, baseLayers, facilityLayers, floodHazardLayers) {
-	if (!L || !map) {
-		console.error('Cannot setup grouped layer control: missing required parameters');
-		return null;
-	}
+export function setupGroupedLayerControl(L, map, instantiatedLayers) {
+    if (!L || !map) {
+        console.error('Cannot setup grouped layer control: missing required parameters');
+        return null;
+    }
 
-	// Check if L.control.groupedLayers exists (plugin is loaded)
-	if (!L.control.groupedLayers) {
-		console.error(
-			'Leaflet.groupedlayercontrol plugin is not loaded. Falling back to standard layer control.'
-		);
-		// Fallback to standard layer control
-		const fallbackControl = L.control.layers(baseLayers, {}, { collapsed: true });
-		fallbackControl.addTo(map);
-		return fallbackControl;
-	}
+    if (!L.control.groupedLayers) {
+        console.error(
+            'Leaflet.groupedlayercontrol plugin is not loaded. Falling back to standard layer control.'
+        );
+        const fallbackControl = L.control.layers(baseLayers, {}, { collapsed: true });
+        fallbackControl.addTo(map);
+        return fallbackControl;
+    }
 
-	// Make sure all needed layer groups exist
-	ensureLayerGroupsExist(L, facilityLayers, floodHazardLayers);
+    // Prepare base layers for the control
+    const baseLayersForControl = {};
+    baseLayers.forEach((layer) => {
+        if (instantiatedLayers[layer.id]) {
+            baseLayersForControl[layer.name] = instantiatedLayers[layer.id];
+        }
+    });
 
-	// Structure the overlays in groups
-	const groupedOverlays = {
-		Facilities: {
-			[facilitiesConfig.name]: facilityLayers[facilitiesConfig.id]
-		},
-		'Flood Hazards': {},
-		Weather: {}
-	};
+    // Prepare grouped overlays from the registry
+    const groupedOverlays = {};
+    const exclusiveGroups = [];
 
-	// Add flood hazard layers to their group
-	floodHazardLayers.forEach((hazardLayer) => {
-		groupedOverlays['Flood Hazards'][hazardLayer.name] = facilityLayers[hazardLayer.id];
-	});
+    allOverlayLayers.forEach((layer) => {
+        if (!layer.group) return;
 
-	// Configure options for the grouped layer control
-	const options = {
-		// Make the "Weather" group exclusive (use radio inputs)
-		exclusiveGroups: ['Weather'],
-		// Set to false to remove checkboxes from group titles
-		groupCheckboxes: false
-	};
+        if (!groupedOverlays[layer.group]) {
+            groupedOverlays[layer.group] = {};
+        }
 
-	// Create and add the grouped layer control
-	const layerControl = L.control.groupedLayers(baseLayers, groupedOverlays, options);
-	layerControl.addTo(map);
+        if (instantiatedLayers[layer.id]) {
+            groupedOverlays[layer.group][layer.name] = instantiatedLayers[layer.id];
+        }
 
-	return layerControl;
-}
+        if (layer.exclusive && !exclusiveGroups.includes(layer.group)) {
+            exclusiveGroups.push(layer.group);
+        }
+    });
 
-function ensureLayerGroupsExist(L, facilityLayers, floodHazardLayers) {
-	// Create the facilities layer group if it doesn't exist
-	if (!facilityLayers[facilitiesConfig.id]) {
-		facilityLayers[facilitiesConfig.id] = L.layerGroup();
-	}
+    const options = {
+        exclusiveGroups,
+        groupCheckboxes: false
+    };
 
-	// Create flood hazard layer groups if they don't exist
-	floodHazardLayers.forEach((hazardLayer) => {
-		if (!facilityLayers[hazardLayer.id]) {
-			facilityLayers[hazardLayer.id] = L.layerGroup();
-		}
-	});
-}
+    const layerControl = L.control.groupedLayers(baseLayersForControl, groupedOverlays, options);
+    layerControl.addTo(map);
 
-export function addWeatherLayersToGroupedControl(layerControl, weatherLayers) {
-	if (!layerControl || !weatherLayers) return;
-
-	// Add "None" option first to the "Weather" group
-	layerControl.addOverlay(weatherLayers.none, 'None', 'Weather');
-	layerControl.addOverlay(weatherLayers.pagasaSatellite, 'Himawari', 'Weather');
-	// Add each weather layer to the "Weather" group
-	layerControl.addOverlay(weatherLayers.windGroup, 'Wind Direction', 'Weather');
+    return layerControl;
 }

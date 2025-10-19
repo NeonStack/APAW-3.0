@@ -5,7 +5,7 @@
 	import WaterStationsTab from './predict-tabs/WaterStationsTab.svelte';
 	import { weatherData, fetchWeatherData } from '$lib/stores/weatherStore.js';
 	import WeatherTab from './predict-tabs/WeatherTab.svelte';
-	import { fetchTyphoonTracker } from '$lib/stores/typhoonTrackerStore.js';
+	import { fetchTropicalCycloneTracker } from '$lib/stores/tropicalCycloneTrackerStore.js';
 	import Icon from '@iconify/svelte';
 
 	const dispatch = createEventDispatcher();
@@ -23,7 +23,7 @@
 	}
 
 	onMount(async () => {
-		await Promise.all([fetchWeatherData(), fetchWaterStations(), fetchTyphoonTracker()]);
+		await Promise.all([fetchWeatherData(), fetchWaterStations(), fetchTropicalCycloneTracker()]);
 	});
 </script>
 

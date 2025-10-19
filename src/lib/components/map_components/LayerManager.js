@@ -8,7 +8,6 @@ import {
 import { loadAndProcessGeoJson } from './GeoJsonUtils.js';
 import {
 	NEARBY_RADIUS_METERS,
-	facilitiesConfig,
 	getFacilityIconAndColor,
 	getFacilityFriendlyName,
 	getFacilityType

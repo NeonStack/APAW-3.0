@@ -14,6 +14,9 @@
 		focusedWaterStation,
 		fetchWaterStations
 	} from '$lib/stores/waterStationStore.js';
+	import {
+		tropicalCycloneTrackerStore
+	} from '$lib/stores/tropicalCycloneTrackerStore.js';
 	import { get } from 'svelte/store';
 	import Icon from '@iconify/svelte';
 	import MapSearchBar from './MapSearchBar.svelte';
@@ -30,8 +33,6 @@
 
 	// Import modular map components
 	import { initializeMap } from './map_components/MapInitializer.js';
-	import { setupBaseLayers } from './map_components/BaseLayers.js';
-	import { setupWeatherLayers, addWeatherLayersToControl } from './map_components/WeatherLayers.js';
 	import {
 		createWaterIcon,
 		getStationAlertInfo,
@@ -43,17 +44,22 @@
 		displayNearbyFacilities,
 		handleLayerToggle
 	} from './map_components/LayerManager.js';
-	import {
-		facilitiesConfig,
-		floodHazardLayers,
-		allLayerConfigs,
-		NEARBY_RADIUS_METERS
-	} from './map_components/MapConfig.js';
-	import {
-		setupGroupedLayerControl,
-		addWeatherLayersToGroupedControl
-	} from './map_components/GroupedLayerControl.js';
+	import { NEARBY_RADIUS_METERS } from './map_components/MapConfig.js';
+	import { setupGroupedLayerControl } from './map_components/GroupedLayerControl.js';
 	import { loadAndProcessGeoJson } from './map_components/GeoJsonUtils.js';
+	import {
+		drawCycloneTrack,
+		updateCyclonePosition
+	} from './map_components/TropicalCycloneLayer.js';
+
+	// --- MODIFIED IMPORTS ---
+	// Centralized layer definitions from the new registry
+	import {
+		baseLayers,
+		overlayLayers,
+		weatherLayers,
+		allOverlayLayers
+	} from './map_components/LayerRegistry.js';
 
 	const dispatch = createEventDispatcher();
 	const OPENWEATHER_MAP_API_KEY = import.meta.env.VITE_OPENWEATHER_MAP_API_KEY || '';
@@ -72,9 +78,16 @@
 	let strictNcrBounds = null;
 	let paddedNcrBounds = null;
 
+	let tropicalCycloneLayerGroup;
+	let cycloneUpdateInterval = null;
+	let tropicalCycloneData = null;
+
 	let facilityLayers = {};
 	let loadedGeojsonData = {};
 	let activeLeafletLayers = {};
+	let instantiatedLayers = {};
+
+	console.log($tropicalCycloneTrackerStore.data)
 
 	async function handleLocateUser() {
 		if (isSelectingLocation) {
@@ -109,9 +122,10 @@
 	function updateDisplayedFacilities() {
 		const location = get(selectedLocation);
 		const isFacilitiesLayerActive = get(facilitiesLayerActive);
+		const facilitiesConfig = overlayLayers.find((l) => l.id === 'facilities');
 
-		if (!map || !location || location.lat === null || location.lng === null) {
-			if (facilityLayers[facilitiesConfig.id]) {
+		if (!facilitiesConfig || !map || !location || location.lat === null || location.lng === null) {
+			if (facilitiesConfig && facilityLayers[facilitiesConfig.id]) {
 				facilityLayers[facilitiesConfig.id].clearLayers();
 			}
 			nearestFacilities.set([]);
@@ -177,8 +191,8 @@
 
 		const loadingIcon = L.divIcon({
 			html: `<div class="loading-marker-wrapper">
-				<div class="loading-marker-inner"></div>
-			</div>`,
+                <div class="loading-marker-inner"></div>
+            </div>`,
 			className: 'loading-marker-icon',
 			iconSize: [40, 40],
 			iconAnchor: [20, 20]
@@ -237,14 +251,13 @@
 		// Initialize map service with Leaflet
 		initMapService(L);
 
-		// Dynamically load leaflet-groupedlayercontrol CSS
+		// Dynamically load leaflet-groupedlayercontrol CSS & JS
 		const groupedLayerControlCSS = document.createElement('link');
 		groupedLayerControlCSS.rel = 'stylesheet';
 		groupedLayerControlCSS.href =
 			'https://unpkg.com/leaflet-groupedlayercontrol/dist/leaflet.groupedlayercontrol.min.css';
 		document.head.appendChild(groupedLayerControlCSS);
 
-		// Dynamically load leaflet-groupedlayercontrol JS
 		await new Promise((resolve) => {
 			const groupedLayerControlScript = document.createElement('script');
 			groupedLayerControlScript.src =
@@ -258,19 +271,37 @@
 		map = mapConfig.map;
 		strictNcrBounds = mapConfig.strictNcrBounds;
 		paddedNcrBounds = mapConfig.paddedNcrBounds;
+		tropicalCycloneLayerGroup = L.layerGroup();
 
-		// Setup base layers
-		const baseLayers = setupBaseLayers(L);
-		baseLayers['Standard'].addTo(map);
+		// --- Layer Initialization from Registry ---
+		baseLayers.forEach((layer) => {
+			instantiatedLayers[layer.id] = layer.createLayer(L);
+		});
 
-		// Setup weather layers
-		const weatherLayers = setupWeatherLayers(map, L, OPENWEATHER_MAP_API_KEY);
+		overlayLayers.forEach((layer) => {
+            if (layer.id === 'tropical_cyclone') {
+                instantiatedLayers[layer.id] = tropicalCycloneLayerGroup;
+            } else {
+                const layerGroup = L.layerGroup();
+                instantiatedLayers[layer.id] = layerGroup;
+                facilityLayers[layer.id] = layerGroup; // For compatibility with LayerManager
+            }
+        });
 
-		// Setup grouped layer control instead of the regular control
-		layerControl = setupGroupedLayerControl(L, map, baseLayers, facilityLayers, floodHazardLayers);
+		weatherLayers.forEach((layer) => {
+			instantiatedLayers[layer.id] = layer.createLayer(L, OPENWEATHER_MAP_API_KEY);
+		});
 
-		// Add weather layers to the grouped control
-		addWeatherLayersToGroupedControl(layerControl, weatherLayers);
+		// Add default base layer
+		instantiatedLayers['standard'].addTo(map);
+
+		// Add default "None" weather layer
+		if (instantiatedLayers['none']) {
+			instantiatedLayers['none'].addTo(map);
+		}
+
+		// Setup grouped layer control
+		layerControl = setupGroupedLayerControl(L, map, instantiatedLayers);
 
 		// Add zoom control
 		L.control.zoom({ position: 'bottomleft' }).addTo(map);
@@ -297,8 +328,8 @@
 
 				const loadingIcon = L.divIcon({
 					html: `<div class="loading-marker-wrapper">
-						<div class="loading-marker-inner"></div>
-					</div>`,
+                        <div class="loading-marker-inner"></div>
+                    </div>`,
 					className: 'loading-marker-icon',
 					iconSize: [40, 40],
 					iconAnchor: [20, 20]
@@ -321,44 +352,54 @@
 			}
 		});
 
-		// Handle layer toggle events
+		// --- Refactored Event Handlers ---
 		map.on('overlayadd', function (e) {
 			const addedLayerName = e.name;
-
-			// Check if this is a weather layer
-			const isWeatherLayer = [
-				'None',
-				'Himawari',
-				'Precipitation',
-				'Temperature',
-				'Wind',
-				'Clouds',
-				'Pressure',
-				'Humidity'
-			].some((weatherName) => addedLayerName.includes(weatherName));
-
-			// Only show toast for non-"None" weather layers
-			if (isWeatherLayer && !addedLayerName.includes('None')) {
-				const cleanName = addedLayerName.replace(/<[^>]*>/g, '').trim(); // Remove HTML tags
-				toast.success(`${cleanName} layer activated`);
-			}
-
-			// Handle facility and hazard layers
-			const layerConfig = allLayerConfigs.find(
+			const layerConfig = allOverlayLayers.find(
 				(lc) => addedLayerName && addedLayerName.includes(lc.name)
 			);
 
-			if (layerConfig && layerConfig.id === facilitiesConfig.id) {
-				console.log('Facilities layer activated');
-				facilitiesLayerActive.set(true);
+			if (!layerConfig) return;
 
+			/// Handle Tropical Cyclone layer
+            if (layerConfig.id === 'tropical_cyclone') {
+                const cycloneArray = get(tropicalCycloneTrackerStore).data;
+                console.log('Activating Tropical Cyclone Tracker. Data available:', cycloneArray);
+                if (cycloneArray && Array.isArray(cycloneArray) && cycloneArray.length > 0) {
+                    const currentCycloneData = cycloneArray[0];
+                    drawCycloneTrack(L, tropicalCycloneLayerGroup, currentCycloneData);
+
+                    if (cycloneUpdateInterval) clearInterval(cycloneUpdateInterval);
+                    cycloneUpdateInterval = setInterval(() => {
+                        // Get fresh data inside interval to avoid stale closure
+                        const latestCycloneArray = get(tropicalCycloneTrackerStore).data;
+                        if (latestCycloneArray && latestCycloneArray.length > 0) {
+                            updateCyclonePosition(L, tropicalCycloneLayerGroup, latestCycloneArray[0]);
+                        }
+                    }, 60000); // Update every minute
+                    toast.success('Tropical Cyclone Tracker activated');
+                } else {
+                    toast.info('No active tropical cyclone data available.');
+                }
+            }
+
+			// Handle weather layer toast
+			if (layerConfig.group === 'Weather' && layerConfig.id !== 'none') {
+				const cleanName = addedLayerName.replace(/<[^>]*>/g, '').trim();
+				toast.success(`${cleanName} layer activated`);
+			}
+
+			// Handle facility layer state
+			const facilitiesConfig = overlayLayers.find((l) => l.id === 'facilities');
+			if (facilitiesConfig && layerConfig.id === facilitiesConfig.id) {
+				facilitiesLayerActive.set(true);
 				if ($selectedLocation && $selectedLocation.lat !== null) {
 					setTimeout(() => updateDisplayedFacilities(), 100);
 				}
 			}
 
-			// Use toast for non-weather layers
-			if (layerConfig) {
+			// Handle data loading for facility/hazard layers
+			if (layerConfig.type === 'facility' || layerConfig.type === 'hazard') {
 				handleLayerToggle(
 					layerConfig,
 					true,
@@ -375,20 +416,29 @@
 
 		map.on('overlayremove', function (e) {
 			const removedLayerName = e.name;
-
-			// No toast for removing weather layers anymore
-
-			// Handle facility and hazard layers
-			const layerConfig = allLayerConfigs.find(
+			const layerConfig = allOverlayLayers.find(
 				(lc) => removedLayerName && removedLayerName.includes(lc.name)
 			);
 
-			if (layerConfig && layerConfig.id === facilitiesConfig.id) {
+			if (!layerConfig) return;
+
+			// Handle Tropical Cyclone layer
+            if (layerConfig.id === 'tropical_cyclone') {
+                if (cycloneUpdateInterval) {
+                    clearInterval(cycloneUpdateInterval);
+                    cycloneUpdateInterval = null;
+                }
+                tropicalCycloneLayerGroup.clearLayers();
+            }
+
+			const facilitiesConfig = overlayLayers.find((l) => l.id === 'facilities');
+			if (facilitiesConfig && layerConfig.id === facilitiesConfig.id) {
 				facilitiesLayerActive.set(false);
 				nearestFacilities.set([]);
 			}
 
-			if (layerConfig) {
+			// Handle layer removal logic
+			if (layerConfig.type === 'facility' || layerConfig.type === 'hazard') {
 				handleLayerToggle(
 					layerConfig,
 					false,
@@ -403,33 +453,41 @@
 			}
 		});
 
-		// Initialize facility layers
-		facilityLayers[facilitiesConfig.id] = L.layerGroup();
-
 		// Preload facility data
-		loadAndProcessGeoJson(facilitiesConfig, loadedGeojsonData, true).catch((err) =>
-			console.warn(`Failed to pre-load ${facilitiesConfig.name}:`, err)
-		);
+		const facilitiesConfig = overlayLayers.find((l) => l.id === 'facilities');
+		if (facilitiesConfig) {
+			loadAndProcessGeoJson(facilitiesConfig, loadedGeojsonData, true).catch((err) =>
+				console.warn(`Failed to pre-load ${facilitiesConfig.name}:`, err)
+			);
+		}
+
+		// Subscribe to tropical cyclone data
+        tropicalCycloneTrackerStore.subscribe((store) => {
+            if (store.data && Array.isArray(store.data) && store.data.length > 0 && store.data[0].forecast_track) {
+                tropicalCycloneData = store.data[0]; // Store the first cyclone object
+                // If the layer is already on the map, redraw it with new data
+                if (map && map.hasLayer(tropicalCycloneLayerGroup)) {
+                    drawCycloneTrack(L, tropicalCycloneLayerGroup, tropicalCycloneData);
+                }
+            } else {
+                tropicalCycloneData = null;
+            }
+        });
 
 		// Subscribe to water stations data
 		waterStationSubscription = waterStations.subscribe((value) => {
-			console.log('Water stations subscription triggered:', value);
-			if (!map || !L) {
-				console.log('Map or L not ready yet');
-				return;
-			}
+			if (!map || !L) return;
 
 			// Clear existing markers
 			waterStationMarkers.forEach((m) => map.removeLayer(m));
 			waterStationMarkers = [];
 
 			if (!value.loading && value.data && value.data.length > 0) {
-				console.log(`Processing ${value.data.length} water stations`);
 				value.data.forEach((station) => {
 					if (station.lat && station.lon) {
 						try {
-							const lat = typeof station.lat === 'string' ? parseFloat(station.lat) : station.lat;
-							const lon = typeof station.lon === 'string' ? parseFloat(station.lon) : station.lon;
+							const lat = parseFloat(station.lat);
+							const lon = parseFloat(station.lon);
 
 							if (!isNaN(lat) && !isNaN(lon)) {
 								const { status } = getStationAlertInfo(station);
@@ -440,23 +498,12 @@
 									.addTo(map)
 									.bindPopup(popupContent);
 								waterStationMarkers.push(stationMarker);
-							} else {
-								console.warn('Invalid lat/lon for station:', station.obscd);
 							}
 						} catch (err) {
 							console.error('Error processing station:', station.obscd, err);
 						}
-					} else {
-						console.warn('Station missing lat/lon:', station.obscd);
 					}
 				});
-				console.log(`Added ${waterStationMarkers.length} water station markers to map`);
-			} else if (value.loading) {
-				console.log('Water stations still loading...');
-			} else if (value.error) {
-				console.error('Water stations error:', value.error);
-			} else {
-				console.log('No water station data available');
 			}
 		});
 
@@ -489,24 +536,12 @@
 		if (focusedWaterStationSubscription) {
 			focusedWaterStationSubscription();
 		}
+		if (cycloneUpdateInterval) {
+            clearInterval(cycloneUpdateInterval);
+        }
 		if (map) {
 			try {
 				map.off();
-				waterStationMarkers.forEach((m) => {
-					try {
-						map.removeLayer(m);
-					} catch (e) {}
-				});
-				if (marker) {
-					try {
-						map.removeLayer(marker);
-					} catch (e) {}
-				}
-				Object.values(facilityLayers).forEach((layer) => {
-					try {
-						map.removeLayer(layer);
-					} catch (e) {}
-				});
 				map.remove();
 			} catch (e) {
 				console.warn('Error during map cleanup:', e);
@@ -580,6 +615,20 @@
 		transform-origin: center bottom;
 		animation: pulse 2s infinite;
 	}
+
+	:global(.cyclone-icon-inner) {
+        animation: spin 2s linear infinite;
+        display: inline-block;
+    }
+
+    @keyframes spin {
+        from {
+            transform: rotate(0deg);
+        }
+        to {
+            transform: rotate(-360deg);
+        }
+    }
 
 	@keyframes pulse {
 		0% {

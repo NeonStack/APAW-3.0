@@ -8,7 +8,7 @@
 	} from '$lib/stores/locationStore.js';
 	import { waterStations, nearestWaterStation } from '$lib/stores/waterStationStore.js';
 	import { weatherData } from '$lib/stores/weatherStore.js';
-	import { typhoonTrackerStore } from '$lib/stores/typhoonTrackerStore.js';
+	import { tropicalCycloneTrackerStore } from '$lib/stores/tropicalCycloneTrackerStore.js';
 	import { onMount, createEventDispatcher } from 'svelte';
 	import Icon from '@iconify/svelte';
 	import moment from 'moment';
@@ -18,31 +18,31 @@
 	// Data source status
 	let sources = [
 		{
-			name: 'PAGASA Water Level',
+			name: 'PAGASA - Water Level',
 			logo: 'logo/pagasa.png',
 			type: 'img',
 			status: 'pending' // pending, success, error
 		},
 		{
-			name: 'PAGASA Typhoon Tracker',
+			name: 'PAGASA - Tropical Cyclone Tracker',
 			logo: 'logo/pagasa.png',
 			type: 'img',
 			status: 'pending'
 		},
 		{
-			name: 'Visual Crossing',
+			name: 'Visual Crossing - Weather Forecast',
 			logo: 'logo/visual-crossing-short.png',
 			type: 'img',
 			status: 'pending'
 		},
 		{
-			name: 'OpenStreetMap',
+			name: 'OpenStreetMap - Location Name',
 			logo: 'openmoji:openstreetmap',
 			type: 'icon',
 			status: 'pending'
 		},
 		{
-			name: 'Open Topo Data',
+			name: 'Open Topo Data - Elevation',
 			logo: 'arcticons:opentopomap',
 			type: 'icon',
 			status: 'pending'
@@ -59,12 +59,12 @@
 			sources[0].status = 'success';
 		}
 
-		// PAGASA (Typhoon Tracker)
-		if ($typhoonTrackerStore.loading) {
+		// PAGASA (TropicalCyclone Tracker)
+		if ($tropicalCycloneTrackerStore.loading) {
 			sources[1].status = 'pending';
-		} else if ($typhoonTrackerStore.error) {
+		} else if ($tropicalCycloneTrackerStore.error) {
 			sources[1].status = 'error';
-		} else if ($typhoonTrackerStore.data && $typhoonTrackerStore.data.length > 0) {
+		} else if ($tropicalCycloneTrackerStore.data && $tropicalCycloneTrackerStore.data.length > 0) {
 			sources[1].status = 'success';
 		}
 
@@ -99,7 +99,7 @@
 	}
 
 	let dataSourcesExpanded = false;
-	let typhoonTrackerExpanded = false;
+	let tropicalCycloneTrackerExpanded = false;
 
 	// Flood prediction state
 	let floodPrediction = null;
@@ -609,7 +609,7 @@
 			/>
 		</button>
 		{#if dataSourcesExpanded}
-			<div class="grid grid-cols-1 gap-2 border-t border-gray-200 bg-gray-50 p-3 sm:grid-cols-2">
+			<div class="grid grid-cols-1 gap-2 border-t border-gray-200 bg-gray-50 p-3">
 				{#each sources as source}
 					<div
 						class="relative rounded-md border bg-white p-2.5 shadow-sm"
@@ -1146,19 +1146,20 @@
 		</div>
 	{/if}
 
-	{#if $typhoonTrackerStore.data.length > 0 && !$typhoonTrackerStore.loading}
-		<!-- Typhoon Tracker Collapsible Card -->
+	{#if $tropicalCycloneTrackerStore.data.length > 0 && !$tropicalCycloneTrackerStore.loading}
+		<!-- TropicalCyclone Tracker Collapsible Card -->
 		<div class="rounded-lg border border-gray-200 bg-white shadow-sm">
 			<button
-				onclick={() => (typhoonTrackerExpanded = !typhoonTrackerExpanded)}
+				onclick={() => (tropicalCycloneTrackerExpanded = !tropicalCycloneTrackerExpanded)}
 				class="flex w-full cursor-pointer items-center justify-between p-3 text-left hover:bg-gray-50"
 			>
 				<div class="flex items-center">
 					<Icon icon="mdi:weather-hurricane" class="mr-2 text-orange-600" width="18" />
 					<div>
-						<h3 class="text-primary text-sm font-bold">Weather Systems Tracker</h3>
+						<h3 class="text-primary text-sm font-bold">Tropical Cyclone Bulletin</h3>
 						<p class="mt-0.5 text-xs text-gray-500">
-							{$typhoonTrackerStore.data.length} active storm{$typhoonTrackerStore.data.length !== 1
+							{$tropicalCycloneTrackerStore.data.length} active storm{$tropicalCycloneTrackerStore
+								.data.length !== 1
 								? 's'
 								: ''}
 						</p>
@@ -1168,21 +1169,21 @@
 					<p class="flex items-center gap-1 rounded-full bg-orange-100 px-2 py-1 text-sm">
 						<Icon icon="mdi:alert-circle" class="text-orange-600" />
 						<span class="leading-none font-semibold text-orange-700"
-							>{$typhoonTrackerStore.data.length}</span
+							>{$tropicalCycloneTrackerStore.data.length}</span
 						>
 					</p>
 					<Icon
-						icon={typhoonTrackerExpanded ? 'mdi:chevron-up' : 'mdi:chevron-down'}
+						icon={tropicalCycloneTrackerExpanded ? 'mdi:chevron-up' : 'mdi:chevron-down'}
 						class="text-gray-500"
 						width="20"
 					/>
 				</div>
 			</button>
 
-			{#if typhoonTrackerExpanded}
+			{#if tropicalCycloneTrackerExpanded}
 				<div class="border-t border-gray-200 bg-gray-50 p-3">
 					<div class="space-y-2">
-						{#each $typhoonTrackerStore.data as storm, stormIdx}
+						{#each $tropicalCycloneTrackerStore.data as storm, stormIdx}
 							{@const stormExpanded = expandedFacilities[`storm_${stormIdx}`]}
 							<div class="rounded-lg border border-orange-200 bg-white shadow-xs">
 								<!-- Storm Header - Always Visible -->
@@ -1211,6 +1212,20 @@
 
 								<!-- Storm Details - Expandable -->
 								{#if stormExpanded}
+									<!-- Headline Section -->
+									<div class="border-t border-orange-100 bg-orange-50 p-2.5">
+										<p class="mb-2 text-xs font-semibold text-orange-800">{storm.headline}</p>
+										<div class="flex gap-2 text-xs">
+											<div class="flex-1 rounded bg-white p-1.5">
+												<p class="font-medium text-gray-500">Valid Until</p>
+												<p class="font-bold text-gray-800">
+													{moment(storm.valid_until).format('MMM DD - h:mm A')}
+												</p>
+											</div>
+										</div>
+									</div>
+
+									<!-- Forecast Tracks -->
 									{@const nearestTrackIndex = getNearestForecastHour(storm.forecast_track)}
 									<div class="space-y-2 border-t border-orange-100 bg-orange-50 p-2.5">
 										{#each storm.forecast_track as track, trackIndex}
@@ -1227,14 +1242,16 @@
 													</p>
 													<span
 														class="inline-flex flex-shrink-0 items-center rounded px-2 py-0.5 text-xs font-bold"
-														class:bg-yellow-100={track.category === 'TD'}
-														class:text-yellow-800={track.category === 'TD'}
-														class:bg-orange-100={track.category === 'TS'}
-														class:text-orange-800={track.category === 'TS'}
-														class:bg-orange-200={track.category === 'STS'}
-														class:text-orange-900={track.category === 'STS'}
+														class:bg-green-100={track.category === 'TD'}
+														class:text-green-800={track.category === 'TD'}
+														class:bg-yellow-100={track.category === 'TS'}
+														class:text-yellow-800={track.category === 'TS'}
+														class:bg-orange-100={track.category === 'STS'}
+														class:text-orange-800={track.category === 'STS'}
 														class:bg-red-100={track.category?.includes('TY')}
 														class:text-red-800={track.category?.includes('TY')}
+														class:bg-violet-100={track.category === 'STY'}
+														class:text-violet-800={track.category === 'STY'}
 													>
 														{track.category}
 													</span>
