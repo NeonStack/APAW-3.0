@@ -40,9 +40,9 @@
 	import {
 		setSelectedLocation,
 		updateNearestFacilitiesList,
-		displayNearbyFacilities
-	} from './map_components/MarkerHandlers.js';
-	import { setupLayerControl, handleLayerToggle } from './map_components/LayerHandlers.js';
+		displayNearbyFacilities,
+		handleLayerToggle
+	} from './map_components/LayerManager.js';
 	import {
 		facilitiesConfig,
 		floodHazardLayers,
@@ -873,9 +873,6 @@
 	:global(.leaflet-control-layers-group-name) {
 		font-weight: bold;
 		margin-top: 5px;
-	}
-
-	:global(.leaflet-control-layers-group) {
 	}
 
 	:global(.leaflet-control-layers-selector) {
