@@ -1,115 +1,138 @@
+// Configuration for different alert levels, their names, and colors.
+
+const ALERT_LEVELS = {
+	critical: { name: 'Critical', color: '#dc2626' },
+	alarm: { name: 'Alarm', color: '#f97316' },
+	alert: { name: 'Alert', color: '#eab308' },
+	normal: { name: 'Normal', color: '#22c55e' }
+};
+
+/**
+ * Determines the alert status of a water station based on its water level.
+ * @param {object} station - The station data object.
+ * @returns {string} The status key ('critical', 'alarm', 'alert', or 'normal').
+ */
 export function getStationAlertInfo(station) {
-  let status = 'normal';
-  let color = '#ffffff';
-  const currentWL = parseFloat(station.wl);
-  const alertWL = parseFloat(station.alertwl);
-  const alarmWL = parseFloat(station.alarmwl);
-  const criticalWL = parseFloat(station.criticalwl);
-  
-  if (!isNaN(currentWL)) {
-    if (!isNaN(criticalWL) && currentWL >= criticalWL) {
-      status = 'critical';
-      color = '#ff0000';
-    } else if (!isNaN(alarmWL) && currentWL >= alarmWL) {
-      status = 'alarm';
-      color = '#ff8800';
-    } else if (!isNaN(alertWL) && currentWL >= alertWL) {
-      status = 'alert';
-      color = '#ffcc00';
-    }
-  }
-  return { status, color };
+	const currentWL = parseFloat(station.wl);
+	const alertWL = parseFloat(station.alertwl);
+	const alarmWL = parseFloat(station.alarmwl);
+	const criticalWL = parseFloat(station.criticalwl);
+
+	if (!isNaN(currentWL)) {
+		if (!isNaN(criticalWL) && currentWL >= criticalWL) {
+			return 'critical';
+		}
+		if (!isNaN(alarmWL) && currentWL >= alarmWL) {
+			return 'alarm';
+		}
+		if (!isNaN(alertWL) && currentWL >= alertWL) {
+			return 'alert';
+		}
+	}
+	return 'normal';
 }
 
+/**
+ * Creates a custom water station icon for Leaflet maps.
+ * @param {object} L - The Leaflet library object.
+ * @param {string} alertStatus - The current alert status of the station.
+ * @returns {L.DivIcon} A Leaflet DivIcon object.
+ */
 export function createWaterIcon(L, alertStatus = 'normal') {
-  let color;
-  switch (alertStatus) {
-    case 'critical':
-      color = '#ff0000';
-      break;
-    case 'alarm':
-      color = '#ff8800';
-      break;
-    case 'alert':
-      color = '#ffcc00';
-      break;
-    default:
-      color = '#ffffff';
-  }
-  
-  // Return HTML string directly instead of wrapping in a div
-  const svgIcon = `
-    <div class="water-station-icon status-${alertStatus}">
-      <svg width="30" height="30" viewBox="0 0 24 24">
-        <defs>
-          <filter id="glow-${alertStatus}" x="-30%" y="-30%" width="160%" height="160%">
-            <feGaussianBlur stdDeviation="2" result="blur" />
-            <feFlood flood-color="${color}" result="glow" />
-            <feComposite in="glow" in2="blur" operator="in" result="glowBlur" />
-            <feComposite in="SourceGraphic" in2="glowBlur" operator="over" />
-          </filter>
-        </defs>
-        <circle cx="12" cy="14" r="9" fill="#0055aa" opacity="0.3" />
-        <path d="M12 20a6 6 0 0 1-6-6c0-4 6-10.75 6-10.75S18 10 18 14a6 6 0 0 1-6 6Z" 
-              fill="#00b3ff" 
-              stroke="${color}" 
-              stroke-width="1.5" 
-              filter="url(#glow-${alertStatus})" />
+	const level = ALERT_LEVELS[alertStatus] || ALERT_LEVELS.normal;
+	const color = level.color;
+	const waterColor = '#3b82f6'; // A consistent blue to represent water
+
+	// New design: Blue fill for water, status color for the outline.
+	const svgIcon = `
+    <div style="width: 32px; height: 32px; font-size: 0;">
+      <svg 
+        width="32" 
+        height="32" 
+        viewBox="0 0 24 24" 
+        style="filter: drop-shadow(0px 1px 2px rgba(0,0,0,0.5));"
+      >
+        <!-- Main water drop shape with a blue fill and a status-colored outline -->
+        <path 
+          d="M12 2c-5.33 5.33-8 9.33-8 13.33a8 8 0 1 0 16 0c0-4-2.67-8-8-13.33z" 
+          fill="${waterColor}" 
+          stroke="${color}" 
+          stroke-width="2.5" 
+        />
+        <!-- Inner wave icon, now in white for better contrast and clarity -->
+        <path 
+          d="M12 17.5c-3 0-4.5-1.5-4.5-1.5s1.5-1.5 4.5-1.5 4.5 1.5 4.5 1.5-1.5 1.5-4.5 1.5zm0-3c-3 0-4.5-1.5-4.5-1.5s1.5-1.5 4.5-1.5 4.5 1.5 4.5 1.5-1.5 1.5-4.5 1.5z"
+          fill="white"
+          opacity="0.8"
+        />
       </svg>
     </div>`;
-  
-  return L.divIcon({
-    html: svgIcon,
-    className: 'water-station-marker',
-    iconSize: [30, 30],
-    iconAnchor: [15, 30],
-    popupAnchor: [0, -30]
-  });
+
+	return L.divIcon({
+		html: svgIcon,
+		className: 'water-station-marker', // This Leaflet class helps remove default icon styling.
+		iconSize: [32, 32],
+		iconAnchor: [16, 32], // Anchor point at the bottom center of the icon
+		popupAnchor: [0, -32]
+	});
 }
 
+/**
+ * Creates the HTML content for a water station's popup.
+ * @param {object} station - The station data object.
+ * @returns {string} The HTML content for the popup.
+ */
 export function createWaterStationPopup(station) {
-  let content = '';
+	let content = '';
 
-  // Add station name at the top of popup
-  if (station.obsnm) {
-    content += `<h3 style="font-weight: bold; font-size: 1.1em; margin-bottom: 5px; color: #0c3143;">${station.obsnm} Station</h3>`;
-  }
-  
-  // Station ID
-  content += `<b>ID:</b> ${station.obscd || 'N/A'}<br>`;
-  
-  // Current water level
-  content += `<b>Water Level:</b> ${station.wl || 'N/A'} m<br>`;
-  
-  // Water level change
-  if (station.wlchange && station.wlchange !== '-') {
-    const changeClass = parseFloat(station.wlchange) > 0 ? 'color: #ff4757;' : 'color: #2ed573;';
-    content += `<b>Change:</b> <span style="${changeClass}">${station.wlchange} m</span><br>`;
-  }
-  
-  // Last update time
-  if (station.timestr) {
-    content += `<b>Last Updated:</b> ${station.timestr}<br>`;
-  }
-  
-  // Alert thresholds
-  content += '<div style="margin-top: 8px;">';
-  if (station.alertwl) {
-    content += `<div><b>Alert:</b> <span class="alert-threshold">${station.alertwl} m</span></div>`;
-  }
-  if (station.alarmwl) {
-    content += `<div><b>Alarm:</b> <span class="alarm-threshold">${station.alarmwl} m</span></div>`;
-  }
-  if (station.criticalwl) {
-    content += `<div><b>Critical:</b> <span class="critical-threshold">${station.criticalwl} m</span></div>`;
-  }
-  content += '</div>';
-  
-  // Status indicator
-  const { status, statusText } = getStationAlertInfo(station);
-  if (status) {
-    content += `<div style="margin-top: 5px;"><span class="status status-${getStationAlertInfo(station).status}">${getStationAlertInfo(station).status.charAt(0).toUpperCase() + getStationAlertInfo(station).status.slice(1)}</span></div>`;
-  }
-  
-  return content;
+	// Add station name at the top of popup
+	if (station.obsnm) {
+		content += `<h3 style="font-weight: bold; font-size: 1.1em; margin-bottom: 5px; color: #0c3143; text-align: center;">${station.obsnm} Station</h3>`;
+	}
+
+	// Display Current Water Level prominently
+	const currentWLValue = station.wl ? `${station.wl} m` : 'N/A';
+	content += `<div style="font-size: 1.6em; font-weight: bold; text-align: center; margin: 10px 0 2px 0; color: #0055aa;">${currentWLValue}</div>`;
+	content += `<div style="text-align: center; font-size: 0.9em; color: #555; margin-bottom: 10px;">Current Water Level</div>`;
+
+	// Water level change calculated from wl and wl10m
+	const currentWL = parseFloat(station.wl);
+	const previousWL = parseFloat(station.wl10m);
+
+	if (!isNaN(currentWL) && !isNaN(previousWL)) {
+		const change = currentWL - previousWL;
+		// Only show change if it's not zero
+		if (change !== 0) {
+			const changeStyle = change > 0 ? 'color: #ff4757;' : 'color: #2ed573;'; // Red for rising, green for falling
+			const sign = change > 0 ? '+' : '';
+			content += `<b>Change (10m):</b> <span style="${changeStyle}">${sign}${change.toFixed(2)} m</span><br>`;
+		}
+	}
+
+	// Last update time
+	if (station.timestr) {
+		content += `<b>Updated At:</b> ${station.timestr}<br>`;
+	}
+
+	// Alert thresholds with inline styles
+	content += '<div style="margin-top: 8px;">';
+	if (station.criticalwl) {
+		content += `<div><b>Critical:</b> <span style="color: ${ALERT_LEVELS.critical.color}; font-weight: bold;">${station.criticalwl} m</span></div>`;
+	}
+	if (station.alarmwl) {
+		content += `<div><b>Alarm:</b> <span style="color: ${ALERT_LEVELS.alarm.color}; font-weight: bold;">${station.alarmwl} m</span></div>`;
+	}
+	if (station.alertwl) {
+		content += `<div><b>Alert:</b> <span style="color: ${ALERT_LEVELS.alert.color}; font-weight: bold;">${station.alertwl} m</span></div>`;
+	}
+	content += '</div>';
+
+	// Status indicator with inline styles
+	const statusKey = getStationAlertInfo(station);
+	const level = ALERT_LEVELS[statusKey];
+	if (level) {
+		content += `<div style="margin-top: 10px; padding: 4px 8px; background-color: ${level.color}; color: white; border-radius: 4px; text-align: center; font-weight: bold;">${level.name}</div>`;
+	}
+
+	return content;
 }

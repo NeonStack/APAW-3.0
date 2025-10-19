@@ -48,7 +48,7 @@ async function getBounds(L) {
 	if (geojsonData) {
 		const tempLayer = L.geoJSON(geojsonData);
 		strictNcrBounds = tempLayer.getBounds();
-		paddedNcrBounds = strictNcrBounds.pad(0.2);
+		paddedNcrBounds = strictNcrBounds.pad(0.4);
 	} else {
 		// Fallback bounds if GeoJSON fails to load
 		strictNcrBounds = L.latLngBounds(L.latLng(14.35, 120.9), L.latLng(14.75, 121.15));

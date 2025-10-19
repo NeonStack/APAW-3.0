@@ -490,7 +490,7 @@
 							const lon = parseFloat(station.lon);
 
 							if (!isNaN(lat) && !isNaN(lon)) {
-								const { status } = getStationAlertInfo(station);
+								const status = getStationAlertInfo(station);
 								const icon = createWaterIcon(L, status);
 								const popupContent = createWaterStationPopup(station);
 
@@ -666,47 +666,12 @@
 		animation: fastPulse 0.8s infinite;
 	}
 
-	:global(.leaflet-popup-content .alert-threshold) {
-		color: #ffcc00;
-		font-weight: 500;
-	}
-
-	:global(.leaflet-popup-content .alarm-threshold) {
-		color: #ff8800;
-		font-weight: 500;
-	}
-
-	:global(.leaflet-popup-content .critical-threshold) {
-		color: #ff0000;
-		font-weight: 500;
-	}
-
 	:global(.leaflet-popup-content .status) {
 		margin-top: 5px;
 		display: inline-block;
 		padding: 2px 5px;
 		border-radius: 3px;
 		font-weight: 600;
-	}
-
-	:global(.leaflet-popup-content .status-normal) {
-		background-color: rgba(255, 255, 255, 0.3);
-		color: #0c3143;
-	}
-
-	:global(.leaflet-popup-content .status-alert) {
-		background-color: rgba(255, 204, 0, 0.2);
-		color: #9b7d00;
-	}
-
-	:global(.leaflet-popup-content .status-alarm) {
-		background-color: rgba(255, 136, 0, 0.2);
-		color: #964f00;
-	}
-
-	:global(.leaflet-popup-content .status-critical) {
-		background-color: rgba(255, 0, 0, 0.2);
-		color: #a30000;
 	}
 
 	:global(.leaflet-search-control) {
@@ -735,48 +700,6 @@
 		display: inline-flex !important;
 		align-items: center !important;
 		gap: 5px !important;
-	}
-
-	:global(.leaflet-control-layers-list > .leaflet-control-layers-title:first-child) {
-		margin-top: 0;
-	}
-
-	:global(.facility-marker-icon) {
-		background: rgba(255, 255, 255, 0.7);
-		border-radius: 50%;
-		border: 1px solid rgba(0, 0, 0, 0.3);
-		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-		display: flex;
-		justify-content: center;
-		align-items: center;
-	}
-
-	:global(.facility-marker-wrapper) {
-		display: flex;
-		justify-content: center;
-		align-items: center;
-		width: 100%;
-		height: 100%;
-	}
-
-	:global(.facility-marker-icon .iconify) {
-		display: block;
-	}
-
-	:global(.leaflet-control-recenter a) {
-		background-color: white;
-		width: 30px !important;
-		height: 30px !important;
-		display: flex !important;
-		align-items: center !important;
-		justify-content: center !important;
-		color: #333;
-		font-size: 16px;
-		cursor: pointer;
-		position: relative;
-		padding: 0;
-		text-align: center;
-		text-decoration: none;
 	}
 
 	:global(.leaflet-control-recenter a:hover) {

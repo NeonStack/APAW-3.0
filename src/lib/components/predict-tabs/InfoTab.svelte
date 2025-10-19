@@ -18,7 +18,7 @@
 	// Data source status
 	let sources = [
 		{
-			name: 'PAGASA - Water Level',
+			name: 'PAGASA - Water Level Stations',
 			logo: 'logo/pagasa.png',
 			type: 'img',
 			status: 'pending' // pending, success, error
@@ -1158,7 +1158,7 @@
 					<div>
 						<h3 class="text-primary text-sm font-bold">Tropical Cyclone Bulletin</h3>
 						<p class="mt-0.5 text-xs text-gray-500">
-							{$tropicalCycloneTrackerStore.data.length} active storm{$tropicalCycloneTrackerStore
+							{$tropicalCycloneTrackerStore.data.length} active tropical cyclone{$tropicalCycloneTrackerStore
 								.data.length !== 1
 								? 's'
 								: ''}
@@ -1183,18 +1183,19 @@
 			{#if tropicalCycloneTrackerExpanded}
 				<div class="border-t border-gray-200 bg-gray-50 p-3">
 					<div class="space-y-2">
-						{#each $tropicalCycloneTrackerStore.data as storm, stormIdx}
-							{@const stormExpanded = expandedFacilities[`storm_${stormIdx}`]}
+						{#each $tropicalCycloneTrackerStore.data as tropicalCyclone, tropicalCycloneIdx}
+							{@const tropicalCycloneExpanded =
+								expandedFacilities[`tropicalCyclone_${tropicalCycloneIdx}`]}
 							<div class="rounded-lg border border-orange-200 bg-white shadow-xs">
-								<!-- Storm Header - Always Visible -->
+								<!-- Tropical Cyclone Header - Always Visible -->
 								<button
-									onclick={() => toggleFacilityDetails(`storm_${stormIdx}`)}
+									onclick={() => toggleFacilityDetails(`tropicalCyclone_${tropicalCycloneIdx}`)}
 									class="flex w-full cursor-pointer items-center justify-between p-2.5 text-left transition-colors hover:bg-orange-50"
 								>
 									<div class="min-w-0 flex-1">
-										<h4 class="text-sm font-bold text-gray-900">{storm.storm_name}</h4>
+										<h4 class="text-sm font-bold text-gray-900">{tropicalCyclone.storm_name}</h4>
 										<p class="mt-0.5 text-xs text-gray-500">
-											Issued: {moment(storm.issued_at).format('MMM DD, YYYY - h:mm A')}
+											Issued: {moment(tropicalCyclone.issued_at).format('MMM DD, YYYY - h:mm A')}
 										</p>
 									</div>
 									<div class="ml-2 flex flex-shrink-0 items-center gap-2">
@@ -1203,32 +1204,36 @@
 											<span class="text-xs font-bold text-orange-800">Active</span>
 										</div>
 										<Icon
-											icon={stormExpanded ? 'mdi:chevron-up' : 'mdi:chevron-down'}
+											icon={tropicalCycloneExpanded ? 'mdi:chevron-up' : 'mdi:chevron-down'}
 											class="flex-shrink-0 text-gray-500"
 											width="16"
 										/>
 									</div>
 								</button>
 
-								<!-- Storm Details - Expandable -->
-								{#if stormExpanded}
+								<!-- Tropical Cyclone Details - Expandable -->
+								{#if tropicalCycloneExpanded}
 									<!-- Headline Section -->
 									<div class="border-t border-orange-100 bg-orange-50 p-2.5">
-										<p class="mb-2 text-xs font-semibold text-orange-800">{storm.headline}</p>
+										<p class="mb-2 text-xs font-semibold text-orange-800">
+											{tropicalCyclone.headline}
+										</p>
 										<div class="flex gap-2 text-xs">
 											<div class="flex-1 rounded bg-white p-1.5">
 												<p class="font-medium text-gray-500">Valid Until</p>
 												<p class="font-bold text-gray-800">
-													{moment(storm.valid_until).format('MMM DD - h:mm A')}
+													{moment(tropicalCyclone.valid_until).format('MMM DD, YYYY - h:mm A')}
 												</p>
 											</div>
 										</div>
 									</div>
 
 									<!-- Forecast Tracks -->
-									{@const nearestTrackIndex = getNearestForecastHour(storm.forecast_track)}
+									{@const nearestTrackIndex = getNearestForecastHour(
+										tropicalCyclone.forecast_track
+									)}
 									<div class="space-y-2 border-t border-orange-100 bg-orange-50 p-2.5">
-										{#each storm.forecast_track as track, trackIndex}
+										{#each tropicalCyclone.forecast_track as track, trackIndex}
 											<div
 												class="rounded border bg-white p-2"
 												class:border-orange-200={trackIndex !== nearestTrackIndex}
@@ -1392,59 +1397,76 @@
 					</div>
 				</div>
 			{:else if $nearestFacilities.length > 0}
-				<div class="space-y-1">
+				<div class="space-y-2">
 					{#each $nearestFacilities as facility}
-						<div class="rounded border border-gray-300 bg-white">
+						<div class="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
 							<button
 								onclick={() => toggleFacilityDetails(facility.id)}
-								class="flex w-full cursor-pointer items-center p-2 transition-colors duration-150 hover:bg-gray-50"
+								class="flex w-full items-center p-2.5 text-left transition-colors duration-150 hover:bg-gray-50"
 							>
-								<Icon
-									icon={facility.icon || 'mdi:map-marker'}
-									style="color: {facility.color || '#777'};"
-									class="mr-2 flex-shrink-0"
-									width="14"
-								/>
-								<div class="min-w-0 flex-1 text-left">
-									<p class="truncate text-sm font-bold text-gray-800">{facility.name}</p>
-									<p class="truncate text-xs text-gray-600">{facility.type}</p>
-								</div>
-								<span
-									class="mr-1 flex-shrink-0 rounded-full bg-gray-200 px-1.5 py-0.5 text-xs font-semibold text-gray-700"
+								<!-- Coloured Icon Accent -->
+								<div
+									class="mr-3 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md"
+									style="background-color: {facility.color || '#777'};"
 								>
-									{formatDistance(facility.distance)}
-								</span>
-								<Icon
-									icon={expandedFacilities[facility.id] ? 'mdi:chevron-up' : 'mdi:chevron-down'}
-									width="14"
-									class="flex-shrink-0 text-blue-600"
-								/>
+									<Icon icon={facility.icon || 'mdi:map-marker'} class="text-white" width="20" />
+								</div>
+
+								<!-- Name, Type, and Distance -->
+								<div class="min-w-0 flex-1">
+									<p class="truncate text-sm font-bold text-gray-800">{facility.name}</p>
+									<p class="truncate text-xs text-gray-500">{facility.type}</p>
+								</div>
+
+								<!-- Distance & Expander Icon -->
+								<div class="ml-2 flex flex-shrink-0 items-center">
+									<span
+										class="mr-2 rounded-full bg-gray-100 px-2 py-0.5 text-xs font-semibold text-gray-700"
+									>
+										{formatDistance(facility.distance)}
+									</span>
+									<Icon
+										icon={expandedFacilities[facility.id] ? 'mdi:chevron-up' : 'mdi:chevron-down'}
+										width="18"
+										class="text-gray-500 transition-transform"
+										style={expandedFacilities[facility.id] ? 'transform: rotate(0deg);' : ''}
+									/>
+								</div>
 							</button>
 
+							<!-- Collapsible Details Section -->
 							{#if expandedFacilities[facility.id] && facility.properties}
-								<div class="border-t border-gray-100 bg-gray-50 p-2 text-xs">
-									{#if getFormattedAddress(facility.properties)}
-										<div class="mb-1">
-											<span class="font-semibold text-gray-600">Address:</span>
-											<p class="break-words text-gray-800">
-												{getFormattedAddress(facility.properties)}
-											</p>
+								{@const address = getFormattedAddress(facility.properties)}
+								{@const details = getAdditionalProperties(facility.properties)}
+								<div class="border-t border-gray-200 bg-gray-50 p-3 text-xs">
+									{#if address}
+										<div class="mb-2">
+											<h5 class="mb-1 flex items-center font-semibold text-gray-600">
+												<Icon icon="mdi:map-marker-outline" class="mr-1.5" width="14" />
+												Address
+											</h5>
+											<p class="pl-5 break-words text-gray-800">{address}</p>
 										</div>
 									{/if}
 
-									{#if getAdditionalProperties(facility.properties).length > 0}
-										<div>
-											<span class="font-semibold text-gray-600">Details:</span>
-											{#each getAdditionalProperties(facility.properties) as prop}
-												<div class="flex justify-between">
-													<span class="text-gray-500">{prop.label}:</span>
-													<span class="truncate text-gray-800">{prop.value}</span>
-												</div>
-											{/each}
+									{#if details.length > 0}
+										<div class="mb-2">
+											<h5 class="mb-1 flex items-center font-semibold text-gray-600">
+												<Icon icon="mdi:information-outline" class="mr-1.5" width="14" />
+												Details
+											</h5>
+											<div class="space-y-1 pl-5">
+												{#each details as prop}
+													<div class="flex justify-between">
+														<span class="text-gray-500">{prop.label}:</span>
+														<span class="truncate font-medium text-gray-800">{prop.value}</span>
+													</div>
+												{/each}
+											</div>
 										</div>
 									{/if}
 
-									{#if !getFormattedAddress(facility.properties) && getAdditionalProperties(facility.properties).length === 0}
+									{#if !address && details.length === 0}
 										<p class="text-center text-gray-500">No additional info available</p>
 									{/if}
 								</div>
@@ -1453,9 +1475,9 @@
 					{/each}
 				</div>
 			{:else}
-				<div class="rounded border border-gray-200 bg-gray-100 p-2 text-center">
-					<Icon icon="mdi:map-search" class="mx-auto mb-1 text-gray-400" width="16" />
-					<p class="text-xs text-gray-600">No facilities found</p>
+				<div class="rounded border border-gray-200 bg-gray-100 p-3 text-center">
+					<Icon icon="mdi:map-search" class="mx-auto mb-1 text-gray-400" width="20" />
+					<p class="text-sm text-gray-600">No facilities found nearby</p>
 				</div>
 			{/if}
 		</div>

@@ -10,7 +10,9 @@ import {
 	NEARBY_RADIUS_METERS,
 	getFacilityIconAndColor,
 	getFacilityFriendlyName,
-	getFacilityType
+	getFacilityType,
+	createFacilityIcon,
+	createFacilityPopup
 } from './MapConfig.js';
 import { addLayerToMap, removeLayerFromMap, clearLayerGroup } from '$lib/services/MapService.js';
 
@@ -170,14 +172,17 @@ export function displayNearbyFacilities(
 
 		if (distance <= radius) {
 			count++;
-			const { icon, color } = getFacilityIconAndColor(feature.properties);
+			const markerIcon = createFacilityIcon(L, feature.properties);
 			const marker = L.marker([featureLat, featureLng], {
-				icon: createFacilityIcon(L, { icon, color })
+				icon: markerIcon
 			});
 
-			const friendlyName = getFacilityFriendlyName(feature.properties);
-			const popupContent = createFacilityPopup(feature.properties, friendlyName);
-			marker.bindPopup(popupContent, { maxWidth: 300, className: 'facility-popup-container' });
+			// Use the new, centralized popup function
+			const popupContent = createFacilityPopup(feature.properties);
+			marker.bindPopup(popupContent, {
+				maxWidth: 300,
+				className: 'facility-popup-container'
+			});
 			facilityLayers[facilitiesId].addLayer(marker);
 		}
 	});
@@ -289,16 +294,6 @@ export async function handleLayerToggle(
 
 // --- Internal Helper Functions ---
 
-function createFacilityIcon(L, options) {
-	const iconHtml = `<div class="facility-marker-wrapper"><i class="iconify" data-icon="${options.icon}" style="color: ${options.color}; font-size: 18px;"></i></div>`;
-	return L.divIcon({
-		html: iconHtml,
-		className: 'facility-marker-icon',
-		iconSize: [24, 24],
-		iconAnchor: [12, 12]
-	});
-}
-
 function getFeatureCoordinates(feature) {
 	if (!feature.geometry) return null;
 	const type = feature.geometry.type;
@@ -307,18 +302,6 @@ function getFeatureCoordinates(feature) {
 	if (type === 'Polygon') return { lat: coords[0][0][1], lng: coords[0][0][0] };
 	if (type === 'MultiPolygon') return { lat: coords[0][0][0][1], lng: coords[0][0][0][0] };
 	return null;
-}
-
-function createFacilityPopup(properties, friendlyName) {
-	const facilityType = getFacilityType(properties);
-	let content = `<div class="facility-popup">
-        <h4 style="margin:0 0 5px 0;font-size:14px;color:#0c3143;">${friendlyName}</h4>`;
-	if (facilityType && friendlyName !== facilityType) {
-		content += `<div style="font-size:12px;color:#555;margin-bottom:5px;"><b>${facilityType}</b></div>`;
-	}
-	// In a real scenario, you would add more details here like address, etc.
-	content += `</div>`;
-	return content;
 }
 
 async function loadLayerData(

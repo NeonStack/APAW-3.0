@@ -16,7 +16,9 @@ const bulletinSchema = {
 			type: Type.STRING,
 			description: "The main headline, usually in all-caps, e.g., '“RAMIL” MAINTAINS ITS STRENGTH...'"
 		},
-		storm_name: { type: Type.STRING },
+		storm_name: { type: Type.STRING, 
+			description: 'Name of the tropical cyclone without the category,  e.g., RAMIL (FENGSHEN)'
+		 },
 		issued_at: {
 			type: Type.STRING,
 			description: 'ISO 8601 Timestamp with offset (YYYY-MM-DDTHH:mm:ss+08:00)'
@@ -302,7 +304,7 @@ async function callGeminiAIWithPDF(pdfBase64, mimeType, currentDate) {
 
 	try {
 		const response = await ai.models.generateContent({
-			model: 'gemini-flash-lite-latest', // Your requested model
+			model: 'gemini-flash-latest',
 			contents: [
 				{ text: prompt },
 				{
