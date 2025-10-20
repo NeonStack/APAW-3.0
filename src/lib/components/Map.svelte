@@ -560,19 +560,6 @@
 </svelte:head>
 
 <div bind:this={mapContainer} style="height: {height}; width: 100%;" class="map-container z-10">
-	<svg style="position: absolute; width: 0; height: 0; overflow: hidden;">
-		<defs>
-			<filter id="remove-green-filter">
-				<feColorMatrix
-					type="matrix"
-					values="1 0 0 0 0
-                            0 1 0 0 0
-                            0 0 1 0 0
-                            1 -1 1 1 0"
-				/>
-			</filter>
-		</defs>
-	</svg>
 	<div class="search-overlay pointer-events-none">
 		<div class="pointer-events-auto">
 			<MapSearchBar on:selectLocation={handleSearchLocation} disabled={isSelectingLocation} />
@@ -581,10 +568,6 @@
 </div>
 
 <style>
-	:global(.pagasa-satellite-layer) {
-		filter: url(#remove-green-filter);
-	}
-
 	.map-container {
 		min-height: 300px;
 		position: relative;
