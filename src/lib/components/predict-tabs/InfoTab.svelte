@@ -355,49 +355,57 @@
 		return addressParts.length > 0 ? addressParts.join(', ') : null;
 	}
 
+	function formatPropertyValue(value) {
+        if (typeof value !== 'string') return value;
+        return value
+            .split('_')
+            .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(' ');
+    }
+
 	// Helper function to get additional properties for display
 	function getAdditionalProperties(properties) {
-		if (!properties) return [];
+        if (!properties) return [];
 
-		const additionalProps = [];
-		const interestingProps = [
-			'amenity',
-			'emergency',
-			'evacuation_center',
-			'leisure',
-			'operator',
-			'capacity'
-		];
+        const additionalProps = [];
+        const usedKeys = new Set();
 
-		interestingProps.forEach((prop) => {
-			if (properties[prop] && properties[prop] !== 'yes') {
-				let label = prop;
-				if (prop.includes(':')) {
-					label = prop.split(':')[1];
-				}
+        // Define a curated list of properties with priorities and clean labels.
+        // The `keys` array is checked in order. The first one found is used.
+        const propertyMappings = [
+            { label: 'Type', keys: ['amenity', 'leisure', 'emergency', 'healthcare'] },
+            { label: 'Capacity (Persons)', keys: ['capacity:persons', 'capacity'] },
+            { label: 'Operator', keys: ['operator'] },
+            { label: 'Operator Type', keys: ['operator:type'] },
+            { label: 'Building Levels', keys: ['building:levels'] },
+            { label: 'Height (m)', keys: ['height'] },
+            // This will only show "Evacuation Center: Yes" if the tag exists and is 'yes'
+            { label: 'Evacuation Center', keys: ['evacuation_center'], filterValue: 'yes' },
+            { label: 'DOH Reference', keys: ['ref:doh'] }
+        ];
 
-				label = label
-					.split('_')
-					.map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-					.join(' ');
+        propertyMappings.forEach((mapping) => {
+            for (const key of mapping.keys) {
+                if (properties[key] && !usedKeys.has(key)) {
+                    // If a filterValue is set, only add the property if the value matches
+                    if (mapping.filterValue && properties[key] !== mapping.filterValue) {
+                        continue;
+                    }
 
-				const value =
-					typeof properties[prop] === 'string'
-						? properties[prop]
-								.split('_')
-								.map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-								.join(' ')
-						: properties[prop];
+                    additionalProps.push({
+                        label: mapping.label,
+                        value: formatPropertyValue(properties[key])
+                    });
 
-				additionalProps.push({
-					label,
-					value
-				});
-			}
-		});
+                    // Mark all potential keys for this mapping as used to avoid duplicates
+                    mapping.keys.forEach((k) => usedKeys.add(k));
+                    return; // Move to the next mapping once a match is found
+                }
+            }
+        });
 
-		return additionalProps;
-	}
+        return additionalProps;
+    }
 
 	// Select hour for viewing details
 	function selectHour(date, hourIndex) {
@@ -1402,7 +1410,7 @@
 						<div class="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
 							<button
 								onclick={() => toggleFacilityDetails(facility.id)}
-								class="flex w-full items-center p-2.5 text-left transition-colors duration-150 hover:bg-gray-50"
+								class="flex w-full items-center p-2.5 text-left transition-colors duration-150 hover:bg-gray-50 cursor-pointer"
 							>
 								<!-- Coloured Icon Accent -->
 								<div
@@ -1457,9 +1465,9 @@
 											</h5>
 											<div class="space-y-1 pl-5">
 												{#each details as prop}
-													<div class="flex justify-between">
+													<div class="flex gap-1">
 														<span class="text-gray-500">{prop.label}:</span>
-														<span class="truncate font-medium text-gray-800">{prop.value}</span>
+														<span class="font-medium text-gray-800">{prop.value}</span>
 													</div>
 												{/each}
 											</div>

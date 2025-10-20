@@ -2,7 +2,7 @@ const resources = [
 	{
 		title: 'Random Forest',
 		description:
-			'Machine learning algorithm used for classification (Flood/No Flood) and regression (Flood Depth) prediction.',
+			'Machine learning algorithm used for classification (Flood/No Flood).',
 		category: 'Core Algorithms & Libraries',
 		iconType: 'iconify',
 		icon: 'carbon:tree-view-alt',
@@ -11,7 +11,7 @@ const resources = [
 	{
 		title: 'LSTM Neural Networks',
 		description:
-			'Long Short-Term Memory neural networks explored for time-series classification and regression of flood events.',
+			'Long Short-Term Memory neural networks used for time-series classification and regression of flood events.',
 		category: 'Core Algorithms & Libraries',
 		iconType: 'iconify',
 		icon: 'carbon:network-4',

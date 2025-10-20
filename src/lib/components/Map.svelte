@@ -14,9 +14,7 @@
 		focusedWaterStation,
 		fetchWaterStations
 	} from '$lib/stores/waterStationStore.js';
-	import {
-		tropicalCycloneTrackerStore
-	} from '$lib/stores/tropicalCycloneTrackerStore.js';
+	import { tropicalCycloneTrackerStore } from '$lib/stores/tropicalCycloneTrackerStore.js';
 	import { get } from 'svelte/store';
 	import Icon from '@iconify/svelte';
 	import MapSearchBar from './MapSearchBar.svelte';
@@ -87,7 +85,7 @@
 	let activeLeafletLayers = {};
 	let instantiatedLayers = {};
 
-	console.log($tropicalCycloneTrackerStore.data)
+	console.log($tropicalCycloneTrackerStore.data);
 
 	async function handleLocateUser() {
 		if (isSelectingLocation) {
@@ -279,14 +277,14 @@
 		});
 
 		overlayLayers.forEach((layer) => {
-            if (layer.id === 'tropical_cyclone') {
-                instantiatedLayers[layer.id] = tropicalCycloneLayerGroup;
-            } else {
-                const layerGroup = L.layerGroup();
-                instantiatedLayers[layer.id] = layerGroup;
-                facilityLayers[layer.id] = layerGroup; // For compatibility with LayerManager
-            }
-        });
+			if (layer.id === 'tropical_cyclone') {
+				instantiatedLayers[layer.id] = tropicalCycloneLayerGroup;
+			} else {
+				const layerGroup = L.layerGroup();
+				instantiatedLayers[layer.id] = layerGroup;
+				facilityLayers[layer.id] = layerGroup; // For compatibility with LayerManager
+			}
+		});
 
 		weatherLayers.forEach((layer) => {
 			instantiatedLayers[layer.id] = layer.createLayer(L, OPENWEATHER_MAP_API_KEY);
@@ -362,26 +360,26 @@
 			if (!layerConfig) return;
 
 			/// Handle Tropical Cyclone layer
-            if (layerConfig.id === 'tropical_cyclone') {
-                const cycloneArray = get(tropicalCycloneTrackerStore).data;
-                console.log('Activating Tropical Cyclone Tracker. Data available:', cycloneArray);
-                if (cycloneArray && Array.isArray(cycloneArray) && cycloneArray.length > 0) {
-                    const currentCycloneData = cycloneArray[0];
-                    drawCycloneTrack(L, tropicalCycloneLayerGroup, currentCycloneData);
+			if (layerConfig.id === 'tropical_cyclone') {
+				const cycloneArray = get(tropicalCycloneTrackerStore).data;
+				console.log('Activating Tropical Cyclone Tracker. Data available:', cycloneArray);
+				if (cycloneArray && Array.isArray(cycloneArray) && cycloneArray.length > 0) {
+					const currentCycloneData = cycloneArray[0];
+					drawCycloneTrack(L, tropicalCycloneLayerGroup, currentCycloneData);
 
-                    if (cycloneUpdateInterval) clearInterval(cycloneUpdateInterval);
-                    cycloneUpdateInterval = setInterval(() => {
-                        // Get fresh data inside interval to avoid stale closure
-                        const latestCycloneArray = get(tropicalCycloneTrackerStore).data;
-                        if (latestCycloneArray && latestCycloneArray.length > 0) {
-                            updateCyclonePosition(L, tropicalCycloneLayerGroup, latestCycloneArray[0]);
-                        }
-                    }, 60000); // Update every minute
-                    toast.success('Tropical Cyclone Tracker activated');
-                } else {
-                    toast.info('No active tropical cyclone data available.');
-                }
-            }
+					if (cycloneUpdateInterval) clearInterval(cycloneUpdateInterval);
+					cycloneUpdateInterval = setInterval(() => {
+						// Get fresh data inside interval to avoid stale closure
+						const latestCycloneArray = get(tropicalCycloneTrackerStore).data;
+						if (latestCycloneArray && latestCycloneArray.length > 0) {
+							updateCyclonePosition(L, tropicalCycloneLayerGroup, latestCycloneArray[0]);
+						}
+					}, 300000); // Update every 5 minutes
+					toast.success('Tropical Cyclone Tracker activated');
+				} else {
+					toast.info('No active tropical cyclone data available.');
+				}
+			}
 
 			// Handle weather layer toast
 			if (layerConfig.group === 'Weather' && layerConfig.id !== 'none') {
@@ -423,13 +421,13 @@
 			if (!layerConfig) return;
 
 			// Handle Tropical Cyclone layer
-            if (layerConfig.id === 'tropical_cyclone') {
-                if (cycloneUpdateInterval) {
-                    clearInterval(cycloneUpdateInterval);
-                    cycloneUpdateInterval = null;
-                }
-                tropicalCycloneLayerGroup.clearLayers();
-            }
+			if (layerConfig.id === 'tropical_cyclone') {
+				if (cycloneUpdateInterval) {
+					clearInterval(cycloneUpdateInterval);
+					cycloneUpdateInterval = null;
+				}
+				tropicalCycloneLayerGroup.clearLayers();
+			}
 
 			const facilitiesConfig = overlayLayers.find((l) => l.id === 'facilities');
 			if (facilitiesConfig && layerConfig.id === facilitiesConfig.id) {
@@ -462,17 +460,22 @@
 		}
 
 		// Subscribe to tropical cyclone data
-        tropicalCycloneTrackerStore.subscribe((store) => {
-            if (store.data && Array.isArray(store.data) && store.data.length > 0 && store.data[0].forecast_track) {
-                tropicalCycloneData = store.data[0]; // Store the first cyclone object
-                // If the layer is already on the map, redraw it with new data
-                if (map && map.hasLayer(tropicalCycloneLayerGroup)) {
-                    drawCycloneTrack(L, tropicalCycloneLayerGroup, tropicalCycloneData);
-                }
-            } else {
-                tropicalCycloneData = null;
-            }
-        });
+		tropicalCycloneTrackerStore.subscribe((store) => {
+			if (
+				store.data &&
+				Array.isArray(store.data) &&
+				store.data.length > 0 &&
+				store.data[0].forecast_track
+			) {
+				tropicalCycloneData = store.data[0]; // Store the first cyclone object
+				// If the layer is already on the map, redraw it with new data
+				if (map && map.hasLayer(tropicalCycloneLayerGroup)) {
+					drawCycloneTrack(L, tropicalCycloneLayerGroup, tropicalCycloneData);
+				}
+			} else {
+				tropicalCycloneData = null;
+			}
+		});
 
 		// Subscribe to water stations data
 		waterStationSubscription = waterStations.subscribe((value) => {
@@ -537,8 +540,8 @@
 			focusedWaterStationSubscription();
 		}
 		if (cycloneUpdateInterval) {
-            clearInterval(cycloneUpdateInterval);
-        }
+			clearInterval(cycloneUpdateInterval);
+		}
 		if (map) {
 			try {
 				map.off();
@@ -554,10 +557,22 @@
 <svelte:head>
 	<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />
 	<script src="https://code.iconify.design/2/2.2.1/iconify.min.js"></script>
-	<!-- We'll load the groupedlayercontrol dynamically in the onMount function -->
 </svelte:head>
 
 <div bind:this={mapContainer} style="height: {height}; width: 100%;" class="map-container z-10">
+	<svg style="position: absolute; width: 0; height: 0; overflow: hidden;">
+		<defs>
+			<filter id="remove-green-filter">
+				<feColorMatrix
+					type="matrix"
+					values="1 0 0 0 0
+                            0 1 0 0 0
+                            0 0 1 0 0
+                            1 -1 1 1 0"
+				/>
+			</filter>
+		</defs>
+	</svg>
 	<div class="search-overlay pointer-events-none">
 		<div class="pointer-events-auto">
 			<MapSearchBar on:selectLocation={handleSearchLocation} disabled={isSelectingLocation} />
@@ -566,6 +581,10 @@
 </div>
 
 <style>
+	:global(.pagasa-satellite-layer) {
+		filter: url(#remove-green-filter);
+	}
+
 	.map-container {
 		min-height: 300px;
 		position: relative;
@@ -617,18 +636,18 @@
 	}
 
 	:global(.cyclone-icon-inner) {
-        animation: spin 2s linear infinite;
-        display: inline-block;
-    }
+		animation: spin 2s linear infinite;
+		display: inline-block;
+	}
 
-    @keyframes spin {
-        from {
-            transform: rotate(0deg);
-        }
-        to {
-            transform: rotate(-360deg);
-        }
-    }
+	@keyframes spin {
+		from {
+			transform: rotate(0deg);
+		}
+		to {
+			transform: rotate(-360deg);
+		}
+	}
 
 	@keyframes pulse {
 		0% {

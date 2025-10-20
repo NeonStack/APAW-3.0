@@ -154,7 +154,7 @@ export const weatherLayers = [
 	},
 	{
 		id: 'pagasaSatellite',
-		name: 'PAGASA Himawari',
+		name: 'DOST PAGASA Himawari',
 		group: 'Weather',
 		exclusive: true,
 		createLayer: (L) => createPagasaSatelliteLayer(L)
