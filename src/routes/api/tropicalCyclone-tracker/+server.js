@@ -5,20 +5,46 @@ import { json } from '@sveltejs/kit';
 import { GoogleGenAI, Type } from '@google/genai';
 import { Buffer } from 'buffer';
 
+// ===================================================================
+// --- CONFIGURATION ---
+// Central place to easily adjust key parameters for the script.
+// ===================================================================
+const CONFIG = {
+	// AI Model to use for parsing. (Used in: callGeminiAIWithPDF)
+	AI_MODEL: 'gemini-flash-latest',
+
+	// How old a PDF file can be before we ignore it completely. (Used in: getLatestBulletinsFromPAGASA)
+	PDF_CUTOFF_HOURS: 72, // 3 days
+
+	// How long to cache when PAGASA has no active storms. (Used in: doBackgroundFetch)
+	CACHE_HOURS_NO_STORM: 6,
+
+	// Cache time for a "Final Bulletin" (when valid_until is null because the storm is over). (Used in: doBackgroundFetch)
+	CACHE_HOURS_FINAL_BULLETIN: 6,
+
+	// Default cache time for an active storm bulletin (formula: valid_until + CACHE_HOURS_DEFAULT). (Used in: doBackgroundFetch)
+	CACHE_HOURS_DEFAULT: 1,
+
+	// How long to "snooze" before retrying if an error occurs during the fetch. (Used in: doBackgroundFetch)
+	CACHE_MINS_ON_ERROR: 15
+};
+
 // --- 1. INITIALIZE AI CLIENT ---
 const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
 
-// --- 2. UPDATED AI SCHEMA (REMOVING current_location) ---
+// --- 2. AI SCHEMA ---
 const bulletinSchema = {
 	type: Type.OBJECT,
 	properties: {
-		headline: { 
+		headline: {
 			type: Type.STRING,
-			description: "The main headline, usually in all-caps, e.g., '“RAMIL” MAINTAINS ITS STRENGTH...'"
+			description:
+				"The main headline, usually in all-caps, e.g., '“RAMIL” MAINTAINS ITS STRENGTH...'"
 		},
-		storm_name: { type: Type.STRING, 
+		storm_name: {
+			type: Type.STRING,
 			description: 'Name of the tropical cyclone without the category,  e.g., RAMIL (FENGSHEN)'
-		 },
+		},
 		issued_at: {
 			type: Type.STRING,
 			description: 'ISO 8601 Timestamp with offset (YYYY-MM-DDTHH:mm:ss+08:00)'
@@ -27,7 +53,6 @@ const bulletinSchema = {
 			type: Type.STRING,
 			description: 'Calculated ISO 8601 Timestamp with offset (YYYY-MM-DDTHH:mm:ss+08:00) OR null'
 		},
-		// 'current_location' object is GONE from here
 		forecast_track: {
 			type: Type.ARRAY,
 			items: {
@@ -45,31 +70,25 @@ const bulletinSchema = {
 			}
 		}
 	},
-	// 'current_location' is GONE from 'required'
 	required: ['headline', 'storm_name', 'issued_at', 'forecast_track']
 };
 
-// --- 3. THE API ENDPOINT (Checks 'cache_expiry_time') ---
+// --- 3. THE API ENDPOINT ---
 export async function GET({ platform }) {
-	// Initialize Supabase client *inside* the function, as you requested
 	const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 	const now = new Date();
 
-	// FIX: We now check 'cache_expiry_time' to solve the fetch loop
 	const { data: oldestCache } = await supabase
 		.from('pagasa_active_bulletins')
-		.select('cache_expiry_time') // <-- This is the fix
+		.select('cache_expiry_time')
 		.order('cache_expiry_time', { ascending: true })
 		.limit(1)
 		.single();
 
-	// This logic is now correct.
 	const isCacheStale = !oldestCache || new Date(oldestCache.cache_expiry_time) < now;
 
 	if (isCacheStale) {
 		console.log('Cache is STALE. Triggering background fetch.');
-
-		// Pass the supabase client to the background function
 		const backgroundFetchTask = doBackgroundFetch(now, supabase);
 
 		if (platform?.context?.waitUntil) {
@@ -82,7 +101,6 @@ export async function GET({ platform }) {
 		console.log('Cache is FRESH.');
 	}
 
-	// This part is unchanged and correct
 	const { data: activeStorms } = await supabase
 		.from('pagasa_active_bulletins')
 		.select('forecast_data')
@@ -92,32 +110,28 @@ export async function GET({ platform }) {
 }
 
 // ===================================================================
-//
-// --- 4. BACKGROUND TASK & HELPER FUNCTIONS (UPDATED) ---
-//
+// --- 4. BACKGROUND TASK & HELPER FUNCTIONS ---
 // ===================================================================
 
 async function doBackgroundFetch(currentDate, supabase) {
 	console.log('BACKGROUND: Starting fetch...');
-	const newBulletinRows = []; // Build new data *in memory* first
+	const newBulletinRows = [];
 
 	try {
-		// 1. Fetch latest bulletin URLs
 		const bulletinsToFetch = await getLatestBulletinsFromPAGASA();
 		let shortestCacheTime = null;
 
-		// 2. Handle "No Storms"
 		if (bulletinsToFetch.length === 0) {
 			console.log('BACKGROUND: No active storms found. Creating negative cache.');
-			const sixHoursFromNow = new Date(currentDate.getTime() + 6 * 60 * 60 * 1000);
+			const cacheExpiry = new Date(
+				currentDate.getTime() + CONFIG.CACHE_HOURS_NO_STORM * 60 * 60 * 1000
+			);
 
 			newBulletinRows.push({
 				bulletin_type: 'EMPTY_CACHE',
-				cache_expiry_time: sixHoursFromNow.toISOString()
+				cache_expiry_time: cacheExpiry.toISOString()
 			});
-			// (We don't set shortestCacheTime, it's just this one row)
 		} else {
-			// 3. Handle "Active Storms Found"
 			console.log(`BACKGROUND: Found ${bulletinsToFetch.length} storm(s).`);
 
 			for (const bulletin of bulletinsToFetch) {
@@ -126,123 +140,146 @@ async function doBackgroundFetch(currentDate, supabase) {
 				const { base64Data, mimeType } = await downloadPDFForGemini(bulletin.url);
 				const aiResponse = await callGeminiAIWithPDF(base64Data, mimeType, currentDate);
 
+				if (!aiResponse?.forecast_track?.length) {
+                    console.warn(`BACKGROUND: Discarding ${bulletin.name} due to missing or empty forecast track from AI.`);
+                    continue;
+                }
+
+				const lastForecastPoint = aiResponse.forecast_track[aiResponse.forecast_track.length - 1];
+				if (lastForecastPoint && new Date(lastForecastPoint.date_time) < currentDate) {
+					console.log(
+						`BACKGROUND: Discarding ${bulletin.name} as its forecast is entirely in the past.`
+					);
+					continue;
+				}
+
 				let cacheExpiry;
-				// Use the valid_until from the AI response (which can be null)
 				const validUntilDate = aiResponse.valid_until ? new Date(aiResponse.valid_until) : null;
 
-				// This is our "late PDF" / "fetch loop" fix
-				if (validUntilDate && validUntilDate > currentDate) {
-					cacheExpiry = new Date(validUntilDate.getTime() + 1 * 60 * 60 * 1000);
+				if (!validUntilDate) {
+					cacheExpiry = new Date(
+						currentDate.getTime() + CONFIG.CACHE_HOURS_FINAL_BULLETIN * 60 * 60 * 1000
+					);
+				} else if (validUntilDate > currentDate) {
+					cacheExpiry = new Date(
+						validUntilDate.getTime() + CONFIG.CACHE_HOURS_DEFAULT * 60 * 60 * 1000
+					);
 				} else {
-					cacheExpiry = new Date(currentDate.getTime() + 1 * 60 * 60 * 1000);
+					cacheExpiry = new Date(
+						currentDate.getTime() + CONFIG.CACHE_HOURS_DEFAULT * 60 * 60 * 1000
+					);
 				}
 
 				if (!shortestCacheTime || cacheExpiry < shortestCacheTime) {
 					shortestCacheTime = cacheExpiry;
 				}
 
-				// --- UPDATED PUSH (Matches our simpler DB) ---
 				newBulletinRows.push({
 					bulletin_type: 'ACTIVE_STORM',
-					forecast_data: aiResponse, // The full JSON from AI
+					forecast_data: aiResponse,
 					cache_expiry_time: cacheExpiry.toISOString()
 				});
 			}
 
-			// Add the "global timer" row (your Q1)
 			if (shortestCacheTime) {
 				newBulletinRows.push({
 					bulletin_type: 'EMPTY_CACHE',
 					cache_expiry_time: shortestCacheTime.toISOString()
 				});
+			} else if (newBulletinRows.length === 0) {
+				console.log('BACKGROUND: All found storms were outdated. Creating negative cache.');
+				const cacheExpiry = new Date(
+					currentDate.getTime() + CONFIG.CACHE_HOURS_NO_STORM * 60 * 60 * 1000
+				);
+				newBulletinRows.push({
+					bulletin_type: 'EMPTY_CACHE',
+					cache_expiry_time: cacheExpiry.toISOString()
+				});
 			}
-		} // End of storm processing
+		}
 
-		// --- ATOMIC UPDATE ---
-		// Only *after* all new data is ready, we swap it in.
 		console.log('BACKGROUND: New data successfully processed. Swapping cache...');
-
-		// 1. Delete all old rows
 		await supabase.from('pagasa_active_bulletins').delete().neq('id', -1);
-
-		// 2. Insert all new rows
 		await supabase.from('pagasa_active_bulletins').insert(newBulletinRows);
-
 		console.log('BACKGROUND: Fetch complete. Database updated.');
 	} catch (error) {
-		// --- NEW ERROR HANDLING (Your Q2 Fix) ---
-		// This block now runs if Gemini fails or *any* part of the 'try' fails.
 		console.error('BACKGROUND: Error during background fetch:', error);
+		const snoozeTime = new Date(currentDate.getTime() + CONFIG.CACHE_MINS_ON_ERROR * 60 * 1000);
 
-		// We do NOT delete the old data. We just "snooze" the cache.
-		// Set expiry to 15 minutes from now to prevent a spam loop.
-		const fifteenMinsFromNow = new Date(currentDate.getTime() + 15 * 60 * 1000);
+		await supabase.from('pagasa_active_bulletins').upsert(
+            {
+                bulletin_type: 'EMPTY_CACHE',
+                cache_expiry_time: snoozeTime.toISOString()
+            },
+            { onConflict: 'bulletin_type' }
+        );
 
-		// This updates *only* the timer row, leaving the stale storm data intact.
-		await supabase
-			.from('pagasa_active_bulletins')
-			.update({ cache_expiry_time: fifteenMinsFromNow.toISOString() })
-			.eq('bulletin_type', 'EMPTY_CACHE'); // Only update the timer
-
-		console.log('BACKGROUND: Error handled. Snoozing cache for 15 minutes.');
+        console.log(
+            `BACKGROUND: Error handled. Snoozing cache for ${CONFIG.CACHE_MINS_ON_ERROR} minutes.`
+        );
 	}
 }
 
-// --- HELPER 5: Scrape PAGASA Directory (Corrected URL/Parser) ---
+// --- HELPER 5: Scrape PAGASA Directory ---
 const PAGASA_URL = 'https://pubfiles.pagasa.dost.gov.ph/tamss/weather/bulletin/';
-// This regex parses the <a href="...">...</a> ... (timestamp) format
 const htmlRegex =
-	/href="(TCB%23([\w\d]+)_([\w-]+)\.pdf)"[^<]*<\/a>\s+([\d-]{2}-[A-Za-z]{3}-\d{4} \d{2}:\d{2})/g;
+    /href="(TCB%23(\d+)(F?)_([\w-]+)\.pdf)"[^<]*<\/a>\s+([\d-]{2}-[A-Za-z]{3}-\d{4} \d{2}:\d{2})/g;
 
 async function getLatestBulletinsFromPAGASA() {
-	const response = await fetch(PAGASA_URL);
-	if (!response.ok) {
-		throw new Error(`Failed to fetch PAGASA directory: ${response.statusText}`);
-	}
-	const html = await response.text();
+    const response = await fetch(PAGASA_URL);
+    if (!response.ok) {
+        throw new Error(`Failed to fetch PAGASA directory: ${response.statusText}`);
+    }
+    const html = await response.text();
+    const allBulletins = [];
 
-	const allBulletins = [];
+    for (const match of html.matchAll(htmlRegex)) {
+        // With the corrected regex, these matches are now correct:
+        // match[2] = "22", match[3] = "F", match[4] = "ramil", match[5] = "20-Oct-2025 04:05"
+        allBulletins.push({
+            filename: match[1],
+            bulletinNumber: parseInt(match[2], 10) || 0,
+            isFinal: match[3] === 'F',
+            name: match[4],
+            date: new Date(match[5]),
+            url: `${PAGASA_URL}${match[1]}`
+        });
+    }
 
-	// Find all matches for our regex in the HTML
-	for (const match of html.matchAll(htmlRegex)) {
-		const href = match[1]; // e.g., "TCB%2313_ramil.pdf"
-		const bulletinNumber = parseInt(match[2], 10) || 0; // e.g., 13
-		const name = match[3]; // e.g., "ramil"
-		const timestamp = match[4]; // e.g., "18-Oct-2025 15:22"
+    const bulletinsByName = new Map();
+    for (const bulletin of allBulletins) {
+        if (!bulletinsByName.has(bulletin.name)) bulletinsByName.set(bulletin.name, []);
+        bulletinsByName.get(bulletin.name).push(bulletin);
+    }
 
-		allBulletins.push({
-			filename: href,
-			bulletinNumber: bulletinNumber,
-			name: name,
-			date: new Date(timestamp), // This is the UTC file time
-			url: `${PAGASA_URL}${href}` // The full URL to the PDF
-		});
-	}
+    const latestBulletins = [];
+    const cutoffDate = new Date().getTime() - CONFIG.PDF_CUTOFF_HOURS * 60 * 60 * 1000;
 
-	// Group by typhoon name
-	const bulletinsByName = new Map();
-	for (const bulletin of allBulletins) {
-		if (!bulletinsByName.has(bulletin.name)) bulletinsByName.set(bulletin.name, []);
-		bulletinsByName.get(bulletin.name).push(bulletin);
-	}
+    for (const [name, bulletins] of bulletinsByName.entries()) {
+        // FIX: Implement a more robust multi-level sort
+        bulletins.sort((a, b) => {
+            // 1. Primary sort: Higher bulletin number wins
+            if (b.bulletinNumber !== a.bulletinNumber) {
+                return b.bulletinNumber - a.bulletinNumber;
+            }
+            // 2. Tie-breaker: If numbers are equal, the "Final" bulletin wins
+            if (b.isFinal !== a.isFinal) {
+                return b.isFinal ? 1 : -1;
+            }
+            // 3. Final tie-breaker: Newest date wins
+            return b.date.getTime() - a.date.getTime();
+        });
 
-	// Find the latest bulletin number for each name
-	const latestBulletins = [];
-	const cutoffDate = new Date().getTime() - 48 * 60 * 60 * 1000; // 48-hour cutoff
+        const latest = bulletins[0];
 
-	for (const [name, bulletins] of bulletinsByName.entries()) {
-		bulletins.sort((a, b) => b.bulletinNumber - a.bulletinNumber);
-		const latest = bulletins[0];
-
-		// Only include if its (UTC) file time is recent
-		if (latest.date.getTime() > cutoffDate) {
-			latestBulletins.push(latest);
-		}
-	}
-	return latestBulletins;
+        if (latest.date.getTime() > cutoffDate) {
+            latestBulletins.push(latest);
+        }
+    }
+    return latestBulletins;
 }
 
-// --- HELPER 6: Download PDF for Gemini (Unchanged) ---
+// --- HELPER 6: Download PDF for Gemini ---
 async function downloadPDFForGemini(url) {
 	const response = await fetch(url);
 	if (!response.ok) throw new Error(`Failed to download PDF: ${response.statusText}`);
@@ -254,7 +291,7 @@ async function downloadPDFForGemini(url) {
 	return { base64Data, mimeType };
 }
 
-// --- HELPER 7: Call Gemini AI with PDF (UPDATED PROMPT) ---
+// --- HELPER 7: Call Gemini AI with PDF ---
 async function callGeminiAIWithPDF(pdfBase64, mimeType, currentDate) {
 	const todayString = currentDate.toLocaleString('en-US', {
 		day: 'numeric',
@@ -263,7 +300,6 @@ async function callGeminiAIWithPDF(pdfBase64, mimeType, currentDate) {
 		timeZone: 'Asia/Manila'
 	});
 
-	// --- THIS IS THE FINAL, UPDATED PROMPT ---
 	const prompt = `
     You are an expert meteorological data extraction bot.
     Today's date is: ${todayString}.
@@ -278,24 +314,24 @@ async function callGeminiAIWithPDF(pdfBase64, mimeType, currentDate) {
 
     CRITICAL: If the bulletin is a "FINAL BULLETIN", which means "Valid for broadcast until" line is missing near the "Issued at", you MUST return null for the valid_until field.
 
-	NEW: Extract the "headline". This is the unlabeled, all-caps text near the top.
-	- Example: "“RAMIL” IS NOW OVER MANILA BAY."
-	- Example: "“RAMIL” MAINTAINS ITS STRENGTH..."
-	
-	CRITICAL NEW INSTRUCTION: The "current_location" data MUST be the *first item* (index 0) in the "forecast_track" array.
-	To create this first item:
+    NEW: Extract the "headline". This is the unlabeled, all-caps text near the top.
+    - Example: "“RAMIL” IS NOW OVER MANILA BAY."
+    - Example: "“RAMIL” MAINTAINS ITS STRENGTH..."
+    
+    CRITICAL NEW INSTRUCTION: The "current_location" data MUST be the *first item* (index 0) in the "forecast_track" array.
+    To create this first item:
     1.  Find "Location of Center (X:XX PM/AM)". Use this time (e.g., "1:00 PM") and the *date* from the "Issued at" line (e.g., "18 October 2025") to create the "date_time" (e.g., "1:00 PM 18 October 2025").
     2.  Find "The center of... (XX.X°N, XX.X°E)" to get "lat", "lon", and "location_description" (which you will save as "location").
     3.  Find "Intensity" to get "msw_kmh" (e.g., "65 km/h").
-	4.  Find "Present Movement" to get "movement". Abbreviate this:
-		- "West northwestward at 15 km/h" -> "WNW 15"
-		- "Eastward slowly" -> "E Slowly"
-	5.  Determine the "category" from the "storm_name" or "Intensity" text. Use these abbreviations:
-		- "Tropical Depression" -> "TD"
-		- "Tropical Storm" -> "TS"
-		- "Severe Tropical Storm" -> "STS"
-		- "Typhoon" -> "TY"
-		- "Super Typhoon" -> "STY"
+    4.  Find "Present Movement" to get "movement". Abbreviate this:
+        - "West northwestward at 15 km/h" -> "WNW 15"
+        - "Eastward slowly" -> "E Slowly"
+    5.  Determine the "category" from the "storm_name" or "Intensity" text. Use these abbreviations:
+        - "Tropical Depression" -> "TD"
+        - "Tropical Storm" -> "TS"
+        - "Severe Tropical Storm" -> "STS"
+        - "Typhoon" -> "TY"
+        - "Super Typhoon" -> "STY"
 
     The *rest* of the items in the "forecast_track" array come from the forecast table as before.
 
@@ -304,7 +340,7 @@ async function callGeminiAIWithPDF(pdfBase64, mimeType, currentDate) {
 
 	try {
 		const response = await ai.models.generateContent({
-			model: 'gemini-flash-latest',
+			model: CONFIG.AI_MODEL,
 			contents: [
 				{ text: prompt },
 				{
