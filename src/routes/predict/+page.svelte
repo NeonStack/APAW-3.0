@@ -67,7 +67,7 @@
     
     <!-- Sidebar Container -->
     <div class="sidebar-container {isSidebarOpen ? 'sidebar-open' : 'sidebar-closed'} 
-                fixed md:static right-0 z-30 bg-white border-l border-gray-200 
+                fixed md:static right-0 z-30 bg-white
                 md:w-1/3 md:transform-none md:shadow-none overflow-y-auto transition-transform duration-300">
       {#if isSidebarOpen}
         <PredictSidebar on:closeSidebar={handleCloseSidebar} />
