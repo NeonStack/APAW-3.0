@@ -1223,10 +1223,11 @@
 								{#if tropicalCycloneExpanded}
 									<!-- Headline Section -->
 									<div class="border-t border-orange-100 bg-orange-50 p-2.5">
-										<p class="mb-2 text-xs font-semibold text-orange-800">
+										<p class="text-xs font-semibold text-orange-800">
 											{tropicalCyclone.headline}
 										</p>
-										<div class="flex gap-2 text-xs">
+										{#if tropicalCyclone.valid_until}
+										<div class="flex gap-2 text-xs mt-2">
 											<div class="flex-1 rounded bg-white p-1.5">
 												<p class="font-medium text-gray-500">Valid Until</p>
 												<p class="font-bold text-gray-800">
@@ -1234,6 +1235,7 @@
 												</p>
 											</div>
 										</div>
+										{/if}
 									</div>
 
 									<!-- Forecast Tracks -->

@@ -140,10 +140,16 @@ async function doBackgroundFetch(currentDate, supabase) {
 				const { base64Data, mimeType } = await downloadPDFForGemini(bulletin.url);
 				const aiResponse = await callGeminiAIWithPDF(base64Data, mimeType, currentDate);
 
-				if (!aiResponse?.forecast_track?.length) {
-                    console.warn(`BACKGROUND: Discarding ${bulletin.name} due to missing or empty forecast track from AI.`);
-                    continue;
+				if (aiResponse && aiResponse.valid_until === 'null') {
+                    aiResponse.valid_until = null;
                 }
+
+				if (!aiResponse?.forecast_track?.length) {
+					console.warn(
+						`BACKGROUND: Discarding ${bulletin.name} due to missing or empty forecast track from AI.`
+					);
+					continue;
+				}
 
 				const lastForecastPoint = aiResponse.forecast_track[aiResponse.forecast_track.length - 1];
 				if (lastForecastPoint && new Date(lastForecastPoint.date_time) < currentDate) {
@@ -207,76 +213,76 @@ async function doBackgroundFetch(currentDate, supabase) {
 		const snoozeTime = new Date(currentDate.getTime() + CONFIG.CACHE_MINS_ON_ERROR * 60 * 1000);
 
 		await supabase.from('pagasa_active_bulletins').upsert(
-            {
-                bulletin_type: 'EMPTY_CACHE',
-                cache_expiry_time: snoozeTime.toISOString()
-            },
-            { onConflict: 'bulletin_type' }
-        );
+			{
+				bulletin_type: 'EMPTY_CACHE',
+				cache_expiry_time: snoozeTime.toISOString()
+			},
+			{ onConflict: 'bulletin_type' }
+		);
 
-        console.log(
-            `BACKGROUND: Error handled. Snoozing cache for ${CONFIG.CACHE_MINS_ON_ERROR} minutes.`
-        );
+		console.log(
+			`BACKGROUND: Error handled. Snoozing cache for ${CONFIG.CACHE_MINS_ON_ERROR} minutes.`
+		);
 	}
 }
 
 // --- HELPER 5: Scrape PAGASA Directory ---
 const PAGASA_URL = 'https://pubfiles.pagasa.dost.gov.ph/tamss/weather/bulletin/';
 const htmlRegex =
-    /href="(TCB%23(\d+)(F?)_([\w-]+)\.pdf)"[^<]*<\/a>\s+([\d-]{2}-[A-Za-z]{3}-\d{4} \d{2}:\d{2})/g;
+	/href="(TCB%23(\d+)(F?)_([\w-]+)\.pdf)"[^<]*<\/a>\s+([\d-]{2}-[A-Za-z]{3}-\d{4} \d{2}:\d{2})/g;
 
 async function getLatestBulletinsFromPAGASA() {
-    const response = await fetch(PAGASA_URL);
-    if (!response.ok) {
-        throw new Error(`Failed to fetch PAGASA directory: ${response.statusText}`);
-    }
-    const html = await response.text();
-    const allBulletins = [];
+	const response = await fetch(PAGASA_URL);
+	if (!response.ok) {
+		throw new Error(`Failed to fetch PAGASA directory: ${response.statusText}`);
+	}
+	const html = await response.text();
+	const allBulletins = [];
 
-    for (const match of html.matchAll(htmlRegex)) {
-        // With the corrected regex, these matches are now correct:
-        // match[2] = "22", match[3] = "F", match[4] = "ramil", match[5] = "20-Oct-2025 04:05"
-        allBulletins.push({
-            filename: match[1],
-            bulletinNumber: parseInt(match[2], 10) || 0,
-            isFinal: match[3] === 'F',
-            name: match[4],
-            date: new Date(match[5]),
-            url: `${PAGASA_URL}${match[1]}`
-        });
-    }
+	for (const match of html.matchAll(htmlRegex)) {
+		// With the corrected regex, these matches are now correct:
+		// match[2] = "22", match[3] = "F", match[4] = "ramil", match[5] = "20-Oct-2025 04:05"
+		allBulletins.push({
+			filename: match[1],
+			bulletinNumber: parseInt(match[2], 10) || 0,
+			isFinal: match[3] === 'F',
+			name: match[4],
+			date: new Date(match[5]),
+			url: `${PAGASA_URL}${match[1]}`
+		});
+	}
 
-    const bulletinsByName = new Map();
-    for (const bulletin of allBulletins) {
-        if (!bulletinsByName.has(bulletin.name)) bulletinsByName.set(bulletin.name, []);
-        bulletinsByName.get(bulletin.name).push(bulletin);
-    }
+	const bulletinsByName = new Map();
+	for (const bulletin of allBulletins) {
+		if (!bulletinsByName.has(bulletin.name)) bulletinsByName.set(bulletin.name, []);
+		bulletinsByName.get(bulletin.name).push(bulletin);
+	}
 
-    const latestBulletins = [];
-    const cutoffDate = new Date().getTime() - CONFIG.PDF_CUTOFF_HOURS * 60 * 60 * 1000;
+	const latestBulletins = [];
+	const cutoffDate = new Date().getTime() - CONFIG.PDF_CUTOFF_HOURS * 60 * 60 * 1000;
 
-    for (const [name, bulletins] of bulletinsByName.entries()) {
-        // FIX: Implement a more robust multi-level sort
-        bulletins.sort((a, b) => {
-            // 1. Primary sort: Higher bulletin number wins
-            if (b.bulletinNumber !== a.bulletinNumber) {
-                return b.bulletinNumber - a.bulletinNumber;
-            }
-            // 2. Tie-breaker: If numbers are equal, the "Final" bulletin wins
-            if (b.isFinal !== a.isFinal) {
-                return b.isFinal ? 1 : -1;
-            }
-            // 3. Final tie-breaker: Newest date wins
-            return b.date.getTime() - a.date.getTime();
-        });
+	for (const [name, bulletins] of bulletinsByName.entries()) {
+		// FIX: Implement a more robust multi-level sort
+		bulletins.sort((a, b) => {
+			// 1. Primary sort: Higher bulletin number wins
+			if (b.bulletinNumber !== a.bulletinNumber) {
+				return b.bulletinNumber - a.bulletinNumber;
+			}
+			// 2. Tie-breaker: If numbers are equal, the "Final" bulletin wins
+			if (b.isFinal !== a.isFinal) {
+				return b.isFinal ? 1 : -1;
+			}
+			// 3. Final tie-breaker: Newest date wins
+			return b.date.getTime() - a.date.getTime();
+		});
 
-        const latest = bulletins[0];
+		const latest = bulletins[0];
 
-        if (latest.date.getTime() > cutoffDate) {
-            latestBulletins.push(latest);
-        }
-    }
-    return latestBulletins;
+		if (latest.date.getTime() > cutoffDate) {
+			latestBulletins.push(latest);
+		}
+	}
+	return latestBulletins;
 }
 
 // --- HELPER 6: Download PDF for Gemini ---

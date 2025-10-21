@@ -69,9 +69,5 @@ export async function GET({ request }) {
 		return json({ error: error.message }, { status: 500 });
 	}
 
-	return json(data, {
-		headers: {
-			'Cache-Control': 'private, max-age=300'
-		}
-	});
+	return json(data);
 }

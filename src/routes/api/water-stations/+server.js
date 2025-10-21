@@ -22,8 +22,6 @@ function isStationFunctioning(station) {
 	// Return true if station is not all zeros (is functioning)
 	return !allZeros;
 }
-
-// Add server-side protection
 export async function GET({ request }) {
 	const apiUrl = 'https://pasig-marikina-tullahanffws.pagasa.dost.gov.ph/water/main_list.do';
 
@@ -59,11 +57,7 @@ export async function GET({ request }) {
 			// Filter out stations with all 0 readings (likely broken)
 			.filter(isStationFunctioning);
 
-		return json(processedData, {
-			headers: {
-				'Cache-Control': 'private, max-age=300'
-			}
-		});
+		return json(processedData);
 	} catch (error) {
 		console.error('Error fetching data:', error);
 		return json({ error: 'Service temporarily unavailable' }, { status: 500 });

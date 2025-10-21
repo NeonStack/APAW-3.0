@@ -5,6 +5,7 @@ import { building } from '$app/environment';
 
 const ALLOWED_ORIGIN = ['https://apawph.vercel.app', 'http://localhost:5173'];
 const EXCEPTIONS = ['/api/update-weather'];
+const CACHED_API_ROUTES = ['api/get-weather', 'api/water-stations'];
 
 /** @type {import('@sveltejs/kit').Handle} */
 export async function handle({ event, resolve }) {
@@ -30,5 +31,11 @@ export async function handle({ event, resolve }) {
 		}
 	}
 
-	return resolve(event);
+	const response = await resolve(event);
+
+	if (CACHED_API_ROUTES.includes(event.url.pathname)){
+		response.headers.set('Cache-Control', 'public, max-age=300, s-maxage=900');
+	}
+
+	return response;
 }
