@@ -301,7 +301,7 @@
 				{@const status = getStationStatus(station)}
 				{@const change = calculateWaterChange(station)}
 
-				<div class="rounded-lg border-2 border-gray-300 bg-gray-50 shadow-md">
+				<div class="rounded-lg border border-gray-200 bg-white shadow-sm hover:shadow-md transition-shadow">
 					<div class="p-3">
 						<div class="mb-2">
 							<div class="mb-1 flex items-center justify-between">

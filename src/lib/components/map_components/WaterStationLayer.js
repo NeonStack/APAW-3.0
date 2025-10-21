@@ -39,42 +39,75 @@ export function getStationAlertInfo(station) {
  * @returns {L.DivIcon} A Leaflet DivIcon object.
  */
 export function createWaterIcon(L, alertStatus = 'normal') {
-	const level = ALERT_LEVELS[alertStatus] || ALERT_LEVELS.normal;
-	const color = level.color;
-	const waterColor = '#3b82f6'; // A consistent blue to represent water
+    const level = ALERT_LEVELS[alertStatus] || ALERT_LEVELS.normal;
+    const color = level.color;
+	const waterColor = '#F5FBFF'
 
-	// New design: Blue fill for water, status color for the outline.
-	const svgIcon = `
-    <div style="width: 32px; height: 32px; font-size: 0;">
+    // Water-focused design with gradient and wave pattern to emphasize water
+    const svgIcon = `
+    <div style="width: 40px; height: 40px; font-size: 0;">
       <svg 
-        width="32" 
-        height="32" 
+        width="40" 
+        height="40" 
         viewBox="0 0 24 24" 
-        style="filter: drop-shadow(0px 1px 2px rgba(0,0,0,0.5));"
+        style="filter: drop-shadow(0px 3px 6px rgba(0,0,0,0.4)) drop-shadow(0px 0px 3px rgba(0,0,0,0.2));"
       >
-        <!-- Main water drop shape with a blue fill and a status-colored outline -->
+        <defs>
+          <linearGradient id="waterGrad-${alertStatus}" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:0.3" />
+            <stop offset="100%" style="stop-color:#1e40af;stop-opacity:0.5" />
+          </linearGradient>
+        </defs>
+        
+        <!-- Main water drop with gradient overlay -->
         <path 
           d="M12 2c-5.33 5.33-8 9.33-8 13.33a8 8 0 1 0 16 0c0-4-2.67-8-8-13.33z" 
-          fill="${waterColor}" 
-          stroke="${color}" 
-          stroke-width="2.5" 
+          fill="${color}" 
+          stroke="${waterColor}" 
+          stroke-width="1.5" 
         />
-        <!-- Inner wave icon, now in white for better contrast and clarity -->
+        
+        <!-- Blue water gradient overlay for water appearance -->
         <path 
-          d="M12 17.5c-3 0-4.5-1.5-4.5-1.5s1.5-1.5 4.5-1.5 4.5 1.5 4.5 1.5-1.5 1.5-4.5 1.5zm0-3c-3 0-4.5-1.5-4.5-1.5s1.5-1.5 4.5-1.5 4.5 1.5 4.5 1.5-1.5 1.5-4.5 1.5z"
-          fill="white"
-          opacity="0.8"
+          d="M12 2c-5.33 5.33-8 9.33-8 13.33a8 8 0 1 0 16 0c0-4-2.67-8-8-13.33z" 
+          fill="url(#waterGrad-${alertStatus})" 
+          opacity="0.6"
+        />
+        
+        <!-- Wave lines to emphasize water -->
+        <path 
+          d="M9 14c0 0 1-0.8 3-0.8s3 0.8 3 0.8"
+          stroke="${waterColor}"
+          stroke-width="1.3"
+          stroke-linecap="round"
+          fill="none"
+        />
+        <path 
+          d="M8.5 16.5c0 0 1-0.6 3.5-0.6s3.5 0.6 3.5 0.6"
+          stroke="${waterColor}"
+          stroke-width="1.1"
+          stroke-linecap="round"
+          fill="none"
+          opacity="0.85"
+        />
+        <path 
+          d="M9 19c0 0 1-0.5 3-0.5s3 0.5 3 0.5"
+          stroke="${waterColor}"
+          stroke-width="0.9"
+          stroke-linecap="round"
+          fill="none"
+          opacity="0.7"
         />
       </svg>
     </div>`;
 
-	return L.divIcon({
-		html: svgIcon,
-		className: 'water-station-marker', // This Leaflet class helps remove default icon styling.
-		iconSize: [32, 32],
-		iconAnchor: [16, 32], // Anchor point at the bottom center of the icon
-		popupAnchor: [0, -32]
-	});
+    return L.divIcon({
+        html: svgIcon,
+        className: 'water-station-marker',
+        iconSize: [40, 40],
+        iconAnchor: [20, 40],
+        popupAnchor: [0, -40]
+    });
 }
 
 /**

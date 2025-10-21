@@ -227,10 +227,10 @@
 		</div>
 	{:else}
 		<!-- Weather Cards -->
-		<div class="space-y-2">
+		<div class="space-y-5">
 			{#each Object.entries(filteredData()) as [location, days]}
 				{@const currentData = getCurrentHourData(days)}
-				<div class="rounded-lg border-2 border-gray-300 bg-gray-50 shadow-md">
+				<div class="rounded-lg border border-gray-200 bg-white shadow-sm hover:shadow-md transition-shadow">
 					<!-- Location Header -->
 					<div class="rounded-t-lg px-3 py-2 sm:px-4">
 						<div class="flex items-start justify-between gap-2 sm:items-center">
