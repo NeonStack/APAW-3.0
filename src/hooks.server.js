@@ -2,10 +2,18 @@
 
 import { json, error } from '@sveltejs/kit';
 import { building } from '$app/environment';
+import { paramChecker } from '$lib/utils/api/paramChecker';
 
 const ALLOWED_ORIGIN = ['https://apawph.vercel.app', 'http://localhost:5173'];
 const EXCEPTIONS = ['/api/update-weather'];
 const CACHED_API_ROUTES = ['/api/get-weather', '/api/water-stations'];
+const API_PARAM_CONFIG = {
+	'/api/get-weather': ['location'],
+	'/api/water-stations': [],
+	'/api/elevation': ['lat', 'lng'],
+	'/api/flood-prediction': ['lat', 'lng', 'date'],
+	'/api/tropicalCyclone-tracker': []
+};
 
 /** @type {import('@sveltejs/kit').Handle} */
 export async function handle({ event, resolve }) {
@@ -29,11 +37,17 @@ export async function handle({ event, resolve }) {
 			console.warn(`Blocked API request. Origin: ${origin}, Referer: ${referer}`);
 			throw error(404, 'Not Found');
 		}
+
+		const paramCheckerResponse = paramChecker(event.url, API_PARAM_CONFIG[event.url.pathname]);
+
+		if (paramCheckerResponse !== null) {
+			return paramCheckerResponse;
+		}
 	}
 
 	const response = await resolve(event);
 
-	if (CACHED_API_ROUTES.includes(event.url.pathname)){
+	if (CACHED_API_ROUTES.includes(event.url.pathname)) {
 		response.headers.set('Cache-Control', 'public, max-age=300, s-maxage=900');
 	}
 
