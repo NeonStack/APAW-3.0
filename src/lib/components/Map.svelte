@@ -85,8 +85,6 @@
 	let activeLeafletLayers = {};
 	let instantiatedLayers = {};
 
-	console.log($tropicalCycloneTrackerStore.data);
-
 	async function handleLocateUser() {
 		if (isSelectingLocation) {
 			console.log('Location selection already in progress, ignoring locate request');
@@ -246,6 +244,8 @@
 		// Import Leaflet
 		L = await import('leaflet');
 
+		console.log('Cyclone Data on Mount:', get(tropicalCycloneTrackerStore).data);
+
 		// Initialize map service with Leaflet
 		initMapService(L);
 
@@ -363,19 +363,35 @@
 			if (layerConfig.id === 'tropical_cyclone') {
 				const cycloneArray = get(tropicalCycloneTrackerStore).data;
 				console.log('Activating Tropical Cyclone Tracker. Data available:', cycloneArray);
-				if (cycloneArray && Array.isArray(cycloneArray) && cycloneArray.length > 0) {
-					const currentCycloneData = cycloneArray[0];
-					drawCycloneTrack(L, tropicalCycloneLayerGroup, currentCycloneData);
+
+				// Data is already in the correct format - just check if it exists and has forecast_track
+				const activeStorms =
+					cycloneArray?.filter(
+						(storm) => storm?.forecast_track && storm.forecast_track.length > 0
+					) || [];
+
+				if (activeStorms.length > 0) {
+					// Draw all active storms
+					activeStorms.forEach((stormData) => {
+						drawCycloneTrack(L, tropicalCycloneLayerGroup, stormData);
+					});
 
 					if (cycloneUpdateInterval) clearInterval(cycloneUpdateInterval);
 					cycloneUpdateInterval = setInterval(() => {
-						// Get fresh data inside interval to avoid stale closure
 						const latestCycloneArray = get(tropicalCycloneTrackerStore).data;
-						if (latestCycloneArray && latestCycloneArray.length > 0) {
-							updateCyclonePosition(L, tropicalCycloneLayerGroup, latestCycloneArray[0]);
+						const latestActiveStorms =
+							latestCycloneArray?.filter(
+								(storm) => storm?.forecast_track && storm.forecast_track.length > 0
+							) || [];
+
+						if (latestActiveStorms.length > 0) {
+							latestActiveStorms.forEach((stormData) => {
+								updateCyclonePosition(L, tropicalCycloneLayerGroup, stormData);
+							});
 						}
-					}, 300000); // Update every 5 minutes
-					toast.success('Tropical Cyclone Tracker activated');
+					}, 300000);
+
+					toast.success(`${activeStorms.length} active tropical cyclone(s) tracked`);
 				} else {
 					toast.info('No active tropical cyclone data available.');
 				}
@@ -461,16 +477,18 @@
 
 		// Subscribe to tropical cyclone data
 		tropicalCycloneTrackerStore.subscribe((store) => {
-			if (
-				store.data &&
-				Array.isArray(store.data) &&
-				store.data.length > 0 &&
-				store.data[0].forecast_track
-			) {
-				tropicalCycloneData = store.data[0]; // Store the first cyclone object
-				// If the layer is already on the map, redraw it with new data
+			const activeStorms =
+				store.data?.filter((storm) => storm?.forecast_track && storm.forecast_track.length > 0) ||
+				[];
+
+			if (activeStorms.length > 0) {
+				tropicalCycloneData = activeStorms; // Store array of active storms
+
 				if (map && map.hasLayer(tropicalCycloneLayerGroup)) {
-					drawCycloneTrack(L, tropicalCycloneLayerGroup, tropicalCycloneData);
+					tropicalCycloneLayerGroup.clearLayers();
+					activeStorms.forEach((stormData) => {
+						drawCycloneTrack(L, tropicalCycloneLayerGroup, stormData);
+					});
 				}
 			} else {
 				tropicalCycloneData = null;

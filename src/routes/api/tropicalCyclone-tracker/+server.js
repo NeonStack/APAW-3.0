@@ -101,12 +101,26 @@ export async function GET({ platform }) {
 		console.log('Cache is FRESH.');
 	}
 
-	const { data: activeStorms } = await supabase
-		.from('pagasa_active_bulletins')
-		.select('forecast_data')
-		.eq('bulletin_type', 'ACTIVE_STORM');
+	const { data: activeStormsFromDB } = await supabase
+        .from('pagasa_active_bulletins')
+        .select('forecast_data')
+        .eq('bulletin_type', 'ACTIVE_STORM');
 
-	return json(activeStorms ? activeStorms.map((storm) => storm.forecast_data) : []);
+    if (!activeStormsFromDB) {
+        return json([]);
+    }
+
+    // Filter out storms whose entire forecast track is in the past.
+    const stillActiveStorms = activeStormsFromDB.filter((storm) => {
+        const track = storm.forecast_data?.forecast_track;
+        if (!track || track.length === 0) {
+            return false; // Discard if no track data
+        }
+        const lastPointTime = new Date(track[track.length - 1].date_time);
+        return lastPointTime >= now; // Keep if the storm's forecast is not yet over
+    });
+
+    return json(stillActiveStorms ? stillActiveStorms.map((storm) => storm.forecast_data) : []);
 }
 
 // ===================================================================
