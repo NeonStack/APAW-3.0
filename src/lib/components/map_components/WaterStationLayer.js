@@ -49,8 +49,8 @@ export function createWaterIcon(L, alertStatus = 'normal') {
       <svg 
         width="40" 
         height="40" 
-        viewBox="0 0 24 24" 
-        style="filter: drop-shadow(0px 3px 6px rgba(0,0,0,0.4)) drop-shadow(0px 0px 3px rgba(0,0,0,0.2));"
+        viewBox="0 0 24 24"
+		style="drop-shadow: 0 0 4px rgba(0, 0, 0, 0.9);"
       >
         <defs>
           <linearGradient id="waterGrad-${alertStatus}" x1="0%" y1="0%" x2="0%" y2="100%">
