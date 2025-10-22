@@ -356,56 +356,56 @@
 	}
 
 	function formatPropertyValue(value) {
-        if (typeof value !== 'string') return value;
-        return value
-            .split('_')
-            .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-            .join(' ');
-    }
+		if (typeof value !== 'string') return value;
+		return value
+			.split('_')
+			.map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+			.join(' ');
+	}
 
 	// Helper function to get additional properties for display
 	function getAdditionalProperties(properties) {
-        if (!properties) return [];
+		if (!properties) return [];
 
-        const additionalProps = [];
-        const usedKeys = new Set();
+		const additionalProps = [];
+		const usedKeys = new Set();
 
-        // Define a curated list of properties with priorities and clean labels.
-        // The `keys` array is checked in order. The first one found is used.
-        const propertyMappings = [
-            { label: 'Type', keys: ['amenity', 'leisure', 'emergency', 'healthcare'] },
-            { label: 'Capacity (Persons)', keys: ['capacity:persons', 'capacity'] },
-            { label: 'Operator', keys: ['operator'] },
-            { label: 'Operator Type', keys: ['operator:type'] },
-            { label: 'Building Levels', keys: ['building:levels'] },
-            { label: 'Height (m)', keys: ['height'] },
-            // This will only show "Evacuation Center: Yes" if the tag exists and is 'yes'
-            { label: 'Evacuation Center', keys: ['evacuation_center'], filterValue: 'yes' },
-            { label: 'DOH Reference', keys: ['ref:doh'] }
-        ];
+		// Define a curated list of properties with priorities and clean labels.
+		// The `keys` array is checked in order. The first one found is used.
+		const propertyMappings = [
+			{ label: 'Type', keys: ['amenity', 'leisure', 'emergency', 'healthcare'] },
+			{ label: 'Capacity (Persons)', keys: ['capacity:persons', 'capacity'] },
+			{ label: 'Operator', keys: ['operator'] },
+			{ label: 'Operator Type', keys: ['operator:type'] },
+			{ label: 'Building Levels', keys: ['building:levels'] },
+			{ label: 'Height (m)', keys: ['height'] },
+			// This will only show "Evacuation Center: Yes" if the tag exists and is 'yes'
+			{ label: 'Evacuation Center', keys: ['evacuation_center'], filterValue: 'yes' },
+			{ label: 'DOH Reference', keys: ['ref:doh'] }
+		];
 
-        propertyMappings.forEach((mapping) => {
-            for (const key of mapping.keys) {
-                if (properties[key] && !usedKeys.has(key)) {
-                    // If a filterValue is set, only add the property if the value matches
-                    if (mapping.filterValue && properties[key] !== mapping.filterValue) {
-                        continue;
-                    }
+		propertyMappings.forEach((mapping) => {
+			for (const key of mapping.keys) {
+				if (properties[key] && !usedKeys.has(key)) {
+					// If a filterValue is set, only add the property if the value matches
+					if (mapping.filterValue && properties[key] !== mapping.filterValue) {
+						continue;
+					}
 
-                    additionalProps.push({
-                        label: mapping.label,
-                        value: formatPropertyValue(properties[key])
-                    });
+					additionalProps.push({
+						label: mapping.label,
+						value: formatPropertyValue(properties[key])
+					});
 
-                    // Mark all potential keys for this mapping as used to avoid duplicates
-                    mapping.keys.forEach((k) => usedKeys.add(k));
-                    return; // Move to the next mapping once a match is found
-                }
-            }
-        });
+					// Mark all potential keys for this mapping as used to avoid duplicates
+					mapping.keys.forEach((k) => usedKeys.add(k));
+					return; // Move to the next mapping once a match is found
+				}
+			}
+		});
 
-        return additionalProps;
-    }
+		return additionalProps;
+	}
 
 	// Select hour for viewing details
 	function selectHour(date, hourIndex) {
@@ -665,6 +665,158 @@
 			</div>
 		{/if}
 	</div>
+
+	{#if $tropicalCycloneTrackerStore.data.length > 0 && !$tropicalCycloneTrackerStore.loading}
+		<!-- TropicalCyclone Tracker Collapsible Card -->
+		<div class="rounded-lg border border-gray-200 bg-white shadow-sm">
+			<button
+				onclick={() => (tropicalCycloneTrackerExpanded = !tropicalCycloneTrackerExpanded)}
+				class="flex w-full cursor-pointer items-center justify-between p-3 text-left hover:bg-gray-50"
+			>
+				<div class="flex items-center">
+					<Icon icon="mdi:weather-hurricane" class="mr-2 text-orange-600" width="18" />
+					<div>
+						<h3 class="text-primary text-sm font-bold">Tropical Cyclone Bulletin</h3>
+						<p class="mt-0.5 text-xs text-gray-500">
+							{$tropicalCycloneTrackerStore.data.length} active tropical cyclone{$tropicalCycloneTrackerStore
+								.data.length !== 1
+								? 's'
+								: ''}
+						</p>
+					</div>
+				</div>
+				<div class="flex items-center gap-2">
+					<p class="flex items-center gap-1 rounded-full bg-orange-100 px-2 py-1 text-sm">
+						<Icon icon="mdi:alert-circle" class="text-orange-600" />
+						<span class="leading-none font-semibold text-orange-700"
+							>{$tropicalCycloneTrackerStore.data.length}</span
+						>
+					</p>
+					<Icon
+						icon={tropicalCycloneTrackerExpanded ? 'mdi:chevron-up' : 'mdi:chevron-down'}
+						class="text-gray-500"
+						width="20"
+					/>
+				</div>
+			</button>
+
+			{#if tropicalCycloneTrackerExpanded}
+				<div class="border-t border-gray-200 bg-gray-50 p-3">
+					<div class="space-y-2">
+						{#each $tropicalCycloneTrackerStore.data as tropicalCyclone, tropicalCycloneIdx}
+							{@const tropicalCycloneExpanded =
+								expandedFacilities[`tropicalCyclone_${tropicalCycloneIdx}`]}
+							<div class="rounded-lg border border-orange-200 bg-white shadow-xs">
+								<!-- Tropical Cyclone Header - Always Visible -->
+								<button
+									onclick={() => toggleFacilityDetails(`tropicalCyclone_${tropicalCycloneIdx}`)}
+									class="flex w-full cursor-pointer items-center justify-between p-2.5 text-left transition-colors hover:bg-orange-50"
+								>
+									<div class="min-w-0 flex-1">
+										<h4 class="text-sm font-bold text-gray-900">{tropicalCyclone.storm_name}</h4>
+										<p class="mt-0.5 text-xs text-gray-500">
+											Issued: {moment(tropicalCyclone.issued_at).format('MMM DD, YYYY - h:mm A')}
+										</p>
+									</div>
+									<div class="ml-2 flex flex-shrink-0 items-center gap-2">
+										<div class="flex items-center gap-1 rounded-full bg-orange-100 px-2 py-0.5">
+											<Icon icon="mdi:wind" class="text-orange-700" width="12" />
+											<span class="text-xs font-bold text-orange-800">Active</span>
+										</div>
+										<Icon
+											icon={tropicalCycloneExpanded ? 'mdi:chevron-up' : 'mdi:chevron-down'}
+											class="flex-shrink-0 text-gray-500"
+											width="16"
+										/>
+									</div>
+								</button>
+
+								<!-- Tropical Cyclone Details - Expandable -->
+								{#if tropicalCycloneExpanded}
+									<!-- Headline Section -->
+									<div class="border-t border-orange-100 bg-orange-50 p-2.5">
+										<p class="text-xs font-semibold text-orange-800">
+											{tropicalCyclone.headline}
+										</p>
+										{#if tropicalCyclone.valid_until}
+											<div class="mt-2 flex gap-2 text-xs">
+												<div class="flex-1 rounded bg-white p-1.5">
+													<p class="font-medium text-gray-500">Valid Until</p>
+													<p class="font-bold text-gray-800">
+														{moment(tropicalCyclone.valid_until).format('MMM DD, YYYY - h:mm A')}
+													</p>
+												</div>
+											</div>
+										{/if}
+									</div>
+
+									<!-- Forecast Tracks -->
+									{@const nearestTrackIndex = getNearestForecastHour(
+										tropicalCyclone.forecast_track
+									)}
+									<div class="space-y-2 border-t border-orange-100 bg-orange-50 p-2.5">
+										{#each tropicalCyclone.forecast_track as track, trackIndex}
+											<div
+												class="rounded border bg-white p-2"
+												class:border-orange-200={trackIndex !== nearestTrackIndex}
+												class:border-blue-500={trackIndex === nearestTrackIndex}
+												class:border-2={trackIndex === nearestTrackIndex}
+											>
+												<!-- Time & Category Row -->
+												<div class="mb-1.5 flex items-center justify-between">
+													<p class="text-xs font-bold text-gray-800">
+														{moment(track.date_time).format('MMM DD, YYYY - h:mm A')}
+													</p>
+													<span
+														class="inline-flex flex-shrink-0 items-center rounded px-2 py-0.5 text-xs font-bold"
+														class:bg-green-100={track.category === 'TD'}
+														class:text-green-800={track.category === 'TD'}
+														class:bg-yellow-100={track.category === 'TS'}
+														class:text-yellow-800={track.category === 'TS'}
+														class:bg-orange-100={track.category === 'STS'}
+														class:text-orange-800={track.category === 'STS'}
+														class:bg-red-100={track.category?.includes('TY')}
+														class:text-red-800={track.category?.includes('TY')}
+														class:bg-violet-100={track.category === 'STY'}
+														class:text-violet-800={track.category === 'STY'}
+													>
+														{track.category}
+													</span>
+												</div>
+
+												<!-- Location -->
+												<p class="mb-1.5 line-clamp-2 text-xs text-gray-700">
+													{track.location}
+												</p>
+
+												<!-- Stats Grid - 3 columns, readable -->
+												<div class="grid grid-cols-3 gap-1.5 text-xs">
+													<div class="rounded bg-gray-50 p-1.5">
+														<p class="text-2xs font-medium text-gray-500">Pos</p>
+														<p class="font-mono font-bold text-gray-800">
+															{track.lat.toFixed(1)}° {Math.abs(track.lon).toFixed(1)}°
+														</p>
+													</div>
+													<div class="rounded bg-gray-50 p-1.5">
+														<p class="text-2xs font-medium text-gray-500">Wind</p>
+														<p class="font-bold text-orange-700">{track.msw_kmh} km/h</p>
+													</div>
+													<div class="rounded bg-gray-50 p-1.5">
+														<p class="text-2xs font-medium text-gray-500">Move</p>
+														<p class="font-semibold text-gray-800">{track.movement}</p>
+													</div>
+												</div>
+											</div>
+										{/each}
+									</div>
+								{/if}
+							</div>
+						{/each}
+					</div>
+				</div>
+			{/if}
+		</div>
+	{/if}
 
 	<!-- Compact Prediction Controls -->
 	<div
@@ -1154,158 +1306,6 @@
 		</div>
 	{/if}
 
-	{#if $tropicalCycloneTrackerStore.data.length > 0 && !$tropicalCycloneTrackerStore.loading}
-		<!-- TropicalCyclone Tracker Collapsible Card -->
-		<div class="rounded-lg border border-gray-200 bg-white shadow-sm">
-			<button
-				onclick={() => (tropicalCycloneTrackerExpanded = !tropicalCycloneTrackerExpanded)}
-				class="flex w-full cursor-pointer items-center justify-between p-3 text-left hover:bg-gray-50"
-			>
-				<div class="flex items-center">
-					<Icon icon="mdi:weather-hurricane" class="mr-2 text-orange-600" width="18" />
-					<div>
-						<h3 class="text-primary text-sm font-bold">Tropical Cyclone Bulletin</h3>
-						<p class="mt-0.5 text-xs text-gray-500">
-							{$tropicalCycloneTrackerStore.data.length} active tropical cyclone{$tropicalCycloneTrackerStore
-								.data.length !== 1
-								? 's'
-								: ''}
-						</p>
-					</div>
-				</div>
-				<div class="flex items-center gap-2">
-					<p class="flex items-center gap-1 rounded-full bg-orange-100 px-2 py-1 text-sm">
-						<Icon icon="mdi:alert-circle" class="text-orange-600" />
-						<span class="leading-none font-semibold text-orange-700"
-							>{$tropicalCycloneTrackerStore.data.length}</span
-						>
-					</p>
-					<Icon
-						icon={tropicalCycloneTrackerExpanded ? 'mdi:chevron-up' : 'mdi:chevron-down'}
-						class="text-gray-500"
-						width="20"
-					/>
-				</div>
-			</button>
-
-			{#if tropicalCycloneTrackerExpanded}
-				<div class="border-t border-gray-200 bg-gray-50 p-3">
-					<div class="space-y-2">
-						{#each $tropicalCycloneTrackerStore.data as tropicalCyclone, tropicalCycloneIdx}
-							{@const tropicalCycloneExpanded =
-								expandedFacilities[`tropicalCyclone_${tropicalCycloneIdx}`]}
-							<div class="rounded-lg border border-orange-200 bg-white shadow-xs">
-								<!-- Tropical Cyclone Header - Always Visible -->
-								<button
-									onclick={() => toggleFacilityDetails(`tropicalCyclone_${tropicalCycloneIdx}`)}
-									class="flex w-full cursor-pointer items-center justify-between p-2.5 text-left transition-colors hover:bg-orange-50"
-								>
-									<div class="min-w-0 flex-1">
-										<h4 class="text-sm font-bold text-gray-900">{tropicalCyclone.storm_name}</h4>
-										<p class="mt-0.5 text-xs text-gray-500">
-											Issued: {moment(tropicalCyclone.issued_at).format('MMM DD, YYYY - h:mm A')}
-										</p>
-									</div>
-									<div class="ml-2 flex flex-shrink-0 items-center gap-2">
-										<div class="flex items-center gap-1 rounded-full bg-orange-100 px-2 py-0.5">
-											<Icon icon="mdi:wind" class="text-orange-700" width="12" />
-											<span class="text-xs font-bold text-orange-800">Active</span>
-										</div>
-										<Icon
-											icon={tropicalCycloneExpanded ? 'mdi:chevron-up' : 'mdi:chevron-down'}
-											class="flex-shrink-0 text-gray-500"
-											width="16"
-										/>
-									</div>
-								</button>
-
-								<!-- Tropical Cyclone Details - Expandable -->
-								{#if tropicalCycloneExpanded}
-									<!-- Headline Section -->
-									<div class="border-t border-orange-100 bg-orange-50 p-2.5">
-										<p class="text-xs font-semibold text-orange-800">
-											{tropicalCyclone.headline}
-										</p>
-										{#if tropicalCyclone.valid_until}
-										<div class="flex gap-2 text-xs mt-2">
-											<div class="flex-1 rounded bg-white p-1.5">
-												<p class="font-medium text-gray-500">Valid Until</p>
-												<p class="font-bold text-gray-800">
-													{moment(tropicalCyclone.valid_until).format('MMM DD, YYYY - h:mm A')}
-												</p>
-											</div>
-										</div>
-										{/if}
-									</div>
-
-									<!-- Forecast Tracks -->
-									{@const nearestTrackIndex = getNearestForecastHour(
-										tropicalCyclone.forecast_track
-									)}
-									<div class="space-y-2 border-t border-orange-100 bg-orange-50 p-2.5">
-										{#each tropicalCyclone.forecast_track as track, trackIndex}
-											<div
-												class="rounded border bg-white p-2"
-												class:border-orange-200={trackIndex !== nearestTrackIndex}
-												class:border-blue-500={trackIndex === nearestTrackIndex}
-												class:border-2={trackIndex === nearestTrackIndex}
-											>
-												<!-- Time & Category Row -->
-												<div class="mb-1.5 flex items-center justify-between">
-													<p class="text-xs font-bold text-gray-800">
-														{moment(track.date_time).format('MMM DD, YYYY - h:mm A')}
-													</p>
-													<span
-														class="inline-flex flex-shrink-0 items-center rounded px-2 py-0.5 text-xs font-bold"
-														class:bg-green-100={track.category === 'TD'}
-														class:text-green-800={track.category === 'TD'}
-														class:bg-yellow-100={track.category === 'TS'}
-														class:text-yellow-800={track.category === 'TS'}
-														class:bg-orange-100={track.category === 'STS'}
-														class:text-orange-800={track.category === 'STS'}
-														class:bg-red-100={track.category?.includes('TY')}
-														class:text-red-800={track.category?.includes('TY')}
-														class:bg-violet-100={track.category === 'STY'}
-														class:text-violet-800={track.category === 'STY'}
-													>
-														{track.category}
-													</span>
-												</div>
-
-												<!-- Location -->
-												<p class="mb-1.5 line-clamp-2 text-xs text-gray-700">
-													{track.location}
-												</p>
-
-												<!-- Stats Grid - 3 columns, readable -->
-												<div class="grid grid-cols-3 gap-1.5 text-xs">
-													<div class="rounded bg-gray-50 p-1.5">
-														<p class="text-2xs font-medium text-gray-500">Pos</p>
-														<p class="font-mono font-bold text-gray-800">
-															{track.lat.toFixed(1)}° {Math.abs(track.lon).toFixed(1)}°
-														</p>
-													</div>
-													<div class="rounded bg-gray-50 p-1.5">
-														<p class="text-2xs font-medium text-gray-500">Wind</p>
-														<p class="font-bold text-orange-700">{track.msw_kmh} km/h</p>
-													</div>
-													<div class="rounded bg-gray-50 p-1.5">
-														<p class="text-2xs font-medium text-gray-500">Move</p>
-														<p class="font-semibold text-gray-800">{track.movement}</p>
-													</div>
-												</div>
-											</div>
-										{/each}
-									</div>
-								{/if}
-							</div>
-						{/each}
-					</div>
-				</div>
-			{/if}
-		</div>
-	{/if}
-
 	<!-- Compact Location Information Card -->
 	<div class="rounded-lg border border-gray-200 bg-white shadow-sm">
 		<div class="border-b border-gray-200 bg-gray-50 p-3">
@@ -1412,7 +1412,7 @@
 						<div class="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
 							<button
 								onclick={() => toggleFacilityDetails(facility.id)}
-								class="flex w-full items-center p-2.5 text-left transition-colors duration-150 hover:bg-gray-50 cursor-pointer"
+								class="flex w-full cursor-pointer items-center p-2.5 text-left transition-colors duration-150 hover:bg-gray-50"
 							>
 								<!-- Coloured Icon Accent -->
 								<div
