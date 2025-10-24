@@ -376,6 +376,10 @@ async function callGeminiAIWithPDF(pdfBase64, mimeType, currentDate) {
 			}
 		});
 
+		console.log('--- GEMINI RAW RESPONSE ---');
+        console.log(response.text);
+        console.log('---------------------------');
+
 		return JSON.parse(response.text);
 	} catch (e) {
 		console.error('Gemini AI Error:', e);
