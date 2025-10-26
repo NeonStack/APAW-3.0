@@ -9,6 +9,8 @@
 
 	let { children } = $props();
 
+	injectAnalytics();
+
 	// State management
 	let isMenuOpen = $state(false);
 
