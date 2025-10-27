@@ -1,11 +1,8 @@
 <script>
 	import { createEventDispatcher, onMount } from 'svelte';
-	import { waterStations, fetchWaterStations } from '$lib/stores/waterStationStore.js';
 	import InfoTab from './predict-tabs/InfoTab.svelte';
 	import WaterStationsTab from './predict-tabs/WaterStationsTab.svelte';
-	import { weatherData, fetchWeatherData } from '$lib/stores/weatherStore.js';
 	import WeatherTab from './predict-tabs/WeatherTab.svelte';
-	import { fetchTropicalCycloneTracker } from '$lib/stores/tropicalCycloneTrackerStore.js';
 	import Icon from '@iconify/svelte';
 
 	const dispatch = createEventDispatcher();
@@ -21,10 +18,6 @@
 		activeTab = tabId;
 		dispatch('tabChange', tabId);
 	}
-
-	onMount(async () => {
-		await Promise.all([fetchWeatherData(), fetchWaterStations(), fetchTropicalCycloneTracker()]);
-	});
 </script>
 
 <div class="flex h-full flex-col bg-white shadow-md">
@@ -71,10 +64,6 @@
 
 <style>
 	/* Optional global styles or component-specific styles can go here */
-	/* Make sure the sidebar has proper z-index and background */
-	:global(.predict-page > div > div:last-child) {
-		background-color: white;
-	}
 
 	/* Additional mobile-specific styles */
 	@media (max-width: 767px) {
