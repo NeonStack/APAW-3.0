@@ -1,5 +1,8 @@
 <script>
 	import Map from '$lib/components/Map.svelte';
+	import { fetchTropicalCycloneTracker } from '$lib/stores/tropicalCycloneTrackerStore.js';
+	import { fetchWaterStations } from '$lib/stores/waterStationStore.js';
+	import { fetchWeatherData } from '$lib/stores/weatherStore.js';
 	import PredictSidebar from '$lib/components/PredictSidebar.svelte';
 	import { onMount } from 'svelte';
 	import Icon from '@iconify/svelte';
@@ -16,8 +19,11 @@
 		}
 	}
 
-	onMount(() => {
+	onMount(async () => {
 		const navbar = document.querySelector('header');
+
+		await Promise.all([fetchWeatherData(), fetchWaterStations(), fetchTropicalCycloneTracker()]);
+
 		if (navbar) {
 			navbarHeight = navbar.offsetHeight;
 			document.documentElement.style.setProperty('--header-height', `${navbarHeight}px`);
@@ -68,57 +74,42 @@
 		<!-- Sidebar Container -->
 		<div
 			class="sidebar-container {isSidebarOpen ? 'sidebar-open' : 'sidebar-closed'} 
+                {isSidebarOpen ? '' : 'pointer-events-none'}
                 fixed right-0 z-30 overflow-y-auto bg-white
-                transition-transform duration-300 md:static md:transform-none md:shadow-none"
+                transition-transform duration-300 md:static md:w-1/3 md:transform-none md:shadow-none"
 		>
-			{#if isSidebarOpen}
-				<PredictSidebar on:closeSidebar={handleCloseSidebar} />
-			{/if}
+			<PredictSidebar on:closeSidebar={handleCloseSidebar} />
 		</div>
 	</div>
 </div>
 
-// ...existing code...
 <style>
-    /* Only keep styles that can't be done with Tailwind */
-    .predict-page {
-        height: calc(100dvh - var(--header-height, 64px));
-    }
+	/* Only keep styles that can't be done with Tailwind */
+	.predict-page {
+		height: calc(100dvh - var(--header-height, 64px));
+	}
 
-    .sidebar-container {
-        height: calc(100dvh - var(--header-height, 64px));
-        /* Enable resizing for all screen sizes */
-        resize: horizontal;
-        overflow: auto; /* Required for resize to work */
-        direction: rtl; /* Moves the resize handle to the left side */
-    }
+	.sidebar-container {
+		height: calc(100dvh - var(--header-height, 64px));
+	}
 
-    /* Resets the text direction for the content inside the sidebar */
-    .sidebar-container > :global(*) {
-        direction: ltr;
-    }
+	.sidebar-open {
+		transform: translateX(0);
+		width: 85vw;
+		max-width: 450px;
+	}
 
-    .sidebar-open {
-        transform: translateX(0);
-        width: 85vw;
-        max-width: 450px;
-        min-width: 250px; /* Prevent it from becoming too small on mobile */
-    }
+	.sidebar-closed {
+		transform: translateX(100%);
+		width: 85vw;
+		max-width: 450px;
+	}
 
-    .sidebar-closed {
-        transform: translateX(100%);
-        width: 85vw;
-        max-width: 450px;
-    }
-
-    /* Desktop overrides that Tailwind md: handles */
-    @media (min-width: 768px) {
-        .sidebar-container {
-            position: static;
-            height: 100%;
-            width: 33.333333%; /* Initial width, replacing md:w-1/3 */
-            min-width: 400px; /* Prevent it from becoming too small */
-            max-width: 600px; /* Prevent it from becoming too large */
-        }
-    }
+	/* Desktop overrides that Tailwind md: handles */
+	@media (min-width: 768px) {
+		.sidebar-container {
+			position: static;
+			height: 100%;
+		}
+	}
 </style>
