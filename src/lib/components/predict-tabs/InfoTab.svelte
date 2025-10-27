@@ -261,12 +261,26 @@
 				.toISOString()
 				.split('T')[0];
 
-			const response = await fetch(
-				`/api/flood-prediction?lat=${$selectedLocation.lat}&lng=${$selectedLocation.lng}&date=${userLocalDate}`
-			);
+			// NEW: Prepare the data payload from stores
+            const payload = {
+                lat: $selectedLocation.lat,
+                lng: $selectedLocation.lng,
+                date: userLocalDate,
+                elevation: $selectedLocation.elevation,
+                water_station_data: $waterStations.data
+            };
 
-			const data = await response.json();
-			console.log('Flood prediction received:', data);
+            // NEW: Use POST request with a JSON body
+            const response = await fetch('/api/flood-prediction', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(payload)
+            });
+
+            const data = await response.json();
+            console.log('Flood prediction received:', data);
 
 			// Check if response is an error
 			if (data.status === 'error') {
