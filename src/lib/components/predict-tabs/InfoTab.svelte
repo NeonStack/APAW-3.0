@@ -60,13 +60,13 @@
 		}
 
 		// PAGASA (TropicalCyclone Tracker)
-		if ($tropicalCycloneTrackerStore.loading) {
-			sources[1].status = 'pending';
-		} else if ($tropicalCycloneTrackerStore.error) {
-			sources[1].status = 'error';
-		} else if ($tropicalCycloneTrackerStore.data && $tropicalCycloneTrackerStore.data.length > 0) {
-			sources[1].status = 'success';
-		}
+        if ($tropicalCycloneTrackerStore.loading) {
+            sources[1].status = 'pending';
+        } else if ($tropicalCycloneTrackerStore.error) {
+            sources[1].status = 'error';
+        } else {
+            sources[1].status = 'success';
+        }
 
 		// Visual Crossing (Weather Data)
 		if ($weatherData.loading) {
