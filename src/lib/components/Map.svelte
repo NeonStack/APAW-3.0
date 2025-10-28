@@ -105,6 +105,7 @@
 				marker,
 				dispatch
 			);
+			map._selectedMarker = marker;
 		} catch (error) {
 			console.error('Error getting current position:', error);
 			alert(`Could not get your location: ${error.message}`);
@@ -183,6 +184,7 @@
 		if (marker && map) {
 			removeMarker(marker);
 			marker = null;
+			map._selectedMarker = null;
 		}
 
 		const loadingIcon = L.divIcon({
@@ -199,7 +201,10 @@
 
 		setSelectedLocation(lat, lng, name, map, L, marker, dispatch, tempMarker)
 			.then((newMarker) => {
-				if (newMarker) marker = newMarker;
+				if (newMarker) {
+                    marker = newMarker;
+                    map._selectedMarker = marker; // Add this line
+                }
 			})
 			.finally(() => {
 				isSelectingLocation = false;
@@ -322,6 +327,7 @@
 				if (marker) {
 					removeMarker(marker);
 					marker = null;
+					map._selectedMarker = null;
 				}
 
 				const loadingIcon = L.divIcon({
@@ -338,6 +344,7 @@
 
 				try {
 					marker = await setSelectedLocation(lat, lng, null, map, L, marker, dispatch, tempMarker);
+					map._selectedMarker = marker;
 				} finally {
 					isSelectingLocation = false;
 

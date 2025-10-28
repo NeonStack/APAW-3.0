@@ -116,10 +116,10 @@
 	let predictingStartTime = null;
 
 	const phases = [
-		{ endTime: 2000, endProgress: 40 },
-		{ endTime: 5000, endProgress: 80 },
-		{ endTime: 7000, endProgress: 90 },
-		{ endTime: 9000, endProgress: 99 }
+		{ endTime: 1000, endProgress: 50 },
+		{ endTime: 3000, endProgress: 80 },
+		{ endTime: 5000, endProgress: 90 },
+		{ endTime: 7500, endProgress: 99 }
 	];
 
 	// Start the fake progress animation
