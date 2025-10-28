@@ -79,9 +79,9 @@ export function createRecenterControl() {
       );
 
       container.innerHTML = `
-        <a href="#" title="Re-center map on selected location" class="recenter-button">
+        <a title="Re-center map on selected location" class="recenter-button">
           <div class="icon-container">
-            <i class="iconify" data-icon="carbon:map-center" data-width="20" data-height="20"></i>
+            <i class="iconify" data-icon="mdi:map-marker-radius-outline" data-width="20" data-height="20"></i>
           </div>
         </a>
       `;
