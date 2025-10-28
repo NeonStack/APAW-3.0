@@ -50,42 +50,30 @@ export async function POST({ request }) {
 		// Parse the JSON response from the API
 		const result = await response.json();
 
-		// Check for errors returned by our FastAPI endpoint
-		// This logic handles the custom error formats you defined.
 		if (!response.ok || result.status === 'error') {
-			console.error('API returned an error:', result);
-			// Re-throw an error to be caught by the catch block below,
-			// using the message from your Python code.
-			throw new Error(result.message || 'Prediction API returned an error.');
-		}
+            console.error('API returned an error:', result);
+            // Forward the detailed error from FastAPI.
+            // The client-side code is already set up to handle this structure.
+            const statusCode = response.status >= 500 ? 500 : 400;
+            return json(result, { status: statusCode });
+        }
 		
 		console.log('Prediction successful, returning data');
 		
 		// The FastAPI response is already the data object, no need for `result.data`
 		return json(result);
 
-	} catch (error) {
-		console.error('Detailed error information:', error);
-		
-		// Your existing error handling should work perfectly, as the error
-		// messages are preserved.
-		let errorMessage = 'Failed to fetch flood prediction';
-		let statusCode = 500;
-
-		if (error.message.includes('Authentication failed')) {
-			errorMessage = 'Authentication failed. Invalid access token to model.';
-			statusCode = 401;
-		} else if (error.message.includes('outside_service_area') || error.message.includes('invalid_location')) {
-			errorMessage = error.message; // Use the specific message from the API
-			statusCode = 400; // Bad Request is appropriate for invalid user input
-		}
-
-		return json(
-			{
-				error: errorMessage,
-				details: error.message
-			},
-			{ status: statusCode }
-		);
-	}
+	}  catch (error) {
+        // This catch block now primarily handles network failures or JSON parsing errors.
+        console.error('Fatal error in flood-prediction proxy:', error);
+        
+        return json(
+            {
+                status: 'error', // Ensure the response has the 'status' key
+                message: 'Could not connect to the prediction service.',
+                details: error.message
+            },
+            { status: 503 } // 503 Service Unavailable is appropriate here
+        );
+    }
 }
