@@ -35,7 +35,7 @@ export async function handle({ event, resolve }) {
 
 		if (isBadOrigin || isDirectOrBadReferer) {
 			console.warn(`Blocked API request. Origin: ${origin}, Referer: ${referer}`);
-			throw error(404, 'Not Found');
+			throw error(403, 'Forbidden');
 		}
 
 		const paramCheckerResponse = paramChecker(event.url, API_PARAM_CONFIG[event.url.pathname]);
