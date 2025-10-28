@@ -39,7 +39,7 @@ export async function POST({ request }) {
 				date_str: date,
 				elevation_m: parseFloat(elevation),
 				// The water station data is already a JS object, FastAPI will handle it
-				water_station_data: water_station_data,
+				water_station_data,
 				// Your custom API key, passed in the request body
 				api_key: APAW_HF_API_KEY
 			})
