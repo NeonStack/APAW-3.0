@@ -117,9 +117,9 @@
 
 	const phases = [
 		{ endTime: 1000, endProgress: 50 },
-		{ endTime: 3000, endProgress: 80 },
-		{ endTime: 5000, endProgress: 90 },
-		{ endTime: 7500, endProgress: 99 }
+		{ endTime: 2000, endProgress: 80 },
+		{ endTime: 4000, endProgress: 91 },
+		{ endTime: 15000, endProgress: 99 }
 	];
 
 	// Start the fake progress animation
