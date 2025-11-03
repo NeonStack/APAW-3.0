@@ -6,7 +6,10 @@ import { paramChecker } from '$lib/utils/api/paramChecker';
 
 const ALLOWED_ORIGIN = ['https://apawph.vercel.app', 'http://localhost:5173', 'https://apawph-development.vercel.app'];
 const EXCEPTIONS = ['/api/update-weather'];
-const CACHED_API_ROUTES = ['/api/get-weather', '/api/water-stations'];
+const CACHE_CONFIG = {
+    '/api/get-weather': 'public, max-age=300, s-maxage=900', // 15 minutes
+    '/api/water-stations': 'public, max-age=900, s-maxage=1800' // 30 minutes
+};
 const API_PARAM_CONFIG = {
 	'/api/get-weather': ['location'],
 	'/api/water-stations': [],
@@ -46,9 +49,10 @@ export async function handle({ event, resolve }) {
 
 	const response = await resolve(event);
 
-	if (CACHED_API_ROUTES.includes(event.url.pathname)) {
-		response.headers.set('Cache-Control', 'public, max-age=300, s-maxage=900');
-	}
+	const cacheControl = CACHE_CONFIG[event.url.pathname];
+    if (cacheControl) {
+        response.headers.set('Cache-Control', cacheControl);
+    }
 
 	return response;
 }
