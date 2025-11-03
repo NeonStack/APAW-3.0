@@ -116,9 +116,9 @@
 	let predictingStartTime = null;
 
 	const phases = [
-		{ endTime: 1000, endProgress: 50 },
-		{ endTime: 2000, endProgress: 80 },
-		{ endTime: 4000, endProgress: 91 },
+		{ endTime: 1000, endProgress: 30 },
+		{ endTime: 2500, endProgress: 60 },
+		{ endTime: 4500, endProgress: 91 },
 		{ endTime: 15000, endProgress: 99 }
 	];
 
@@ -168,7 +168,7 @@
 			} else {
 				fakeProgress = phase.endProgress;
 			}
-		}, 100); // Update every 100ms for smooth animation
+		}, 55); // Update for smooth animation of loading bar
 	}
 
 	// Stop progress and set to 100%
@@ -185,7 +185,7 @@
 		// After showing 100% for a moment, reset it
 		setTimeout(() => {
 			fakeProgress = 0;
-		}, 1000);
+		}, 500);
 	}
 
 	// Add this helper function to get the nearest forecast track hour
@@ -312,7 +312,7 @@
 			completeProgress();
 			setTimeout(() => {
 				isPredicting = false;
-			}, 500);
+			}, 300);
 		}
 	}
 
@@ -999,7 +999,7 @@
 			<!-- Compact Progress Bar -->
 			<div class="relative mb-2 h-2 w-full overflow-hidden rounded-full bg-blue-200">
 				<div
-					class={`absolute top-0 left-0 h-full transition-all duration-500 ease-out ${getProgressBarColor(fakeProgress)}`}
+					class={`absolute top-0 left-0 h-full transition-all duration-200 ease-out ${getProgressBarColor(fakeProgress)}`}
 					style={`width: ${fakeProgress}%;`}
 				>
 					<div
