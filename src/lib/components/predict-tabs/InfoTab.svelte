@@ -117,8 +117,8 @@
 
 	const phases = [
 		{ endTime: 1000, endProgress: 30 },
-		{ endTime: 2500, endProgress: 60 },
-		{ endTime: 3500, endProgress: 91 },
+		{ endTime: 2000, endProgress: 70 },
+		{ endTime: 3000, endProgress: 91 },
 		{ endTime: 15000, endProgress: 99 }
 	];
 
