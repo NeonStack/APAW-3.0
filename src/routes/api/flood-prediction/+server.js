@@ -78,7 +78,7 @@ export async function POST({ request }) {
 		return json(
 			{
 				status: 'error', // Ensure the response has the 'status' key
-				message: 'Could not connect to the prediction service.',
+				message: 'Could not connect to the prediction service. Please try again later',
 				details: error.message
 			},
 			{ status: 503 } // 503 Service Unavailable is appropriate here
