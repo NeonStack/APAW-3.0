@@ -663,7 +663,7 @@
 
 <div class="info-tab space-y-3">
 	<!-- COMBINED Alerts & Data Status Section -->
-	<div class="rounded-lg border border-gray-200 bg-white shadow-sm overflow-hidden">
+	<div class="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
 		<button
 			onclick={() => (alertsExpanded = !alertsExpanded)}
 			class="flex w-full cursor-pointer items-center justify-between p-3 text-left transition-colors hover:bg-gray-50"
@@ -702,34 +702,36 @@
 				<div class="flex border-b border-gray-200 bg-gray-50">
 					<button
 						onclick={() => (activeAlertsTab = 'sources')}
-						class="flex-1 cursor-pointer px-4 py-2.5 text-xs font-semibold transition-all relative"
+						class="relative flex-1 cursor-pointer px-4 py-2.5 text-xs font-semibold transition-all"
 						class:bg-white={activeAlertsTab === 'sources'}
 						class:text-primary={activeAlertsTab === 'sources'}
 						class:text-gray-600={activeAlertsTab !== 'sources'}
 					>
 						{#if activeAlertsTab === 'sources'}
-							<div class="absolute bottom-0 left-0 right-0 h-0.5 bg-primary"></div>
+							<div class="bg-primary absolute right-0 bottom-0 left-0 h-0.5"></div>
 						{/if}
 						<div class="flex items-center justify-center gap-1.5">
 							<Icon icon="mdi:database-check" width="16" />
-							<span>Sources</span>
+							<span class="hidden md:inline">Sources</span>
 						</div>
 					</button>
 					<button
 						onclick={() => (activeAlertsTab = 'cyclone')}
-						class="flex-1 cursor-pointer px-4 py-2.5 text-xs font-semibold transition-all relative"
+						class="relative flex-1 cursor-pointer px-4 py-2.5 text-xs font-semibold transition-all"
 						class:bg-white={activeAlertsTab === 'cyclone'}
 						class:text-primary={activeAlertsTab === 'cyclone'}
 						class:text-gray-600={activeAlertsTab !== 'cyclone'}
 					>
 						{#if activeAlertsTab === 'cyclone'}
-							<div class="absolute bottom-0 left-0 right-0 h-0.5 bg-primary"></div>
+							<div class="bg-primary absolute right-0 bottom-0 left-0 h-0.5"></div>
 						{/if}
 						<div class="flex items-center justify-center gap-1.5">
 							<Icon icon="mdi:weather-hurricane" width="16" />
-							<span>Cyclones</span>
+							<span class="hidden md:inline">Cyclones</span>
 							{#if $tropicalCycloneTrackerStore.data?.length > 0}
-								<span class="ml-1 flex h-5 w-5 items-center justify-center rounded-full bg-orange-500 text-xs font-bold text-white">
+								<span
+									class="ml-1 flex h-5 w-5 items-center justify-center rounded-full bg-orange-500 text-xs font-bold text-white"
+								>
 									{$tropicalCycloneTrackerStore.data.length}
 								</span>
 							{/if}
@@ -737,19 +739,21 @@
 					</button>
 					<button
 						onclick={() => (activeAlertsTab = 'advisory')}
-						class="flex-1 cursor-pointer px-4 py-2.5 text-xs font-semibold transition-all relative"
+						class="relative flex-1 cursor-pointer px-4 py-2.5 text-xs font-semibold transition-all"
 						class:bg-white={activeAlertsTab === 'advisory'}
 						class:text-primary={activeAlertsTab === 'advisory'}
 						class:text-gray-600={activeAlertsTab !== 'advisory'}
 					>
 						{#if activeAlertsTab === 'advisory'}
-							<div class="absolute bottom-0 left-0 right-0 h-0.5 bg-primary"></div>
+							<div class="bg-primary absolute right-0 bottom-0 left-0 h-0.5"></div>
 						{/if}
 						<div class="flex items-center justify-center gap-1.5">
 							<Icon icon="mdi:water-alert" width="16" />
-							<span>Advisory</span>
+							<span class="hidden md:inline">Advisory</span>
 							{#if $generalFloodAdvisoryStore.data}
-								<span class="ml-1 flex h-5 w-5 items-center justify-center rounded-full bg-orange-500 text-xs font-bold text-white">
+								<span
+									class="ml-1 flex h-5 w-5 items-center justify-center rounded-full bg-orange-500 text-xs font-bold text-white"
+								>
 									1
 								</span>
 							{/if}
@@ -758,7 +762,7 @@
 				</div>
 
 				<!-- Tab Content -->
-				<div class="bg-gray-50 p-4">
+				<div class="bg-gray-50 p-2 md:p-4">
 					{#if activeAlertsTab === 'sources'}
 						<!-- Data Sources Content -->
 						<div class="space-y-3">
@@ -766,34 +770,42 @@
 								<h4 class="text-sm font-bold text-gray-800">Data Sources</h4>
 								<span class="text-xs text-gray-500">{sources.length} sources</span>
 							</div>
-							
+
 							<div class="grid gap-2">
 								{#each sources as source}
 									<a
 										href={source.url}
 										target="_blank"
 										rel="noopener noreferrer"
-										class="group relative rounded-lg border bg-white p-3 shadow-sm transition-all hover:shadow-md hover:scale-[1.03]"
+										class="group relative rounded-lg border bg-white p-3 shadow-sm transition-all hover:scale-[1.03] hover:shadow-md"
 										class:border-gray-200={source.status === 'pending'}
 										class:border-green-300={source.status === 'success'}
 										class:border-red-300={source.status === 'error'}
 									>
 										<div class="flex items-center gap-3">
-											<div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-gray-50 p-1.5">
+											<div
+												class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-gray-50 p-1.5"
+											>
 												{#if source.type === 'img'}
-													<img src={source.logo} alt={source.name} class="h-full w-full object-contain" />
+													<img
+														src={source.logo}
+														alt={source.name}
+														class="h-full w-full object-contain"
+													/>
 												{:else}
 													<Icon icon={source.logo} class="h-6 w-6 text-gray-600" />
 												{/if}
 											</div>
-											
+
 											<div class="min-w-0 flex-1">
-												<p class="text-sm font-semibold text-gray-800 group-hover:text-primary transition-colors">
+												<p
+													class="group-hover:text-primary text-sm font-semibold text-gray-800 transition-colors"
+												>
 													{source.name}
 												</p>
-												<div class="flex items-center gap-1.5 mt-0.5">
+												<div class="mt-0.5 flex items-center gap-1.5">
 													{#if source.status === 'pending'}
-														<div class="flex h-2 w-2 rounded-full bg-blue-500 animate-pulse"></div>
+														<div class="flex h-2 w-2 animate-pulse rounded-full bg-blue-500"></div>
 														<p class="text-xs font-medium text-blue-600">Connecting...</p>
 													{:else if source.status === 'success'}
 														<div class="flex h-2 w-2 rounded-full bg-green-500"></div>
@@ -804,17 +816,21 @@
 													{/if}
 												</div>
 											</div>
-											
+
 											<Icon
 												icon="mdi:open-in-new"
-												class="flex-shrink-0 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity"
+												class="flex-shrink-0 text-gray-400 opacity-0 transition-opacity group-hover:opacity-100"
 												width="18"
 											/>
 										</div>
-										
+
 										{#if source.status === 'pending'}
-											<div class="absolute bottom-0 left-0 h-1 w-full overflow-hidden rounded-b-lg bg-gray-100">
-												<div class="animate-loading-bar h-full w-1/3 bg-gradient-to-r from-transparent via-blue-500 to-transparent"></div>
+											<div
+												class="absolute bottom-0 left-0 h-1 w-full overflow-hidden rounded-b-lg bg-gray-100"
+											>
+												<div
+													class="animate-loading-bar h-full w-1/3 bg-gradient-to-r from-transparent via-blue-500 to-transparent"
+												></div>
 											</div>
 										{/if}
 									</a>
@@ -826,34 +842,30 @@
 						<div class="space-y-3">
 							<div class="flex items-center justify-between">
 								<h4 class="text-sm font-bold text-gray-800">Tropical Cyclone Tracker</h4>
-								<a
-									href={sources[1].url}
-									target="_blank"
-									rel="noopener noreferrer"
-									class="group flex items-center gap-1.5 rounded-lg bg-white px-2.5 py-1.5 shadow-sm transition-all hover:shadow-md"
-								>
-									<div class="flex h-5 w-5 items-center justify-center rounded bg-gray-50 p-0.5">
-										<img src="logo/pagasa.png" alt="PAGASA" class="h-full w-full object-contain" />
-									</div>
-									<span class="text-xs font-medium text-gray-700">PAGASA</span>
-									<Icon icon="mdi:open-in-new" class="text-gray-400 group-hover:text-primary" width="14" />
-								</a>
 							</div>
 
 							{#if $tropicalCycloneTrackerStore.data.length > 0 && !$tropicalCycloneTrackerStore.loading}
 								<div class="space-y-2">
 									{#each $tropicalCycloneTrackerStore.data as tropicalCyclone, tropicalCycloneIdx}
-										{@const tropicalCycloneExpanded = expandedFacilities[`tropicalCyclone_${tropicalCycloneIdx}`]}
-										<div class="rounded-lg border border-orange-200 bg-white shadow-sm overflow-hidden">
+										{@const tropicalCycloneExpanded =
+											expandedFacilities[`tropicalCyclone_${tropicalCycloneIdx}`]}
+										<div
+											class="overflow-hidden rounded-lg border border-orange-300 bg-white shadow-sm"
+										>
 											<!-- Cyclone Header -->
 											<button
-												onclick={() => toggleFacilityDetails(`tropicalCyclone_${tropicalCycloneIdx}`)}
+												onclick={() =>
+													toggleFacilityDetails(`tropicalCyclone_${tropicalCycloneIdx}`)}
 												class="flex w-full cursor-pointer items-center justify-between p-3 text-left transition-colors hover:bg-orange-50/50"
 											>
 												<div class="min-w-0 flex-1">
-													<div class="flex items-center gap-2 mb-1">
-														<h5 class="text-sm font-bold text-gray-900">{tropicalCyclone.storm_name}</h5>
-														<span class="flex items-center gap-1 rounded-full bg-orange-100 px-2 py-0.5 text-xs font-bold text-orange-800">
+													<div class="mb-1 flex items-center gap-2">
+														<h5 class="text-sm font-bold text-gray-900">
+															{tropicalCyclone.storm_name}
+														</h5>
+														<span
+															class="flex items-center gap-1 rounded-full bg-orange-100 px-2 py-0.5 text-xs font-bold text-orange-800"
+														>
 															<Icon icon="mdi:wind" width="12" />
 															Active
 														</span>
@@ -864,33 +876,37 @@
 												</div>
 												<Icon
 													icon={tropicalCycloneExpanded ? 'mdi:chevron-up' : 'mdi:chevron-down'}
-													class="flex-shrink-0 text-gray-400 transition-transform ml-2"
+													class="ml-2 flex-shrink-0 text-gray-400 transition-transform"
 													width="20"
 												/>
 											</button>
 
 											<!-- Cyclone Details -->
 											{#if tropicalCycloneExpanded}
-											{@const nearestTrackIndex = getNearestForecastHour(tropicalCyclone.forecast_track)}
+												{@const nearestTrackIndex = getNearestForecastHour(
+													tropicalCyclone.forecast_track
+												)}
 												<div class="border-t border-orange-100">
 													<!-- Headline -->
 													<div class="bg-orange-50 p-3">
-														<p class="text-xs font-semibold text-orange-900 leading-relaxed">
+														<p class="text-xs leading-relaxed font-semibold text-orange-900">
 															{tropicalCyclone.headline}
 														</p>
 														{#if tropicalCyclone.valid_until}
-															<div class="mt-2 rounded-lg bg-white p-2 border border-orange-200">
+															<div class="mt-2 rounded-lg border border-orange-200 bg-white p-2">
 																<p class="text-xs text-gray-600">Valid Until</p>
 																<p class="text-xs font-bold text-gray-900">
-																	{moment(tropicalCyclone.valid_until).format('MMM DD, YYYY - h:mm A')}
+																	{moment(tropicalCyclone.valid_until).format(
+																		'MMM DD, YYYY - h:mm A'
+																	)}
 																</p>
 															</div>
 														{/if}
 													</div>
 
 													<!-- Forecast Tracks -->
-													
-													<div class="space-y-2 p-3 bg-gray-50">
+
+													<div class="space-y-2 bg-gray-50 p-3">
 														<p class="text-xs font-semibold text-gray-700">Forecast Track</p>
 														{#each tropicalCyclone.forecast_track as track, trackIndex}
 															<div
@@ -901,33 +917,43 @@
 																class:shadow-md={trackIndex === nearestTrackIndex}
 															>
 																<!-- Header Row -->
-																<div class="flex items-center justify-between mb-2">
+																<div class="mb-2 flex items-center justify-between">
 																	<p class="text-xs font-bold text-gray-900">
 																		{moment(track.date_time).format('MMM DD, h:mm A')}
 																	</p>
-																	<span class="inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-bold {getCycloneCategoryStyle(track.category)}">
+																	<span
+																		class="inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-bold {getCycloneCategoryStyle(
+																			track.category
+																		)}"
+																	>
 																		{track.category}
 																	</span>
 																</div>
 
 																<!-- Location -->
-																<p class="text-xs text-gray-700 mb-2 line-clamp-2">{track.location}</p>
+																<p class="mb-2 line-clamp-2 text-xs text-gray-700">
+																	{track.location}
+																</p>
 
 																<!-- Stats Grid -->
-																<div class="grid grid-cols-3 gap-2">
+																<div class="grid grid-cols-1 md:grid-cols-3 gap-2">
 																	<div class="rounded-lg bg-gray-50 p-2">
-																		<p class="text-xs text-gray-500 mb-0.5">Position</p>
+																		<p class="mb-0.5 text-xs text-gray-500">Position</p>
 																		<p class="font-mono text-xs font-bold text-gray-900">
 																			{track.lat.toFixed(1)}° {Math.abs(track.lon).toFixed(1)}°
 																		</p>
 																	</div>
 																	<div class="rounded-lg bg-gray-50 p-2">
-																		<p class="text-xs text-gray-500 mb-0.5">Wind Speed</p>
-																		<p class="text-xs font-bold text-orange-700">{track.msw_kmh} km/h</p>
+																		<p class="mb-0.5 text-xs text-gray-500">Wind Speed</p>
+																		<p class="text-xs font-bold text-orange-700">
+																			{track.msw_kmh} km/h
+																		</p>
 																	</div>
 																	<div class="rounded-lg bg-gray-50 p-2">
-																		<p class="text-xs text-gray-500 mb-0.5">Movement</p>
-																		<p class="text-xs font-semibold text-gray-900">{track.movement}</p>
+																		<p class="mb-0.5 text-xs text-gray-500">Movement</p>
+																		<p class="text-xs font-semibold text-gray-900">
+																			{track.movement}
+																		</p>
 																	</div>
 																</div>
 															</div>
@@ -940,70 +966,86 @@
 								</div>
 							{:else}
 								<div class="rounded-lg border border-gray-200 bg-white p-8 text-center">
-									<div class="flex h-12 w-12 items-center justify-center rounded-full bg-green-100 mx-auto mb-3">
+									<div
+										class="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-green-100"
+									>
 										<Icon icon="mdi:check-circle" class="text-green-600" width="24" />
 									</div>
 									<p class="text-sm font-semibold text-gray-800">No Active Tropical Cyclones</p>
-									<p class="text-xs text-gray-500 mt-1">All clear in the area</p>
+									<p class="mt-1 text-xs text-gray-500">All clear in the area</p>
 								</div>
 							{/if}
+							<div class="flex justify-center">
+								<a
+									href={sources[1].url}
+									target="_blank"
+									rel="noopener noreferrer"
+									class="group flex items-center justify-center gap-1.5 px-2.5 py-1.5 mt-2"
+								>
+									<div class="flex h-5 w-5 items-center justify-center rounded bg-gray-50 p-0.5">
+										<img src="logo/pagasa.png" alt="PAGASA" class="h-full w-full object-contain" />
+									</div>
+									<span class="text-xs font-medium text-gray-700 transition-colors group-hover:text-primary-light"
+										>Data from PAGASA</span
+									>
+									<Icon icon="mdi:open-in-new" class="text-gray-400 group-hover:text-primary-light" width="14" />
+								</a>
+							</div>
 						</div>
 					{:else if activeAlertsTab === 'advisory'}
 						<!-- General Flood Advisory Content -->
 						<div class="space-y-3">
 							<div class="flex items-center justify-between">
 								<h4 class="text-sm font-bold text-gray-800">General Flood Advisory (NCR)</h4>
-								<a
-									href={sources[2].url}
-									target="_blank"
-									rel="noopener noreferrer"
-									class="group flex items-center gap-1.5 rounded-lg bg-white px-2.5 py-1.5 shadow-sm transition-all hover:shadow-md"
-								>
-									<div class="flex h-5 w-5 items-center justify-center rounded bg-gray-50 p-0.5">
-										<img src="logo/pagasa.png" alt="PAGASA" class="h-full w-full object-contain" />
-									</div>
-									<span class="text-xs font-medium text-gray-700">PAGASA</span>
-									<Icon icon="mdi:open-in-new" class="text-gray-400 group-hover:text-primary" width="14" />
-								</a>
 							</div>
 
 							{#if $generalFloodAdvisoryStore.data && !$generalFloodAdvisoryStore.loading}
-								<div class="rounded-lg border-2 border-orange-300 bg-white shadow-md overflow-hidden">
+								<div
+									class="overflow-hidden rounded-lg border-2 border-orange-200 bg-white shadow-md"
+								>
 									<!-- Advisory Header -->
-									<div class="bg-orange-50 p-3 border-b border-orange-200">
-										<h5 class="text-sm font-bold text-orange-900 leading-tight">
+									<div class="border-b border-orange-200 bg-orange-50 p-3">
+										<h5 class="text-sm leading-tight font-bold text-orange-900">
 											{$generalFloodAdvisoryStore.data.areaDesc}
 										</h5>
 									</div>
 
 									<!-- Advisory Content -->
-									<div class="p-3 space-y-3">
+									<div class="space-y-3 p-3">
 										<!-- Time Info Grid -->
 										<div class="grid grid-cols-2 gap-2">
 											<div class="rounded-lg border border-orange-200 bg-orange-50 p-2.5">
-												<div class="flex items-center gap-1.5 mb-1">
+												<div class="mb-1 flex items-center gap-1.5">
 													<Icon icon="mdi:calendar-clock" class="text-orange-600" width="14" />
 													<span class="text-xs font-medium text-orange-700">Issued</span>
 												</div>
 												<p class="text-xs font-bold text-orange-900">
-													{moment($generalFloodAdvisoryStore.data.sent).format('MMM D, Y [at] h:mm A')}
+													{moment($generalFloodAdvisoryStore.data.sent).format(
+														'MMM D, Y [at] h:mm A'
+													)}
 												</p>
 											</div>
 											<div class="rounded-lg border border-orange-200 bg-orange-50 p-2.5">
-												<div class="flex items-center gap-1.5 mb-1">
+												<div class="mb-1 flex items-center gap-1.5">
 													<Icon icon="mdi:clock-alert-outline" class="text-orange-600" width="14" />
 													<span class="text-xs font-medium text-orange-700">Expires</span>
 												</div>
 												<p class="text-xs font-bold text-orange-900">
-													{moment($generalFloodAdvisoryStore.data.expires).format('MMM D, Y [at] h:mm A')}
+													{moment($generalFloodAdvisoryStore.data.expires).format(
+														'MMM D, Y [at] h:mm A'
+													)}
 												</p>
 											</div>
 										</div>
 
 										<!-- Severity -->
 										<div class="rounded-lg border border-orange-200 bg-orange-50 p-2.5">
-											<div class="flex items-center gap-1.5 mb-1">
-												<Icon icon="iconoir:priority-high-solid" class="text-orange-600" width="14" />
+											<div class="mb-1 flex items-center gap-1.5">
+												<Icon
+													icon="iconoir:priority-high-solid"
+													class="text-orange-600"
+													width="14"
+												/>
 												<span class="text-xs font-medium text-orange-700">Severity</span>
 											</div>
 											<p class="text-xs font-bold text-orange-900">
@@ -1013,7 +1055,7 @@
 
 										<!-- Description -->
 										<div class="rounded-lg border border-gray-200 bg-gray-50 p-2.5">
-											<div class="flex items-center gap-1.5 mb-1.5">
+											<div class="mb-1.5 flex items-center gap-1.5">
 												<Icon icon="mdi:information" class="text-gray-600" width="14" />
 												<span class="text-xs font-semibold text-gray-700">Description</span>
 											</div>
@@ -1024,7 +1066,7 @@
 
 										<!-- Instructions -->
 										<div class="rounded-lg border border-gray-200 bg-gray-50 p-2.5">
-											<div class="flex items-center gap-1.5 mb-1.5">
+											<div class="mb-1.5 flex items-center gap-1.5">
 												<Icon icon="mdi:shield-alert" class="text-gray-600" width="14" />
 												<span class="text-xs font-semibold text-gray-700">Instructions</span>
 											</div>
@@ -1036,13 +1078,31 @@
 								</div>
 							{:else}
 								<div class="rounded-lg border border-gray-200 bg-white p-8 text-center">
-									<div class="flex h-12 w-12 items-center justify-center rounded-full bg-green-100 mx-auto mb-3">
+									<div
+										class="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-green-100"
+									>
 										<Icon icon="mdi:check-circle" class="text-green-600" width="24" />
 									</div>
 									<p class="text-sm font-semibold text-gray-800">No Active Flood Advisory</p>
-									<p class="text-xs text-gray-500 mt-1">No warnings at this time</p>
+									<p class="mt-1 text-xs text-gray-500">No warnings at this time</p>
 								</div>
 							{/if}
+							<div class="flex justify-center">
+								<a
+									href={sources[1].url}
+									target="_blank"
+									rel="noopener noreferrer"
+									class="group flex items-center justify-center gap-1.5 px-2.5 py-1.5 mt-2"
+								>
+									<div class="flex h-5 w-5 items-center justify-center rounded bg-gray-50 p-0.5">
+										<img src="logo/pagasa.png" alt="PAGASA" class="h-full w-full object-contain" />
+									</div>
+									<span class="text-xs font-medium text-gray-700 transition-colors group-hover:text-primary-light"
+										>Data from PAGASA</span
+									>
+									<Icon icon="mdi:open-in-new" class="text-gray-400 group-hover:text-primary-light" width="14" />
+								</a>
+							</div>
 						</div>
 					{/if}
 				</div>
@@ -1839,7 +1899,8 @@
 
 	/* Pulse animation for active alerts */
 	@keyframes pulse {
-		0%, 100% {
+		0%,
+		100% {
 			opacity: 1;
 		}
 		50% {
