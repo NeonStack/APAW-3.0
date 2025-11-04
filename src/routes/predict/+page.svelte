@@ -3,6 +3,7 @@
 	import { fetchTropicalCycloneTracker } from '$lib/stores/tropicalCycloneTrackerStore.js';
 	import { fetchWaterStations } from '$lib/stores/waterStationStore.js';
 	import { fetchWeatherData } from '$lib/stores/weatherStore.js';
+	import { fetchGeneralFloodAdvisory } from '$lib/stores/generalFloodAdvisoryStore.js';
 	import PredictSidebar from '$lib/components/PredictSidebar.svelte';
 	import { onMount } from 'svelte';
 	import Icon from '@iconify/svelte';
@@ -22,8 +23,6 @@
 	onMount(async () => {
 		const navbar = document.querySelector('header');
 
-		await Promise.all([fetchWeatherData(), fetchWaterStations(), fetchTropicalCycloneTracker()]);
-
 		if (navbar) {
 			navbarHeight = navbar.offsetHeight;
 			document.documentElement.style.setProperty('--header-height', `${navbarHeight}px`);
@@ -33,6 +32,8 @@
 		if (window.innerWidth < 768) {
 			isSidebarOpen = false;
 		}
+
+		await Promise.all([fetchWeatherData(), fetchWaterStations(), fetchTropicalCycloneTracker(), fetchGeneralFloodAdvisory()]);
 
 		window.addEventListener('resize', handleResize);
 		return () => window.removeEventListener('resize', handleResize);

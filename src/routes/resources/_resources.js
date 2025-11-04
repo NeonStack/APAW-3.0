@@ -111,7 +111,7 @@ const resources = [
 	{
 		title: 'PAGASA',
 		description:
-			'Philippine Atmospheric, Geophysical and Astronomical Services Administration - provided real-time and historical water level station data.',
+			'Philippine Atmospheric, Geophysical and Astronomical Services Administration - provided real-time and historical water level station data, tropical cyclone data, and general flood advisory.',
 		category: 'Data Sources',
 		iconType: 'image',
 		icon: '/logo/pagasa.png',
