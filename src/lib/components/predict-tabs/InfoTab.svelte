@@ -682,14 +682,14 @@
 		{#if alertsExpanded}
 			<div class="border-t border-gray-200">
 				<!-- Tab Navigation -->
-				<div class="flex border-b border-gray-200 bg-gray-50">
+				<div class="flex border-b border-gray-200 bg-gray-100">
 					<button
 						onclick={() => (activeAlertsTab = 'sources')}
 						class="flex-1 cursor-pointer px-3 py-2 text-xs font-semibold transition-colors"
 						class:bg-white={activeAlertsTab === 'sources'}
 						class:text-primary={activeAlertsTab === 'sources'}
 						class:text-gray-600={activeAlertsTab !== 'sources'}
-						class:border-b-2={activeAlertsTab === 'sources'}
+						class:border-b-3={activeAlertsTab === 'sources'}
 						class:border-primary={activeAlertsTab === 'sources'}
 					>
 						<Icon icon="mdi:database-check" class="mr-1 inline" width="14" />
@@ -701,7 +701,7 @@
 						class:bg-white={activeAlertsTab === 'cyclone'}
 						class:text-primary={activeAlertsTab === 'cyclone'}
 						class:text-gray-600={activeAlertsTab !== 'cyclone'}
-						class:border-b-2={activeAlertsTab === 'cyclone'}
+						class:border-b-3={activeAlertsTab === 'cyclone'}
 						class:border-primary={activeAlertsTab === 'cyclone'}
 					>
 						<Icon icon="mdi:weather-hurricane" class="mr-1 inline" width="14" />
@@ -720,7 +720,7 @@
 						class:bg-white={activeAlertsTab === 'advisory'}
 						class:text-primary={activeAlertsTab === 'advisory'}
 						class:text-gray-600={activeAlertsTab !== 'advisory'}
-						class:border-b-2={activeAlertsTab === 'advisory'}
+						class:border-b-3={activeAlertsTab === 'advisory'}
 						class:border-primary={activeAlertsTab === 'advisory'}
 					>
 						<Icon icon="mdi:water-alert" class="mr-1 inline" width="14" />
@@ -736,12 +736,12 @@
 				</div>
 
 				<!-- Tab Content -->
-				<div class="bg-gray-50 p-3">
+				<div class="bg-gray-100 p-3">
 					{#if activeAlertsTab === 'sources'}
 						<!-- Data Sources Content -->
 						<div class="grid grid-cols-1 gap-2">
 							<div
-								class="mb-2 flex items-center gap-2 rounded-lg border border-slate-300 bg-slate-100 p-2.5 shadow-sm"
+								class="mb-2 flex items-center gap-2 rounded-lg border border-slate-300 bg-gradient-to-r from-blue-50 to-blue-100 p-2.5 shadow-sm"
 							>
 								<div class="flex h-6 w-6 items-center justify-center rounded bg-slate-700">
 									<Icon icon="mdi:database-check" class="text-white" width="16" />
@@ -810,7 +810,7 @@
 						{#if $tropicalCycloneTrackerStore.data.length > 0 && !$tropicalCycloneTrackerStore.loading}
 							<div class="space-y-2">
 								<div
-									class="mb-4 flex items-center justify-between gap-2 rounded-lg border border-slate-300 bg-slate-100 p-2.5 shadow-sm"
+									class="mb-4 flex items-center justify-between gap-2 rounded-lg border border-slate-300 bg-gradient-to-r from-blue-50 to-blue-100 p-2.5 shadow-sm"
 								>
 									<div class="flex items-center gap-2">
 										<div class="flex h-6 w-6 items-center justify-center rounded bg-slate-700">
@@ -962,7 +962,7 @@
 						{#if $generalFloodAdvisoryStore.data && !$generalFloodAdvisoryStore.loading}
 							<div class="space-y-2">
 								<div
-									class="mb-4 flex items-center justify-between gap-2 rounded-lg border border-slate-300 bg-slate-100 p-2.5 shadow-sm"
+									class="mb-4 flex items-center justify-between gap-2 rounded-lg border border-slate-300 bg-gradient-to-r from-blue-50 to-blue-100 p-2.5 shadow-sm"
 								>
 									<div class="flex items-center gap-2">
 										<div class="flex h-6 w-6 items-center justify-center rounded bg-slate-700">
@@ -1023,8 +1023,8 @@
 										<div class="space-y-2.5 text-xs">
 											<div class="rounded-lg border border-orange-200 bg-white p-2.5 shadow-md">
 												<div class="mb-1.5 flex items-center gap-1.5">
-													<Icon icon="solar:danger-bold" class="text-orange-600" width="14" />
-													<h5 class="font-bold text-orange-800">Severity</h5>
+													<Icon icon="iconoir:priority-high-solid" class="text-orange-600" width="14" />
+													<h5 class="text-xs font-medium text-orange-700">Severity</h5>
 												</div>
 												<p class="text-xs font-bold text-orange-900">
 													{$generalFloodAdvisoryStore.data.severity}
@@ -1033,7 +1033,7 @@
 											<div class="rounded-lg border border-orange-200 bg-white p-2.5 shadow-md">
 												<div class="mb-1.5 flex items-center gap-1.5">
 													<Icon icon="mdi:information" class="text-orange-600" width="14" />
-													<h5 class="font-bold text-orange-800">Description</h5>
+													<h5 class="text-xs font-medium text-orange-700">Description</h5>
 												</div>
 												<p class="leading-relaxed text-gray-700">
 													{@html formatAdvisoryText($generalFloodAdvisoryStore.data.description)}
@@ -1042,7 +1042,7 @@
 											<div class="rounded-lg border border-orange-200 bg-white p-2.5 shadow-md">
 												<div class="mb-1.5 flex items-center gap-1.5">
 													<Icon icon="mdi:shield-alert" class="text-orange-600" width="14" />
-													<h5 class="font-bold text-orange-800">Instructions</h5>
+													<h5 class="text-xs font-medium text-orange-700">Instructions</h5>
 												</div>
 												<p class="leading-relaxed text-gray-700">
 													{@html formatAdvisoryText($generalFloodAdvisoryStore.data.instruction)}

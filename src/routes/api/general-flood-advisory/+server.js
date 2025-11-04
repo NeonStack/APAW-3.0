@@ -8,10 +8,10 @@ import { XMLParser } from 'fast-xml-parser';
 // ===================================================================
 const CONFIG = {
     // How old a GFA entry in the main feed can be before we ignore it.
-    GFA_CUTOFF_HOURS: 48,
+    GFA_CUTOFF_HOURS: 24,
 
     // How long to cache when PAGASA has no active GFA for NCR.
-    CACHE_MINS_NO_ADVISORY: 30,
+    CACHE_MINS_NO_ADVISORY: 60,
 
     // How long to "snooze" before retrying if an error occurs.
     CACHE_MINS_ON_ERROR: 15
