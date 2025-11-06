@@ -241,62 +241,86 @@ async function doBackgroundFetch(currentDate, supabase) {
 }
 
 // --- HELPER 5: Scrape PAGASA Directory ---
-const PAGASA_URL = 'https://pubfiles.pagasa.dost.gov.ph/tamss/weather/bulletin/';
-const htmlRegex =
-	/href="(TCB%23(\d+)(F?)_([\w-]+)\.pdf)"[^<]*<\/a>\s+([\d-]{2}-[A-Za-z]{3}-\d{4} \d{2}:\d{2})/g;
+const PAGASA_BULLETIN_URL = 'https://pubfiles.pagasa.dost.gov.ph/tamss/weather/bulletin/';
+const PAGASA_ADVISORY_URL = 'https://pubfiles.pagasa.dost.gov.ph/tamss/weather/';
+
+const bulletinRegex =
+    /href="(TCB%23(\d+)(F?)_([\w-]+)\.pdf)"[^<]*<\/a>\s+([\d-]{2}-[A-Za-z]{3}-\d{4} \d{2}:\d{2})/g;
+const advisoryRegex = /href="(tcadvisory\.pdf)"[^<]*<\/a>\s+([\d-]{2}-[A-Za-z]{3}-\d{4} \d{2}:\d{2})/;
 
 async function getLatestBulletinsFromPAGASA() {
-	const response = await fetch(PAGASA_URL);
-	if (!response.ok) {
-		throw new Error(`Failed to fetch PAGASA directory: ${response.statusText}`);
-	}
-	const html = await response.text();
-	const allBulletins = [];
+    const [bulletinResponse, advisoryResponse] = await Promise.all([
+        fetch(PAGASA_BULLETIN_URL),
+        fetch(PAGASA_ADVISORY_URL)
+    ]);
 
-	for (const match of html.matchAll(htmlRegex)) {
-		// With the corrected regex, these matches are now correct:
-		// match[2] = "22", match[3] = "F", match[4] = "ramil", match[5] = "20-Oct-2025 04:05"
-		allBulletins.push({
-			filename: match[1],
-			bulletinNumber: parseInt(match[2], 10) || 0,
-			isFinal: match[3] === 'F',
-			name: match[4],
-			date: new Date(match[5]),
-			url: `${PAGASA_URL}${match[1]}`
-		});
-	}
+    if (!bulletinResponse.ok) {
+        throw new Error(`Failed to fetch PAGASA bulletin directory: ${bulletinResponse.statusText}`);
+    }
+    if (!advisoryResponse.ok) {
+        throw new Error(`Failed to fetch PAGASA advisory directory: ${advisoryResponse.statusText}`);
+    }
 
-	const bulletinsByName = new Map();
-	for (const bulletin of allBulletins) {
-		if (!bulletinsByName.has(bulletin.name)) bulletinsByName.set(bulletin.name, []);
-		bulletinsByName.get(bulletin.name).push(bulletin);
-	}
+    const bulletinHtml = await bulletinResponse.text();
+    const advisoryHtml = await advisoryResponse.text();
+    const allBulletins = [];
 
-	const latestBulletins = [];
-	const cutoffDate = new Date().getTime() - CONFIG.PDF_CUTOFF_HOURS * 60 * 60 * 1000;
+    // Process regular bulletins (inside PAR)
+    for (const match of bulletinHtml.matchAll(bulletinRegex)) {
+        allBulletins.push({
+            filename: match[1],
+            bulletinNumber: parseInt(match[2], 10) || 0,
+            isFinal: match[3] === 'F',
+            name: match[4],
+            date: new Date(match[5]),
+            url: `${PAGASA_BULLETIN_URL}${match[1]}`
+        });
+    }
 
-	for (const [name, bulletins] of bulletinsByName.entries()) {
-		// FIX: Implement a more robust multi-level sort
-		bulletins.sort((a, b) => {
-			// 1. Primary sort: Higher bulletin number wins
-			if (b.bulletinNumber !== a.bulletinNumber) {
-				return b.bulletinNumber - a.bulletinNumber;
-			}
-			// 2. Tie-breaker: If numbers are equal, the "Final" bulletin wins
-			if (b.isFinal !== a.isFinal) {
-				return b.isFinal ? 1 : -1;
-			}
-			// 3. Final tie-breaker: Newest date wins
-			return b.date.getTime() - a.date.getTime();
-		});
+    // Process advisory (outside PAR)
+    const advisoryMatch = advisoryHtml.match(advisoryRegex);
+    if (advisoryMatch) {
+        allBulletins.push({
+            filename: advisoryMatch[1], // "tcadvisory.pdf"
+            bulletinNumber: 0, // No bulletin number for advisories
+            isFinal: false, // Advisories are not "final" bulletins
+            name: 'tcadvisory', // Use a unique name to group it
+            date: new Date(advisoryMatch[2]),
+            url: `${PAGASA_ADVISORY_URL}${advisoryMatch[1]}`
+        });
+    }
 
-		const latest = bulletins[0];
+    const bulletinsByName = new Map();
+    for (const bulletin of allBulletins) {
+        if (!bulletinsByName.has(bulletin.name)) bulletinsByName.set(bulletin.name, []);
+        bulletinsByName.get(bulletin.name).push(bulletin);
+    }
 
-		if (latest.date.getTime() > cutoffDate) {
-			latestBulletins.push(latest);
-		}
-	}
-	return latestBulletins;
+    const latestBulletins = [];
+    const cutoffDate = new Date().getTime() - CONFIG.PDF_CUTOFF_HOURS * 60 * 60 * 1000;
+
+    for (const [name, bulletins] of bulletinsByName.entries()) {
+        // FIX: Implement a more robust multi-level sort
+        bulletins.sort((a, b) => {
+            // 1. Primary sort: Higher bulletin number wins
+            if (b.bulletinNumber !== a.bulletinNumber) {
+                return b.bulletinNumber - a.bulletinNumber;
+            }
+            // 2. Tie-breaker: If numbers are equal, the "Final" bulletin wins
+            if (b.isFinal !== a.isFinal) {
+                return b.isFinal ? 1 : -1;
+            }
+            // 3. Final tie-breaker: Newest date wins
+            return b.date.getTime() - a.date.getTime();
+        });
+
+        const latest = bulletins[0];
+
+        if (latest.date.getTime() > cutoffDate) {
+            latestBulletins.push(latest);
+        }
+    }
+    return latestBulletins;
 }
 
 // --- HELPER 6: Download PDF for Gemini ---
