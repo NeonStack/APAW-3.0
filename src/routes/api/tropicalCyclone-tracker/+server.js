@@ -102,25 +102,25 @@ export async function GET({ platform }) {
 	}
 
 	const { data: activeStormsFromDB } = await supabase
-        .from('pagasa_active_bulletins')
-        .select('forecast_data')
-        .eq('bulletin_type', 'ACTIVE_STORM');
+		.from('pagasa_active_bulletins')
+		.select('forecast_data')
+		.eq('bulletin_type', 'ACTIVE_STORM');
 
-    if (!activeStormsFromDB) {
-        return json([]);
-    }
+	if (!activeStormsFromDB) {
+		return json([]);
+	}
 
-    // Filter out storms whose entire forecast track is in the past.
-    const stillActiveStorms = activeStormsFromDB.filter((storm) => {
-        const track = storm.forecast_data?.forecast_track;
-        if (!track || track.length === 0) {
-            return false; // Discard if no track data
-        }
-        const lastPointTime = new Date(track[track.length - 1].date_time);
-        return lastPointTime >= now; // Keep if the storm's forecast is not yet over
-    });
+	// Filter out storms whose entire forecast track is in the past.
+	const stillActiveStorms = activeStormsFromDB.filter((storm) => {
+		const track = storm.forecast_data?.forecast_track;
+		if (!track || track.length === 0) {
+			return false; // Discard if no track data
+		}
+		const lastPointTime = new Date(track[track.length - 1].date_time);
+		return lastPointTime >= now; // Keep if the storm's forecast is not yet over
+	});
 
-    return json(stillActiveStorms ? stillActiveStorms.map((storm) => storm.forecast_data) : []);
+	return json(stillActiveStorms ? stillActiveStorms.map((storm) => storm.forecast_data) : []);
 }
 
 // ===================================================================
@@ -146,21 +146,22 @@ async function doBackgroundFetch(currentDate, supabase) {
 				cache_expiry_time: cacheExpiry.toISOString()
 			});
 		} else {
-			console.log(`BACKGROUND: Found ${bulletinsToFetch.length} storm(s).`);
+			console.log(`BACKGROUND: Found ${bulletinsToFetch.length} potential bulletin(s) to process.`);
+			const processedStorms = new Map();
 
 			for (const bulletin of bulletinsToFetch) {
-				console.log(`BACKGROUND: Processing ${bulletin.name}...`);
+				console.log(`BACKGROUND: Processing ${bulletin.name} (${bulletin.filename})...`);
 
 				const { base64Data, mimeType } = await downloadPDFForGemini(bulletin.url);
 				const aiResponse = await callGeminiAIWithPDF(base64Data, mimeType, currentDate);
 
 				if (aiResponse && aiResponse.valid_until === 'null') {
-                    aiResponse.valid_until = null;
-                }
+					aiResponse.valid_until = null;
+				}
 
-				if (!aiResponse?.forecast_track?.length) {
+				if (!aiResponse?.storm_name || !aiResponse?.forecast_track?.length) {
 					console.warn(
-						`BACKGROUND: Discarding ${bulletin.name} due to missing or empty forecast track from AI.`
+						`BACKGROUND: Discarding ${bulletin.name} due to missing storm name or forecast track from AI.`
 					);
 					continue;
 				}
@@ -173,32 +174,67 @@ async function doBackgroundFetch(currentDate, supabase) {
 					continue;
 				}
 
-				let cacheExpiry;
-				const validUntilDate = aiResponse.valid_until ? new Date(aiResponse.valid_until) : null;
+				// --- Deduplication Logic ---
+				// Normalize name to handle "UWAN (FUNG-WONG)" vs "FUNG-WONG" by using the international name.
+				const stormName = aiResponse.storm_name;
+				let normalizedName;
 
-				if (!validUntilDate) {
-					cacheExpiry = new Date(
-						currentDate.getTime() + CONFIG.CACHE_HOURS_FINAL_BULLETIN * 60 * 60 * 1000
-					);
-				} else if (validUntilDate > currentDate) {
-					cacheExpiry = new Date(
-						validUntilDate.getTime() + CONFIG.CACHE_HOURS_DEFAULT * 60 * 60 * 1000
-					);
+				const internationalNameMatch = stormName.match(/\(([^)]+)\)/);
+				if (internationalNameMatch) {
+					// Found international name in parentheses, e.g., "UWAN (FUNG-WONG)" -> "FUNG-WONG"
+					normalizedName = internationalNameMatch[1].trim().toUpperCase();
 				} else {
-					cacheExpiry = new Date(
-						currentDate.getTime() + CONFIG.CACHE_HOURS_DEFAULT * 60 * 60 * 1000
+					// No parentheses, use the whole name, e.g., "FUNG-WONG" -> "FUNG-WONG"
+					normalizedName = stormName.trim().toUpperCase();
+				}
+
+				const existingStorm = processedStorms.get(normalizedName);
+				const newIssueDate = new Date(aiResponse.issued_at);
+
+				if (!existingStorm || newIssueDate > new Date(existingStorm.issued_at)) {
+					console.log(`BACKGROUND: Storing/updating data for storm "${normalizedName}".`);
+					processedStorms.set(normalizedName, aiResponse);
+				} else {
+					console.log(
+						`BACKGROUND: Discarding older data for storm "${normalizedName}" (issued at ${aiResponse.issued_at}).`
 					);
 				}
+			}
 
-				if (!shortestCacheTime || cacheExpiry < shortestCacheTime) {
-					shortestCacheTime = cacheExpiry;
+			const finalStorms = Array.from(processedStorms.values());
+
+			if (finalStorms.length > 0) {
+				console.log(
+					`BACKGROUND: Processing ${finalStorms.length} unique storm(s) for database update.`
+				);
+				for (const aiResponse of finalStorms) {
+					let cacheExpiry;
+					const validUntilDate = aiResponse.valid_until ? new Date(aiResponse.valid_until) : null;
+
+					if (!validUntilDate) {
+						cacheExpiry = new Date(
+							currentDate.getTime() + CONFIG.CACHE_HOURS_FINAL_BULLETIN * 60 * 60 * 1000
+						);
+					} else if (validUntilDate > currentDate) {
+						cacheExpiry = new Date(
+							validUntilDate.getTime() + CONFIG.CACHE_HOURS_DEFAULT * 60 * 60 * 1000
+						);
+					} else {
+						cacheExpiry = new Date(
+							currentDate.getTime() + CONFIG.CACHE_HOURS_DEFAULT * 60 * 60 * 1000
+						);
+					}
+
+					if (!shortestCacheTime || cacheExpiry < shortestCacheTime) {
+						shortestCacheTime = cacheExpiry;
+					}
+
+					newBulletinRows.push({
+						bulletin_type: 'ACTIVE_STORM',
+						forecast_data: aiResponse,
+						cache_expiry_time: cacheExpiry.toISOString()
+					});
 				}
-
-				newBulletinRows.push({
-					bulletin_type: 'ACTIVE_STORM',
-					forecast_data: aiResponse,
-					cache_expiry_time: cacheExpiry.toISOString()
-				});
 			}
 
 			if (shortestCacheTime) {
@@ -207,7 +243,9 @@ async function doBackgroundFetch(currentDate, supabase) {
 					cache_expiry_time: shortestCacheTime.toISOString()
 				});
 			} else if (newBulletinRows.length === 0) {
-				console.log('BACKGROUND: All found storms were outdated. Creating negative cache.');
+				console.log(
+					'BACKGROUND: All found bulletins were outdated or invalid. Creating negative cache.'
+				);
 				const cacheExpiry = new Date(
 					currentDate.getTime() + CONFIG.CACHE_HOURS_NO_STORM * 60 * 60 * 1000
 				);
@@ -245,82 +283,83 @@ const PAGASA_BULLETIN_URL = 'https://pubfiles.pagasa.dost.gov.ph/tamss/weather/b
 const PAGASA_ADVISORY_URL = 'https://pubfiles.pagasa.dost.gov.ph/tamss/weather/';
 
 const bulletinRegex =
-    /href="(TCB%23(\d+)(F?)_([\w-]+)\.pdf)"[^<]*<\/a>\s+([\d-]{2}-[A-Za-z]{3}-\d{4} \d{2}:\d{2})/g;
-const advisoryRegex = /href="(tcadvisory\.pdf)"[^<]*<\/a>\s+([\d-]{2}-[A-Za-z]{3}-\d{4} \d{2}:\d{2})/;
+	/href="(TCB%23(\d+)(F?)_([\w-]+)\.pdf)"[^<]*<\/a>\s+([\d-]{2}-[A-Za-z]{3}-\d{4} \d{2}:\d{2})/g;
+const advisoryRegex =
+	/href="(tcadvisory\.pdf)"[^<]*<\/a>\s+([\d-]{2}-[A-Za-z]{3}-\d{4} \d{2}:\d{2})/;
 
 async function getLatestBulletinsFromPAGASA() {
-    const [bulletinResponse, advisoryResponse] = await Promise.all([
-        fetch(PAGASA_BULLETIN_URL),
-        fetch(PAGASA_ADVISORY_URL)
-    ]);
+	const [bulletinResponse, advisoryResponse] = await Promise.all([
+		fetch(PAGASA_BULLETIN_URL),
+		fetch(PAGASA_ADVISORY_URL)
+	]);
 
-    if (!bulletinResponse.ok) {
-        throw new Error(`Failed to fetch PAGASA bulletin directory: ${bulletinResponse.statusText}`);
-    }
-    if (!advisoryResponse.ok) {
-        throw new Error(`Failed to fetch PAGASA advisory directory: ${advisoryResponse.statusText}`);
-    }
+	if (!bulletinResponse.ok) {
+		throw new Error(`Failed to fetch PAGASA bulletin directory: ${bulletinResponse.statusText}`);
+	}
+	if (!advisoryResponse.ok) {
+		throw new Error(`Failed to fetch PAGASA advisory directory: ${advisoryResponse.statusText}`);
+	}
 
-    const bulletinHtml = await bulletinResponse.text();
-    const advisoryHtml = await advisoryResponse.text();
-    const allBulletins = [];
+	const bulletinHtml = await bulletinResponse.text();
+	const advisoryHtml = await advisoryResponse.text();
+	const allBulletins = [];
 
-    // Process regular bulletins (inside PAR)
-    for (const match of bulletinHtml.matchAll(bulletinRegex)) {
-        allBulletins.push({
-            filename: match[1],
-            bulletinNumber: parseInt(match[2], 10) || 0,
-            isFinal: match[3] === 'F',
-            name: match[4],
-            date: new Date(match[5]),
-            url: `${PAGASA_BULLETIN_URL}${match[1]}`
-        });
-    }
+	// Process regular bulletins (inside PAR)
+	for (const match of bulletinHtml.matchAll(bulletinRegex)) {
+		allBulletins.push({
+			filename: match[1],
+			bulletinNumber: parseInt(match[2], 10) || 0,
+			isFinal: match[3] === 'F',
+			name: match[4],
+			date: new Date(match[5]),
+			url: `${PAGASA_BULLETIN_URL}${match[1]}`
+		});
+	}
 
-    // Process advisory (outside PAR)
-    const advisoryMatch = advisoryHtml.match(advisoryRegex);
-    if (advisoryMatch) {
-        allBulletins.push({
-            filename: advisoryMatch[1], // "tcadvisory.pdf"
-            bulletinNumber: 0, // No bulletin number for advisories
-            isFinal: false, // Advisories are not "final" bulletins
-            name: 'tcadvisory', // Use a unique name to group it
-            date: new Date(advisoryMatch[2]),
-            url: `${PAGASA_ADVISORY_URL}${advisoryMatch[1]}`
-        });
-    }
+	// Process advisory (outside PAR)
+	const advisoryMatch = advisoryHtml.match(advisoryRegex);
+	if (advisoryMatch) {
+		allBulletins.push({
+			filename: advisoryMatch[1], // "tcadvisory.pdf"
+			bulletinNumber: 0, // No bulletin number for advisories
+			isFinal: false, // Advisories are not "final" bulletins
+			name: 'tcadvisory', // Use a unique name to group it
+			date: new Date(advisoryMatch[2]),
+			url: `${PAGASA_ADVISORY_URL}${advisoryMatch[1]}`
+		});
+	}
 
-    const bulletinsByName = new Map();
-    for (const bulletin of allBulletins) {
-        if (!bulletinsByName.has(bulletin.name)) bulletinsByName.set(bulletin.name, []);
-        bulletinsByName.get(bulletin.name).push(bulletin);
-    }
+	const bulletinsByName = new Map();
+	for (const bulletin of allBulletins) {
+		if (!bulletinsByName.has(bulletin.name)) bulletinsByName.set(bulletin.name, []);
+		bulletinsByName.get(bulletin.name).push(bulletin);
+	}
 
-    const latestBulletins = [];
-    const cutoffDate = new Date().getTime() - CONFIG.PDF_CUTOFF_HOURS * 60 * 60 * 1000;
+	const latestBulletins = [];
+	const cutoffDate = new Date().getTime() - CONFIG.PDF_CUTOFF_HOURS * 60 * 60 * 1000;
 
-    for (const [name, bulletins] of bulletinsByName.entries()) {
-        // FIX: Implement a more robust multi-level sort
-        bulletins.sort((a, b) => {
-            // 1. Primary sort: Higher bulletin number wins
-            if (b.bulletinNumber !== a.bulletinNumber) {
-                return b.bulletinNumber - a.bulletinNumber;
-            }
-            // 2. Tie-breaker: If numbers are equal, the "Final" bulletin wins
-            if (b.isFinal !== a.isFinal) {
-                return b.isFinal ? 1 : -1;
-            }
-            // 3. Final tie-breaker: Newest date wins
-            return b.date.getTime() - a.date.getTime();
-        });
+	for (const [name, bulletins] of bulletinsByName.entries()) {
+		// FIX: Implement a more robust multi-level sort
+		bulletins.sort((a, b) => {
+			// 1. Primary sort: Higher bulletin number wins
+			if (b.bulletinNumber !== a.bulletinNumber) {
+				return b.bulletinNumber - a.bulletinNumber;
+			}
+			// 2. Tie-breaker: If numbers are equal, the "Final" bulletin wins
+			if (b.isFinal !== a.isFinal) {
+				return b.isFinal ? 1 : -1;
+			}
+			// 3. Final tie-breaker: Newest date wins
+			return b.date.getTime() - a.date.getTime();
+		});
 
-        const latest = bulletins[0];
+		const latest = bulletins[0];
 
-        if (latest.date.getTime() > cutoffDate) {
-            latestBulletins.push(latest);
-        }
-    }
-    return latestBulletins;
+		if (latest.date.getTime() > cutoffDate) {
+			latestBulletins.push(latest);
+		}
+	}
+	return latestBulletins;
 }
 
 // --- HELPER 6: Download PDF for Gemini ---
@@ -401,8 +440,8 @@ async function callGeminiAIWithPDF(pdfBase64, mimeType, currentDate) {
 		});
 
 		console.log('--- GEMINI RAW RESPONSE ---');
-        console.log(response.text);
-        console.log('---------------------------');
+		console.log(response.text);
+		console.log('---------------------------');
 
 		return JSON.parse(response.text);
 	} catch (e) {
