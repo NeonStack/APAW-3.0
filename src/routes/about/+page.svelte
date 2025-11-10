@@ -95,31 +95,28 @@
 			title: 'Accuracy',
 			description:
 				'We are committed to thorough analysis and continuous improvement to provide the most reliable flood risk predictions possible, ensuring our models deliver precise and dependable results.',
-			icon: 'mdi:bullseye-arrow',
-			gradient: 'from-primary-light to-primary-light'
+			icon: 'mdi:bullseye-arrow'
 		},
 		{
 			title: 'Preparedness',
 			description:
 				'We empower individuals, communities, and authorities with timely information that enables proactive planning and effective preparation for potential flood events before they occur.',
-			icon: 'mdi:shield-alert',
-			gradient: 'from-primary-light to-primary-light'
+			icon: 'mdi:shield-alert'
 		},
 		{
 			title: 'Accessibility',
 			description:
 				'We strive to make complex flood risk information understandable and readily available to everyone through user-friendly interfaces and clear, actionable communication.',
-			icon: 'mdi:hand-heart',
-			gradient: 'from-primary-light to-primary-light'
+			icon: 'mdi:hand-heart'
 		},
 		{
 			title: 'Wisdom',
 			description:
 				'We leverage data-driven insights and cutting-edge machine learning to transform raw information into actionable knowledge that helps communities make informed decisions about flood risks.',
-			icon: 'mdi:brain',
-			gradient: 'from-primary-light to-primary-light'
+			icon: 'mdi:brain'
 		}
 	];
+	const valueCardGradient = 'from-primary-light to-primary-light';
 </script>
 
 <svelte:head>
@@ -167,14 +164,14 @@
 						<p class="mb-6 text-lg leading-relaxed text-gray-700">
 							APAW (Advanced Predictive Analysis of Water-related Flood Risk) is an innovative flood
 							prediction platform developed as part of our academic capstone project. Using advanced
-							machine learning techniques, we analyze weather patterns, geographical features, and
-							historical data to predict flood risks with hourly granularity up to 5 days in
+							machine learning techniques, APAW analyzes weather patterns, geographical features, and
+							historical data to predict flood risks with hourly prediction of up to 5 days in
 							advance.
 						</p>
 						<p class="text-lg leading-relaxed text-gray-700">
 							Our system addresses a critical gap in flood preparedness by providing
 							location-specific predictions for any area within Metro Manila, moving beyond
-							traditional reactive flood warnings to enable proactive community preparation.
+							traditional regional flood warnings to enable proactive community preparation.
 						</p>
 					</div>
 				</div>
@@ -459,22 +456,20 @@
 				<div
 					class="group relative overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-xl transition-all duration-300 hover:scale-101 hover:shadow-2xl"
 				>
-					<div class="absolute top-0 left-0 h-2 w-full bg-gradient-to-r {value.gradient}"></div>
+					<div class="absolute top-0 left-0 h-2 w-full bg-gradient-to-r {valueCardGradient}"></div>
 					<div class="p-8">
 						<div class="mb-6">
 							<div
-								class="inline-flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br {value.gradient} shadow-lg transition-transform duration-300 group-hover:scale-110"
+								class="inline-flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br {valueCardGradient} shadow-lg transition-transform duration-300 group-hover:scale-110"
 							>
 								<Icon icon={value.icon} class="text-white" width="40" height="40" />
 							</div>
 						</div>
 						<div class="mb-4">
-							<span
-								class="inline-block bg-gradient-to-r px-4 py-1 {value.gradient} mb-3 rounded-full text-sm font-bold text-white"
-							>
-								{value.title.charAt(0)}
-							</span>
-							<h3 class="text-2xl font-bold text-gray-800">{value.title}</h3>
+							<h3 class="text-2xl font-bold">
+								<span class="text-primary-light text-4xl">{value.title.charAt(0)}</span
+								><span class="text-gray-800">{value.title.slice(1)}</span>
+							</h3>
 						</div>
 						<p class="leading-relaxed text-gray-600">{value.description}</p>
 					</div>

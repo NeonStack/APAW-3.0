@@ -106,6 +106,14 @@ const resources = [
 		icon: 'carbon:earth',
 		url: 'https://pythonhosted.org/pytz/'
 	},
+	{
+		title: 'Google Gemini AI',
+		description: `Google AI model for parsing PAGASA's public cyclone data.`,
+		category: 'Core Algorithms & Libraries',
+		iconType: 'iconify',
+		icon: 'logos:google-gemini',
+		url: 'https://deepmind.google/models/gemini/'
+	},
 
 	// Data Sources (Looks Good!)
 	{
@@ -172,14 +180,6 @@ const resources = [
 		icon: 'devicon:python',
 		url: 'https://www.python.org/'
 	},
-    {
-        title: 'Google Gemini AI',
-        description: `Google AI model for parsing PAGASA's public cyclone data.`,
-        category: 'Core Algorithms & Libraries',
-        iconType: 'iconify',
-        icon: 'logos:google-gemini',
-        url: 'https://deepmind.google/models/gemini/'
-    },
 	{
 		title: 'Google Colab',
 		description:

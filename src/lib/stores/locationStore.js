@@ -48,39 +48,48 @@ export async function fetchElevation(lat, lng) {
 export async function updateSelectedLocation({ lat, lng, name = null }) {
 	setLocationLoading(true, 'Fetching location data...');
 
-	const currentLat = parseFloat(lat).toFixed(6);
-	const currentLng = parseFloat(lng).toFixed(6);
+	try {
+		const currentLat = parseFloat(lat).toFixed(6);
+		const currentLng = parseFloat(lng).toFixed(6);
 
-	const [elevationResult, locationNameResult] = await Promise.all([
-		fetchElevation(currentLat, currentLng),
-		name ? Promise.resolve(name) : getLocationName(currentLat, currentLng)
-	]);
+		const [elevationResult, locationNameResult] = await Promise.all([
+			fetchElevation(currentLat, currentLng),
+			name ? Promise.resolve(name) : getLocationName(currentLat, currentLng)
+		]);
 
-	if (elevationResult.error) {
+		if (elevationResult.error) {
+			// This is a handled failure (e.g., API error), not an unexpected exception.
+			// We throw it to be caught by the catch block for consistent error handling.
+			throw new Error(elevationResult.error);
+		}
+
+		const finalState = {
+			lat: currentLat,
+			lng: currentLng,
+			elevation: elevationResult.elevation.toFixed(2),
+			error: null,
+			locationName: locationNameResult,
+			loading: false
+		};
+
+		selectedLocation.set(finalState);
+		return finalState;
+	} catch (error) {
+		// This block now handles both network errors and specific errors from fetchElevation.
+		console.error('Error updating selected location:', error);
 		selectedLocation.set({
 			lat: null,
 			lng: null,
 			elevation: null,
-			error: elevationResult.error,
+			error: error.message,
 			locationName: null,
 			loading: false
 		});
+		return { error: error.message };
+	} finally {
+		// This ensures loading is always set to false, regardless of success or failure.
 		setLocationLoading(false);
-		return { error: elevationResult.error };
 	}
-
-	const finalState = {
-		lat: currentLat,
-		lng: currentLng,
-		elevation: elevationResult.elevation.toFixed(2),
-		error: null,
-		locationName: locationNameResult,
-		loading: false
-	};
-
-	selectedLocation.set(finalState);
-	setLocationLoading(false);
-	return finalState;
 }
 
 // Add distance calculation functions

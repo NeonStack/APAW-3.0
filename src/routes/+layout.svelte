@@ -18,6 +18,14 @@
 	let isPredictPage = $derived($page.url.pathname === '/predict');
 	let activeRoute = $derived($page.url.pathname);
 
+	// Navigation items for the header
+	const navItems = [
+		{ href: '/', label: 'Home' },
+		{ href: '/predict', label: 'Predict' },
+		{ href: '/about', label: 'About' },
+		{ href: '/resources', label: 'Resources' }
+	];
+
 	// Link references for position calculation
 	let navLinks = $state({});
 	let indicatorStyle = $state({ width: 0, left: 0 });
@@ -90,38 +98,16 @@
 
 			<!-- Desktop Navigation -->
 			<div class="relative hidden grid-cols-4 gap-6 md:grid">
-				<a
-					bind:this={navLinks['/']}
-					href="/"
-					class="hover:text-primary relative pb-2 text-center font-medium text-gray-800 transition-colors"
-					class:text-primary={activeRoute === '/'}
-				>
-					Home
-				</a>
-				<a
-					bind:this={navLinks['/predict']}
-					href="/predict"
-					class="hover:text-primary relative pb-2 text-center font-medium text-gray-800 transition-colors"
-					class:text-primary={activeRoute === '/predict'}
-				>
-					Predict
-				</a>
-				<a
-					bind:this={navLinks['/about']}
-					href="/about"
-					class="hover:text-primary relative pb-2 text-center font-medium text-gray-800 transition-colors"
-					class:text-primary={activeRoute === '/about'}
-				>
-					About
-				</a>
-				<a
-					bind:this={navLinks['/resources']}
-					href="/resources"
-					class="hover:text-primary relative pb-2 text-center font-medium text-gray-800 transition-colors"
-					class:text-primary={activeRoute === '/resources'}
-				>
-					Resources
-				</a>
+				{#each navItems as item}
+					<a
+						bind:this={navLinks[item.href]}
+						href={item.href}
+						class="hover:text-primary relative pb-2 text-center font-medium text-gray-800 transition-colors"
+						class:text-primary={activeRoute === item.href}
+					>
+						{item.label}
+					</a>
+				{/each}
 
 				<!-- Sliding indicator -->
 				{#if indicatorStyle.width > 0}

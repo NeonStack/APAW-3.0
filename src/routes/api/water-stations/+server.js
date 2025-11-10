@@ -9,18 +9,10 @@ function cleanWaterLevel(wl) {
 
 // Helper function to check if a station is functioning (not all zeros)
 function isStationFunctioning(station) {
-	// Convert water level readings to numbers (or 0 if undefined/null)
-	const wl = parseFloat(station.wl || 0);
-	const wl10m = parseFloat(station.wl10m || 0);
-	const wl30m = parseFloat(station.wl30m || 0);
-	const wl1h = parseFloat(station.wl1h || 0);
-	const wl2h = parseFloat(station.wl2h || 0);
-
-	// Check if all readings are 0 (likely broken)
-	const allZeros = wl === 0 && wl10m === 0 && wl30m === 0 && wl1h === 0 && wl2h === 0;
-
-	// Return true if station is not all zeros (is functioning)
-	return !allZeros;
+	const readings = [station.wl, station.wl10m, station.wl30m, station.wl1h, station.wl2h];
+	// A station is considered non-functional if all its recent water level readings are zero.
+	// We use `some` to check if at least one reading is non-zero, which is more efficient.
+	return readings.some((wl) => parseFloat(wl || 0) !== 0);
 }
 export async function GET({ request }) {
 	const apiUrl = 'https://pasig-marikina-tullahanffws.pagasa.dost.gov.ph/water/main_list.do';
