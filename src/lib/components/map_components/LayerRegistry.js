@@ -145,38 +145,99 @@ export const overlayLayers = [
 
 // --- Weather Layer Definitions ---
 export const weatherLayers = [
-	{
-		id: 'none',
-		name: 'None',
-		group: 'Weather',
-		exclusive: true,
-		createLayer: (L) => L.layerGroup()
-	},
-	{
-		id: 'pagasaSatellite',
-		name: 'DOST PAGASA Himawari',
-		group: 'Weather',
-		exclusive: true,
-		createLayer: (L) => createPagasaSatelliteLayer(L)
-	},
-	{
-		id: 'wind',
-		name: 'Open Weather Wind',
-		group: 'Weather',
-		exclusive: true,
-		createLayer: (L, apiKey) => {
-			const windDirection = L.tileLayer(
-				`https://maps.openweathermap.org/maps/2.0/weather/WND/{z}/{x}/{y}?appid=${apiKey}`,
-				{ attribution: '© OpenWeatherMap', maxZoom: 19, opacity: 0.5 }
-			);
-			const windSpeed = L.tileLayer(
-				`https://maps.openweathermap.org/maps/2.0/weather/WS10/{z}/{x}/{y}?appid=${apiKey}`,
-				{ attribution: '© OpenWeatherMap', maxZoom: 19, opacity: 0.5 }
-			);
-			return L.layerGroup([windDirection, windSpeed]);
-		}
-	}
+    {
+        id: 'none',
+        name: 'None',
+        group: 'Weather',
+        exclusive: true,
+        createLayer: async (L) => L.layerGroup()
+    },
+    {
+        id: 'pagasaSatellite',
+        name: 'DOST PAGASA Himawari',
+        group: 'Weather',
+        exclusive: true,
+        createLayer: async (L) => createPagasaSatelliteLayer(L),
+        updateInterval: 5000, // 1 hour
+        updateLayer: async (layer) => {
+            const baseUrl =
+                'https://src.meteopilipinas.gov.ph/repo/mtsat-colored/24hour/latest-him-colored-hourly.gif';
+            const newUrl = `${baseUrl}?t=${new Date().getTime()}`;
+            if (layer && typeof layer.setUrl === 'function') {
+                layer.setUrl(newUrl);
+                console.log('PAGASA Satellite layer updated.');
+            }
+        }
+    },
+    {
+        id: 'rainviewer',
+        name: 'RainViewer Radar',
+        group: 'Weather',
+        exclusive: true,
+        createLayer: async (L) => {
+            try {
+                const response = await fetch('https://api.rainviewer.com/public/weather-maps.json');
+                const data = await response.json();
+                const lastFrame = data.radar.past[data.radar.past.length - 1];
+                return L.tileLayer(
+                    `${data.host}${lastFrame.path}/256/{z}/{x}/{y}/2/1_1.png`,
+                    {
+                        attribution: '© RainViewer.com',
+                        opacity: 0.6,
+                        maxZoom: 10,
+                        zIndex: 200
+                    }
+                );
+            } catch (error) {
+                console.error('RainViewer error:', error);
+                return L.layerGroup();
+            }
+        },
+        updateInterval: 600000, // 10 minutes
+        updateLayer: async (layer) => {
+            if (!layer || typeof layer.setUrl !== 'function') return;
+            try {
+                const response = await fetch('https://api.rainviewer.com/public/weather-maps.json');
+                const data = await response.json();
+                const lastFrame = data.radar.past[data.radar.past.length - 1];
+                const newUrl = `${data.host}${lastFrame.path}/256/{z}/{x}/{y}/2/1_1.png`;
+                layer.setUrl(newUrl);
+                console.log('RainViewer layer updated.');
+            } catch (error) {
+                console.error('RainViewer update error:', error);
+            }
+        }
+    },
+    {
+        id: 'wind',
+        name: 'Open Weather Wind',
+        group: 'Weather',
+        exclusive: true,
+        createLayer: async (L, apiKey) => {
+            const windDirection = L.tileLayer(
+                `https://maps.openweathermap.org/maps/2.0/weather/WND/{z}/{x}/{y}?appid=${apiKey}`,
+                { attribution: '© OpenWeatherMap', maxZoom: 19, opacity: 0.5 }
+            );
+            const windSpeed = L.tileLayer(
+                `https://maps.openweathermap.org/maps/2.0/weather/WS10/{z}/{x}/{y}?appid=${apiKey}`,
+                { attribution: '© OpenWeatherMap', maxZoom: 19, opacity: 0.5 }
+            );
+            return L.layerGroup([windDirection, windSpeed]);
+        },
+        updateInterval: 600000, // 10 minutes
+        updateLayer: async (layer) => {
+            if (layer && typeof layer.eachLayer === 'function') {
+                layer.eachLayer((subLayer) => {
+                    if (typeof subLayer.redraw === 'function') {
+                        subLayer.redraw();
+                    }
+                });
+                console.log('Open Weather Wind layer updated.');
+            }
+        }
+    }
 ];
+
 
 // A combined list for easier iteration in map event handlers
 export const allOverlayLayers = [...overlayLayers, ...weatherLayers];

@@ -83,6 +83,7 @@
 	let loadedGeojsonData = {};
 	let activeLeafletLayers = {};
 	let instantiatedLayers = {};
+	let layerUpdateIntervals = {};
 
 	// --- NEW: Centralized function for handling location selection and marker updates ---
 	async function handleLocationSelection(lat, lng, name = null) {
@@ -270,8 +271,8 @@
 		tropicalCycloneLayerGroup = L.layerGroup();
 
 		// --- Layer Initialization from Registry ---
-		baseLayers.forEach((layer) => {
-			instantiatedLayers[layer.id] = layer.createLayer(L);
+		const baseLayerPromises = baseLayers.map(async (layer) => {
+			instantiatedLayers[layer.id] = await layer.createLayer(L);
 		});
 
 		overlayLayers.forEach((layer) => {
@@ -284,9 +285,11 @@
 			}
 		});
 
-		weatherLayers.forEach((layer) => {
-			instantiatedLayers[layer.id] = layer.createLayer(L, OPENWEATHER_MAP_API_KEY);
+		const weatherLayerPromises = weatherLayers.map(async (layer) => {
+			instantiatedLayers[layer.id] = await layer.createLayer(L, OPENWEATHER_MAP_API_KEY);
 		});
+
+		await Promise.all([...baseLayerPromises, ...weatherLayerPromises]);
 
 		// Add default base layer
 		instantiatedLayers['standard'].addTo(map);
@@ -325,6 +328,24 @@
 			);
 
 			if (!layerConfig) return;
+
+			// Handle auto-updating layers
+			if (layerConfig.updateInterval && typeof layerConfig.updateLayer === 'function') {
+				// Clear any existing interval for this layer to prevent duplicates
+				if (layerUpdateIntervals[layerConfig.id]) {
+					clearInterval(layerUpdateIntervals[layerConfig.id]);
+				}
+
+				const intervalId = setInterval(() => {
+					const layerInstance = instantiatedLayers[layerConfig.id];
+					if (layerInstance && map.hasLayer(layerInstance)) {
+						console.log(`Auto-updating ${layerConfig.name} layer...`);
+						layerConfig.updateLayer(layerInstance);
+						toast.info(`${layerConfig.name} layer has been updated.`);
+					}
+				}, layerConfig.updateInterval);
+				layerUpdateIntervals[layerConfig.id] = intervalId;
+			}
 
 			/// Handle Tropical Cyclone layer
 			if (layerConfig.id === 'tropical_cyclone') {
@@ -402,6 +423,13 @@
 			);
 
 			if (!layerConfig) return;
+
+			// Clear auto-update interval
+			if (layerUpdateIntervals[layerConfig.id]) {
+				clearInterval(layerUpdateIntervals[layerConfig.id]);
+				delete layerUpdateIntervals[layerConfig.id];
+				console.log(`Stopped auto-updating for ${layerConfig.name} layer.`);
+			}
 
 			// Handle Tropical Cyclone layer
 			if (layerConfig.id === 'tropical_cyclone') {
@@ -527,6 +555,9 @@
 		if (cycloneUpdateInterval) {
 			clearInterval(cycloneUpdateInterval);
 		}
+		// Clear all layer update intervals
+		Object.values(layerUpdateIntervals).forEach(clearInterval);
+		layerUpdateIntervals = {};
 		if (map) {
 			try {
 				map.off();
