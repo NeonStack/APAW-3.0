@@ -14,7 +14,7 @@ function isStationFunctioning(station) {
 	const wl10m = parseFloat(station.wl10m || 0);
 	const wl30m = parseFloat(station.wl30m || 0);
 	const wl1h = parseFloat(station.wl1h || 0);
-	const wl2h = parseFloat(station.wl1h || 0);
+	const wl2h = parseFloat(station.wl2h || 0);
 
 	// Check if all readings are 0 (likely broken)
 	const allZeros = wl === 0 && wl10m === 0 && wl30m === 0 && wl1h === 0 && wl2h === 0;

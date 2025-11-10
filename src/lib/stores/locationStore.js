@@ -22,7 +22,65 @@ export const facilitiesLayerActive = writable(false);
 
 // Function to set loading state with a message
 export function setLocationLoading(isLoading, message = '') {
-  locationLoadingStatus.set({ isLoading, message });
+	locationLoadingStatus.set({ isLoading, message });
+}
+
+// --- NEW: Centralized function to fetch elevation ---
+export async function fetchElevation(lat, lng) {
+	try {
+		const response = await fetch(`/api/elevation?lat=${lat}&lng=${lng}`);
+		const data = await response.json();
+		if (!response.ok) {
+			throw new Error(data.error || `HTTP error! status: ${response.status}`);
+		}
+		if (data.elevation !== undefined) {
+			return { elevation: data.elevation };
+		} else {
+			throw new Error('Elevation data missing in server response.');
+		}
+	} catch (error) {
+		console.error('Error fetching elevation via local API:', error);
+		return { error: error.message || 'Failed to fetch elevation' };
+	}
+}
+
+// --- NEW: Centralized function to update the selected location state ---
+export async function updateSelectedLocation({ lat, lng, name = null }) {
+	setLocationLoading(true, 'Fetching location data...');
+
+	const currentLat = parseFloat(lat).toFixed(6);
+	const currentLng = parseFloat(lng).toFixed(6);
+
+	const [elevationResult, locationNameResult] = await Promise.all([
+		fetchElevation(currentLat, currentLng),
+		name ? Promise.resolve(name) : getLocationName(currentLat, currentLng)
+	]);
+
+	if (elevationResult.error) {
+		selectedLocation.set({
+			lat: null,
+			lng: null,
+			elevation: null,
+			error: elevationResult.error,
+			locationName: null,
+			loading: false
+		});
+		setLocationLoading(false);
+		return { error: elevationResult.error };
+	}
+
+	const finalState = {
+		lat: currentLat,
+		lng: currentLng,
+		elevation: elevationResult.elevation.toFixed(2),
+		error: null,
+		locationName: locationNameResult,
+		loading: false
+	};
+
+	selectedLocation.set(finalState);
+	setLocationLoading(false);
+	return finalState;
 }
 
 // Add distance calculation functions

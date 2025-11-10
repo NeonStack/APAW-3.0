@@ -3,11 +3,11 @@
 	import { browser } from '$app/environment';
 	import {
 		selectedLocation,
-		getLocationName,
 		getCurrentPosition,
 		setLocationLoading,
 		nearestFacilities,
-		facilitiesLayerActive
+		facilitiesLayerActive,
+		updateSelectedLocation // NEW: Import the store action
 	} from '$lib/stores/locationStore.js';
 	import {
 		waterStations,
@@ -37,7 +37,6 @@
 		createWaterStationPopup
 	} from './map_components/WaterStationLayer.js';
 	import {
-		setSelectedLocation,
 		updateNearestFacilitiesList,
 		displayNearbyFacilities,
 		handleLayerToggle
@@ -85,34 +84,65 @@
 	let activeLeafletLayers = {};
 	let instantiatedLayers = {};
 
-	async function handleLocateUser() {
+	// --- NEW: Centralized function for handling location selection and marker updates ---
+	async function handleLocationSelection(lat, lng, name = null) {
 		if (isSelectingLocation) {
-			console.log('Location selection already in progress, ignoring locate request');
+			console.log('Location selection already in progress, ignoring request');
 			return;
 		}
+		isSelectingLocation = true;
+		dispatch('locationSelectionStart', { lat, lng });
 
-		try {
-			isSelectingLocation = true;
-			dispatch('locationSelectionStart', { message: 'Getting your location...' });
-			const position = await getCurrentPosition();
-			const locationName = await getLocationName(position.lat, position.lng);
-			marker = await setSelectedLocation(
-				position.lat,
-				position.lng,
-				locationName || 'Current Location',
-				map,
-				L,
-				marker,
-				dispatch
-			);
+		// Clear previous marker
+		if (marker) {
+			removeMarker(marker);
+			marker = null;
+			map._selectedMarker = null;
+		}
+
+		// Show temporary loading marker
+		const loadingIcon = L.divIcon({
+			html: `<div class="loading-marker-wrapper"><div class="loading-marker-inner"></div></div>`,
+			className: 'loading-marker-icon',
+			iconSize: [40, 40],
+			iconAnchor: [20, 20]
+		});
+		const tempMarker = createMarker(lat, lng, { icon: loadingIcon });
+		panTo(lat, lng);
+
+		// Update store and get final location data
+		const result = await updateSelectedLocation({ lat, lng, name });
+
+		// Remove temporary marker
+		if (tempMarker) {
+			removeMarker(tempMarker);
+		}
+
+		// Handle result
+		if (result.error) {
+			toast.error(result.error);
+			dispatch('locationSelectionComplete', { error: result.error });
+		} else {
+			// Create final marker
+			marker = createMarker(result.lat, result.lng);
 			map._selectedMarker = marker;
+			panTo(result.lat, result.lng);
+			dispatch('locationSelectionComplete', result);
+		}
+
+		isSelectingLocation = false;
+	}
+
+	async function handleLocateUser() {
+		try {
+			const position = await getCurrentPosition();
+			// Use the new centralized function
+			await handleLocationSelection(position.lat, position.lng);
 		} catch (error) {
 			console.error('Error getting current position:', error);
-			alert(`Could not get your location: ${error.message}`);
+			toast.error(`Could not get your location: ${error.message}`);
 			setLocationLoading(false);
 			dispatch('locationSelectionComplete', { error: error.message });
-		} finally {
-			isSelectingLocation = false;
 		}
 	}
 
@@ -173,46 +203,9 @@
 	}
 
 	function handleSearchLocation(event) {
-		if (isSelectingLocation) {
-			console.log('Location selection already in progress, ignoring search');
-			return;
-		}
-
 		const { lat, lng, name } = event.detail;
-		isSelectingLocation = true;
-
-		if (marker && map) {
-			removeMarker(marker);
-			marker = null;
-			map._selectedMarker = null;
-		}
-
-		const loadingIcon = L.divIcon({
-			html: `<div class="loading-marker-wrapper">
-                <div class="loading-marker-inner"></div>
-            </div>`,
-			className: 'loading-marker-icon',
-			iconSize: [40, 40],
-			iconAnchor: [20, 20]
-		});
-
-		const tempMarker = L.marker([lat, lng], { icon: loadingIcon }).addTo(map);
-		panTo(lat, lng);
-
-		setSelectedLocation(lat, lng, name, map, L, marker, dispatch, tempMarker)
-			.then((newMarker) => {
-				if (newMarker) {
-                    marker = newMarker;
-                    map._selectedMarker = marker; // Add this line
-                }
-			})
-			.finally(() => {
-				isSelectingLocation = false;
-
-				if (tempMarker && map.hasLayer(tempMarker)) {
-					map.removeLayer(tempMarker);
-				}
-			});
+		// Use the new centralized function
+		handleLocationSelection(lat, lng, name);
 	}
 
 	function focusOnWaterStation(station) {
@@ -314,44 +307,11 @@
 
 		// Handle map click for location selection
 		map.on('click', async (e) => {
-			if (isSelectingLocation) {
-				console.log('Location selection already in progress, ignoring click');
-				return;
-			}
-
 			const { lat, lng } = e.latlng;
 
 			if (strictNcrBounds && strictNcrBounds.contains(e.latlng)) {
-				isSelectingLocation = true;
-
-				if (marker) {
-					removeMarker(marker);
-					marker = null;
-					map._selectedMarker = null;
-				}
-
-				const loadingIcon = L.divIcon({
-					html: `<div class="loading-marker-wrapper">
-                        <div class="loading-marker-inner"></div>
-                    </div>`,
-					className: 'loading-marker-icon',
-					iconSize: [40, 40],
-					iconAnchor: [20, 20]
-				});
-
-				const tempMarker = createMarker(lat, lng, { icon: loadingIcon });
-				panTo(lat, lng);
-
-				try {
-					marker = await setSelectedLocation(lat, lng, null, map, L, marker, dispatch, tempMarker);
-					map._selectedMarker = marker;
-				} finally {
-					isSelectingLocation = false;
-
-					if (tempMarker && map.hasLayer(tempMarker)) {
-						map.removeLayer(tempMarker);
-					}
-				}
+				// Use the new centralized function
+				await handleLocationSelection(lat, lng);
 			} else {
 				toast.error('Please select a location near the National Capital Region (NCR).');
 			}

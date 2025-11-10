@@ -2,8 +2,7 @@ import { toast } from 'svelte-sonner';
 import { get } from 'svelte/store';
 import {
 	selectedLocation,
-	getLocationName,
-	setLocationLoading
+	calculateDistance // Import the centralized function
 } from '$lib/stores/locationStore.js';
 import { loadAndProcessGeoJson } from './GeoJsonUtils.js';
 import {
@@ -18,125 +17,7 @@ import { addLayerToMap, removeLayerFromMap, clearLayerGroup } from '$lib/service
 
 // --- Marker and Location Functions (from MarkerHandlers.js) ---
 
-export function calculateDistance(lat1, lon1, lat2, lon2) {
-	const R = 6371e3; // Earth radius in meters
-	const φ1 = (lat1 * Math.PI) / 180;
-	const φ2 = (lat2 * Math.PI) / 180;
-	const Δφ = ((lat2 - lat1) * Math.PI) / 180;
-	const Δλ = ((lon2 - lon1) * Math.PI) / 180;
-
-	const a =
-		Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
-		Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
-	const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-	return R * c; // Distance in meters
-}
-
-export async function fetchElevation(lat, lng) {
-	try {
-		const response = await fetch(`/api/elevation?lat=${lat}&lng=${lng}`);
-		const data = await response.json();
-		if (!response.ok) {
-			throw new Error(data.error || `HTTP error! status: ${response.status}`);
-		}
-		if (data.elevation !== undefined) {
-			return data.elevation;
-		} else {
-			throw new Error('Elevation data missing in server response.');
-		}
-	} catch (error) {
-		console.error('Error fetching elevation via local API:', error);
-		return { error: error.message || 'Failed to fetch elevation' };
-	}
-}
-
-export async function setSelectedLocation(
-	lat,
-	lng,
-	locationName = null,
-	map,
-	L,
-	marker,
-	dispatch,
-	tempMarker = null
-) {
-	setLocationLoading(true, 'Fetching location data...');
-	dispatch('locationSelectionStart', { lat, lng });
-
-	const currentLat = parseFloat(lat).toFixed(6);
-	const currentLng = parseFloat(lng).toFixed(6);
-
-	if (!tempMarker && marker && map) {
-		try {
-			map.removeLayer(marker);
-			marker = null;
-		} catch (e) {
-			console.error('Error removing existing marker:', e);
-		}
-	}
-
-	const elevationResult = await fetchElevation(currentLat, currentLng);
-
-	if (elevationResult && typeof elevationResult === 'object' && elevationResult.error) {
-		const errorMessage = elevationResult.error;
-		toast.error(`${errorMessage}`);
-		setLocationLoading(false);
-		dispatch('locationSelectionComplete', { error: errorMessage });
-		if (tempMarker && map) map.removeLayer(tempMarker);
-		selectedLocation.set({
-			lat: null,
-			lng: null,
-			elevation: null,
-			error: null,
-			locationName: null,
-			loading: false
-		});
-		return null;
-	}
-
-	if (tempMarker && map) map.removeLayer(tempMarker);
-
-	if (map && L) {
-		marker = L.marker([currentLat, currentLng]).addTo(map);
-		map.panTo([currentLat, currentLng]);
-	}
-
-	if (!locationName) {
-		locationName = await getLocationName(currentLat, currentLng);
-	}
-
-	if (typeof elevationResult === 'number') {
-		selectedLocation.set({
-			lat: currentLat,
-			lng: currentLng,
-			elevation: elevationResult.toFixed(2),
-			error: null,
-			locationName,
-			loading: false
-		});
-	} else {
-		const errorMessage =
-			(elevationResult && elevationResult.error) || 'Failed to get elevation data.';
-		selectedLocation.set({
-			lat: currentLat,
-			lng: currentLng,
-			elevation: 'N/A',
-			error: errorMessage,
-			locationName,
-			loading: false
-		});
-		toast.error(`Elevation Error: ${errorMessage}`);
-	}
-
-	setLocationLoading(false);
-	dispatch('locationSelectionComplete', {
-		lat: currentLat,
-		lng: currentLng,
-		elevation: typeof elevationResult === 'number' ? elevationResult.toFixed(2) : 'N/A',
-		locationName
-	});
-	return marker;
-}
+// REMOVED: calculateDistance, fetchElevation, and setSelectedLocation. Their logic has been moved to locationStore.js and Map.svelte.
 
 export function displayNearbyFacilities(
 	centerLat,

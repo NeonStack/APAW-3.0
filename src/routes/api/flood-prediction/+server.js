@@ -5,7 +5,7 @@ import { APAW_HF_API_KEY, VITE_HF_TOKEN } from '$env/static/private';
 
 // The URL of your Hugging Face Space API
 // Replace 'HunterExist2/apaw-hourly' with your space name
-const API_URL = 'https://hunterexist2-apaw-hourly-docker.hf.space/predict_flood_with_data';
+const API_URL = 'https://hunterexist2-apaw-hourly-docker-2.hf.space/predict_flood_with_data';
 
 export async function POST({ request }) {
 	const body = await request.json();

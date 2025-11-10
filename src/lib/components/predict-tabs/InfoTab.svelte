@@ -144,7 +144,7 @@
 		{ endTime: 1000, endProgress: 30 },
 		{ endTime: 2000, endProgress: 70 },
 		{ endTime: 3000, endProgress: 91 },
-		{ endTime: 15000, endProgress: 99 }
+		{ endTime: 12000, endProgress: 99 }
 	];
 
 	// Start the fake progress animation

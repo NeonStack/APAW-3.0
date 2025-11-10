@@ -177,7 +177,7 @@ const resources = [
         description: `Google AI model for parsing PAGASA's public cyclone data.`,
         category: 'Core Algorithms & Libraries',
         iconType: 'iconify',
-        icon: 'material-icon-theme:gemini-ai',
+        icon: 'logos:google-gemini',
         url: 'https://deepmind.google/models/gemini/'
     },
 	{
