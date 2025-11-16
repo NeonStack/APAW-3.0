@@ -52,13 +52,6 @@
 			type: 'icon',
 			status: 'pending',
 			url: 'https://www.openstreetmap.org/'
-		},
-		{
-			name: 'Open Topo Data - Elevation',
-			logo: 'arcticons:opentopomap',
-			type: 'icon',
-			status: 'pending',
-			url: 'https://www.opentopodata.org/'
 		}
 	];
 
@@ -106,15 +99,6 @@
 			sources[4].status = 'success';
 		} else if ($selectedLocation.lat && !$selectedLocation.locationName) {
 			sources[4].status = 'pending';
-		}
-
-		// Open Topo Data (Elevation)
-		if ($selectedLocation.loading) {
-			sources[5].status = 'pending';
-		} else if ($selectedLocation.error) {
-			sources[5].status = 'error';
-		} else if ($selectedLocation.elevation !== null) {
-			sources[5].status = 'success';
 		}
 	}
 
@@ -291,7 +275,6 @@
 				lat: $selectedLocation.lat,
 				lng: $selectedLocation.lng,
 				date: userLocalDate,
-				elevation: $selectedLocation.elevation,
 				water_station_data: $waterStations.data
 			};
 
@@ -308,7 +291,7 @@
 			console.log('Flood prediction received:', data);
 
 			// Check if response is an error
-			if (data.status === 'error') {
+			if (!response.ok || data.status === 'error' || data.status === 'invalid') {
 				predictionErrorDetails = data;
 				throw new Error(data.message || 'Failed to fetch prediction');
 			}
@@ -936,7 +919,7 @@
 																</p>
 
 																<!-- Stats Grid -->
-																<div class="grid grid-cols-1 md:grid-cols-3 gap-2">
+																<div class="grid grid-cols-1 gap-2 md:grid-cols-3">
 																	<div class="rounded-lg bg-gray-50 p-2">
 																		<p class="mb-0.5 text-xs text-gray-500">Position</p>
 																		<p class="font-mono text-xs font-bold text-gray-900">
@@ -980,15 +963,20 @@
 									href={sources[1].url}
 									target="_blank"
 									rel="noopener noreferrer"
-									class="group flex items-center justify-center gap-1.5 px-2.5 py-1.5 mt-2"
+									class="group mt-2 flex items-center justify-center gap-1.5 px-2.5 py-1.5"
 								>
 									<div class="flex h-5 w-5 items-center justify-center rounded bg-gray-50 p-0.5">
 										<img src="logo/pagasa.png" alt="PAGASA" class="h-full w-full object-contain" />
 									</div>
-									<span class="text-xs font-medium text-gray-700 transition-colors group-hover:text-primary-light"
+									<span
+										class="group-hover:text-primary-light text-xs font-medium text-gray-700 transition-colors"
 										>Data from PAGASA</span
 									>
-									<Icon icon="mdi:open-in-new" class="text-gray-400 group-hover:text-primary-light" width="14" />
+									<Icon
+										icon="mdi:open-in-new"
+										class="group-hover:text-primary-light text-gray-400"
+										width="14"
+									/>
 								</a>
 							</div>
 						</div>
@@ -1092,15 +1080,20 @@
 									href={sources[1].url}
 									target="_blank"
 									rel="noopener noreferrer"
-									class="group flex items-center justify-center gap-1.5 px-2.5 py-1.5 mt-2"
+									class="group mt-2 flex items-center justify-center gap-1.5 px-2.5 py-1.5"
 								>
 									<div class="flex h-5 w-5 items-center justify-center rounded bg-gray-50 p-0.5">
 										<img src="logo/pagasa.png" alt="PAGASA" class="h-full w-full object-contain" />
 									</div>
-									<span class="text-xs font-medium text-gray-700 transition-colors group-hover:text-primary-light"
+									<span
+										class="group-hover:text-primary-light text-xs font-medium text-gray-700 transition-colors"
 										>Data from PAGASA</span
 									>
-									<Icon icon="mdi:open-in-new" class="text-gray-400 group-hover:text-primary-light" width="14" />
+									<Icon
+										icon="mdi:open-in-new"
+										class="group-hover:text-primary-light text-gray-400"
+										width="14"
+									/>
 								</a>
 							</div>
 						</div>
@@ -1176,23 +1169,23 @@
 								</p>
 
 								<!-- Additional error details -->
-								{#if predictionErrorDetails?.details}
+								{#if predictionErrorDetails}
 									<div class="mt-2 space-y-1">
 										<!-- Water Body Details -->
-										{#if predictionErrorDetails.details.reason === 'water_body'}
+										{#if predictionErrorDetails.reason === 'water_body'}
 											<div class="rounded border border-blue-200 bg-blue-100 p-2">
 												<p class="text-xs font-semibold text-blue-800">Location Details:</p>
 												<div class="mt-1 ml-4 space-y-0.5 text-xs text-blue-700">
 													<p>
 														<span class="font-medium">Type:</span>
-														{predictionErrorDetails.details.water_type
+														{predictionErrorDetails.water_type
 															?.replace('water_', '')
 															.replace('_', ' ') || 'Water body'}
 													</p>
-													{#if predictionErrorDetails.details.water_name && predictionErrorDetails.details.water_name !== 'Unnamed Stream' && predictionErrorDetails.details.water_name !== 'Unnamed River'}
+													{#if predictionErrorDetails.water_name && predictionErrorDetails.water_name !== 'Unnamed Stream' && predictionErrorDetails.water_name !== 'Unnamed River'}
 														<p>
 															<span class="font-medium">Name:</span>
-															{predictionErrorDetails.details.water_name}
+															{predictionErrorDetails.water_name}
 														</p>
 													{/if}
 												</div>
@@ -1200,7 +1193,7 @@
 										{/if}
 
 										<!-- Outside NCR Details -->
-										{#if predictionErrorDetails.details.reason === 'outside_metro_manila'}
+										{#if predictionErrorDetails.reason === 'outside_metro_manila'}
 											<div class="rounded border border-orange-200 bg-orange-100 p-2">
 												<p class="text-xs font-semibold text-orange-800">
 													Distance from Service Area:
@@ -1208,23 +1201,21 @@
 												<div class="mt-1 ml-4 space-y-0.5 text-xs text-orange-700">
 													<p class="flex items-center">
 														<Icon
-															icon={getDirectionIcon(predictionErrorDetails.details.direction)}
+															icon={getDirectionIcon(predictionErrorDetails.direction)}
 															class="mr-1"
 															width="12"
 														/>
 														<span class="font-bold"
-															>{Math.round(
-																predictionErrorDetails.details.distance_to_boundary_m
-															)}m</span
+															>{Math.round(predictionErrorDetails.distance_to_boundary_m)}m</span
 														>
-														<span class="ml-1">{predictionErrorDetails.details.direction}</span>
+														<span class="ml-1">{predictionErrorDetails.direction}</span>
 													</p>
 												</div>
 											</div>
 										{/if}
 
 										<!-- Suggestion -->
-										{#if predictionErrorDetails.details.suggestion}
+										{#if predictionErrorDetails.suggestion}
 											<div
 												class="rounded border p-2"
 												class:border-orange-200={errorDisplay.color === 'orange'}
@@ -1242,9 +1233,7 @@
 														class="mt-0.5 mr-1 flex-shrink-0"
 														width="12"
 													/>
-													<span class="font-medium"
-														>{predictionErrorDetails.details.suggestion}</span
-													>
+													<span class="font-medium">{predictionErrorDetails.suggestion}</span>
 												</p>
 											</div>
 										{/if}
@@ -1509,12 +1498,13 @@
 												</button>
 											{/each}
 										</div>
-
-										<!-- Legend removed as requested -->
 									</div>
 
 									<!-- Complete Key Features from Selected Hour -->
 									{#if selectedHourData?.key_features}
+										{@const selectedHourRisk = getRiskLevel(
+											selectedHourData.final_prediction.flood_probability
+										)}
 										<div class="rounded border border-gray-300 bg-white p-2">
 											<h6
 												class="mb-1 flex items-center justify-between text-xs font-bold text-gray-800"
@@ -1541,14 +1531,8 @@
 											<div class="mb-2 space-y-1 rounded bg-gray-50 p-2">
 												<div class="flex items-center justify-between text-xs">
 													<span class="text-gray-600">Flood Status:</span>
-													<span
-														class="font-bold {selectedHourData.final_prediction.is_flooded === 1
-															? 'text-red-700'
-															: 'text-green-700'}"
-													>
-														{selectedHourData.final_prediction.is_flooded === 1
-															? 'Flooded'
-															: 'Safe'}
+													<span class="font-bold {selectedHourRisk.boldTextColor}">
+														{selectedHourRisk.level}
 													</span>
 												</div>
 												<div class="flex items-center justify-between text-xs">
@@ -1648,14 +1632,6 @@
 							<span class="font-mono text-gray-800"
 								>{$selectedLocation.lat}, {$selectedLocation.lng}</span
 							>
-						</div>
-						<div class="flex justify-between text-xs">
-							<span class="font-medium text-gray-600">Elevation:</span>
-							{#if $selectedLocation.error}
-								<span class="font-mono text-red-600">Error</span>
-							{:else}
-								<span class="font-mono text-gray-800">{$selectedLocation.elevation} m</span>
-							{/if}
 						</div>
 					</div>
 

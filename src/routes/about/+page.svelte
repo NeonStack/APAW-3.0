@@ -6,16 +6,16 @@
 		{
 			title: 'High Accuracy Classification',
 			description:
-				'Our flood detection model achieves strong performance in determining whether flooding will occur, with excellent recall rates for identifying potential events.',
+				'Our flood detection model achieves 88% accuracy in determining whether flooding will occur, with a 73% recall rate for identifying potential flood events.',
 			icon: 'mdi:target',
-			metric: 'Strong Performance'
+			metric: '88% Accuracy'
 		},
 		{
 			title: 'Reliable Depth Prediction',
 			description:
-				'When floods are predicted, our LSTM model estimates flood depth with an average error of approximately 15-20 cm, providing valuable information for preparation.',
+				'When floods are predicted, our LSTM model estimates flood depth with a Mean Absolute Error of just 8.07 cm, providing highly valuable information for preparation.',
 			icon: 'mdi:ruler',
-			metric: '15-20cm MAE'
+			metric: '8.07cm MAE'
 		},
 		{
 			title: 'Hourly Forecast Window',

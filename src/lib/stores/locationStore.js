@@ -25,71 +25,44 @@ export function setLocationLoading(isLoading, message = '') {
 	locationLoadingStatus.set({ isLoading, message });
 }
 
-// --- NEW: Centralized function to fetch elevation ---
-export async function fetchElevation(lat, lng) {
-	try {
-		const response = await fetch(`/api/elevation?lat=${lat}&lng=${lng}`);
-		const data = await response.json();
-		if (!response.ok) {
-			throw new Error(data.error || `HTTP error! status: ${response.status}`);
-		}
-		if (data.elevation !== undefined) {
-			return { elevation: data.elevation };
-		} else {
-			throw new Error('Elevation data missing in server response.');
-		}
-	} catch (error) {
-		console.error('Error fetching elevation via local API:', error);
-		return { error: error.message || 'Failed to fetch elevation' };
-	}
-}
-
-// --- NEW: Centralized function to update the selected location state ---
+// --- MODIFIED: Centralized function to update the selected location state ---
 export async function updateSelectedLocation({ lat, lng, name = null }) {
-	setLocationLoading(true, 'Fetching location data...');
+    setLocationLoading(true, 'Fetching location data...');
 
-	try {
-		const currentLat = parseFloat(lat).toFixed(6);
-		const currentLng = parseFloat(lng).toFixed(6);
+    try {
+        const currentLat = parseFloat(lat).toFixed(6);
+        const currentLng = parseFloat(lng).toFixed(6);
 
-		const [elevationResult, locationNameResult] = await Promise.all([
-			fetchElevation(currentLat, currentLng),
-			name ? Promise.resolve(name) : getLocationName(currentLat, currentLng)
-		]);
+        // Elevation is no longer fetched on the client-side.
+        const locationNameResult = await (name
+            ? Promise.resolve(name)
+            : getLocationName(currentLat, currentLng));
 
-		if (elevationResult.error) {
-			// This is a handled failure (e.g., API error), not an unexpected exception.
-			// We throw it to be caught by the catch block for consistent error handling.
-			throw new Error(elevationResult.error);
-		}
+        const finalState = {
+            lat: currentLat,
+            lng: currentLng,
+            elevation: null,
+            error: null,
+            locationName: locationNameResult,
+            loading: false
+        };
 
-		const finalState = {
-			lat: currentLat,
-			lng: currentLng,
-			elevation: elevationResult.elevation.toFixed(2),
-			error: null,
-			locationName: locationNameResult,
-			loading: false
-		};
-
-		selectedLocation.set(finalState);
-		return finalState;
-	} catch (error) {
-		// This block now handles both network errors and specific errors from fetchElevation.
-		console.error('Error updating selected location:', error);
-		selectedLocation.set({
-			lat: null,
-			lng: null,
-			elevation: null,
-			error: error.message,
-			locationName: null,
-			loading: false
-		});
-		return { error: error.message };
-	} finally {
-		// This ensures loading is always set to false, regardless of success or failure.
-		setLocationLoading(false);
-	}
+        selectedLocation.set(finalState);
+        return finalState;
+    } catch (error) {
+        console.error('Error updating selected location:', error);
+        selectedLocation.set({
+            lat: null,
+            lng: null,
+            elevation: null,
+            error: error.message,
+            locationName: null,
+            loading: false
+        });
+        return { error: error.message };
+    } finally {
+        setLocationLoading(false);
+    }
 }
 
 // Add distance calculation functions
