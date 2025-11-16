@@ -13,7 +13,6 @@ const CACHE_CONFIG = {
 const API_PARAM_CONFIG = {
 	'/api/get-weather': ['location'],
 	'/api/water-stations': [],
-	'/api/elevation': ['lat', 'lng'],
 	'/api/tropicalCyclone-tracker': []
 };
 
