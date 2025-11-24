@@ -158,7 +158,7 @@ export const weatherLayers = [
         group: 'Weather',
         exclusive: true,
         createLayer: async (L) => createPagasaSatelliteLayer(L),
-        updateInterval: 5000, // 1 hour
+        updateInterval: 900000,
         updateLayer: async (layer) => {
             const baseUrl =
                 'https://src.meteopilipinas.gov.ph/repo/mtsat-colored/24hour/latest-him-colored-hourly.gif';
