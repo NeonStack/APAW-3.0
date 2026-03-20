@@ -4,11 +4,15 @@ import { json, error } from '@sveltejs/kit';
 import { building } from '$app/environment';
 import { paramChecker } from '$lib/utils/api/paramChecker';
 
-const ALLOWED_ORIGIN = ['https://apawph.vercel.app', 'http://localhost:5173', 'https://apawph-development.vercel.app'];
-const EXCEPTIONS = ['/api/update-weather'];
+const ALLOWED_ORIGIN = [
+	'https://apawph.vercel.app',
+	'http://localhost:5173',
+	'https://apawph-development.vercel.app'
+];
+const EXCEPTIONS = ['/api/update-weather', '/api/automated-flood-detection'];
 const CACHE_CONFIG = {
-    '/api/get-weather': 'public, max-age=300, s-maxage=900', // 15 minutes
-    '/api/water-stations': 'public, max-age=900, s-maxage=1800' // 30 minutes
+	'/api/get-weather': 'public, max-age=300, s-maxage=900', // 15 minutes
+	'/api/water-stations': 'public, max-age=900, s-maxage=1800' // 30 minutes
 };
 const API_PARAM_CONFIG = {
 	'/api/get-weather': ['location'],
@@ -49,9 +53,9 @@ export async function handle({ event, resolve }) {
 	const response = await resolve(event);
 
 	const cacheControl = CACHE_CONFIG[event.url.pathname];
-    if (cacheControl) {
-        response.headers.set('Cache-Control', cacheControl);
-    }
+	if (cacheControl) {
+		response.headers.set('Cache-Control', cacheControl);
+	}
 
 	return response;
 }

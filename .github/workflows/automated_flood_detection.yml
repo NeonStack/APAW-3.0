@@ -1,0 +1,19 @@
+name: Scheduled Automated Flood Detection
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 17 * * *' # 1:00 AM PH
+    - cron: '0 5 * * *' # 1:00 PM PH
+
+jobs:
+  trigger-automated-flood-detection:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Automated Flood Detection Webhook
+        run: |
+          curl -X POST \
+          -H "Authorization: Bearer ${{ secrets.JOB_TRIGGER_SECRET }}" \
+          -H "Content-Type: application/json" \
+          -d '{"trigger_source":"github-actions"}' \
+          "${{ secrets.AUTOMATED_FLOOD_WEBHOOK_URL }}"
