@@ -7,7 +7,14 @@ const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
 const VISUAL_CROSSING_API_KEY = process.env.VISUAL_CROSSING_API_KEY;
 const JOB_TRIGGER_SECRET = process.env.JOB_TRIGGER_SECRET;
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+let supabaseClient = null;
+
+function getSupabaseClient() {
+	if (!supabaseClient) {
+		supabaseClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+	}
+	return supabaseClient;
+}
 
 const NCR_LOCATIONS = [
 	{ name: 'Manila', lat: 14.604595, lon: 120.982569 },
@@ -119,7 +126,9 @@ export async function POST({ request }) {
 			}
 
 			if (recordsToUpsert.length > 0) {
-				const { error: upsertError } = await supabase.from(TARGET_TABLE).upsert(recordsToUpsert);
+				const { error: upsertError } = await getSupabaseClient()
+					.from(TARGET_TABLE)
+					.upsert(recordsToUpsert);
 				if (upsertError) {
 					throw new Error(`Supabase upsert error for ${location.name}: ${upsertError.message}`);
 				}
@@ -135,7 +144,10 @@ export async function POST({ request }) {
 		// 5. --- LONG-TERM DATA RETENTION ---
 		const threeYearsAgo = new Date();
 		threeYearsAgo.setFullYear(threeYearsAgo.getFullYear() - 3);
-		await supabase.from(TARGET_TABLE).delete().lt('datetime', threeYearsAgo.toISOString());
+		await getSupabaseClient()
+			.from(TARGET_TABLE)
+			.delete()
+			.lt('datetime', threeYearsAgo.toISOString());
 		console.log('Successfully pruned data older than 3 years.');
 		jobSummary.push({ task: 'pruning', status: 'success' });
 
