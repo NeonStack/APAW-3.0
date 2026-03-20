@@ -11,9 +11,31 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Trigger Automated Flood Detection Webhook
+        env:
+          TARGET_URL: ${{ secrets.AUTOMATED_FLOOD_WEBHOOK_URL }}
+          JOB_SECRET: ${{ secrets.JOB_TRIGGER_SECRET }}
         run: |
-          curl -X POST \
-          -H "Authorization: Bearer ${{ secrets.JOB_TRIGGER_SECRET }}" \
-          -H "Content-Type: application/json" \
-          -d '{"trigger_source":"github-actions"}' \
-          "${{ secrets.AUTOMATED_FLOOD_WEBHOOK_URL }}"
+          set -euo pipefail
+
+          echo "Triggering: ${TARGET_URL}"
+
+          HTTP_CODE=$(curl --silent --show-error --location \
+            --max-time 120 \
+            --retry 2 \
+            --retry-delay 3 \
+            --write-out "%{http_code}" \
+            --output response_body.json \
+            --request POST \
+            --header "Authorization: Bearer ${JOB_SECRET}" \
+            --header "Content-Type: application/json" \
+            --header "User-Agent: github-actions-webhook" \
+            --data '{"trigger_source":"github-actions"}' \
+            "${TARGET_URL}")
+
+          echo "HTTP status: ${HTTP_CODE}"
+          echo "Response preview:" && head -c 800 response_body.json && echo
+
+          if [ "${HTTP_CODE}" -lt 200 ] || [ "${HTTP_CODE}" -ge 300 ]; then
+            echo "Webhook failed with non-2xx status."
+            exit 1
+          fi
