@@ -1,15 +1,6 @@
 import { json } from '@sveltejs/kit';
 import { createClient } from '@supabase/supabase-js';
 
-const HF_API_URL = 'https://hunterexist2-apaw-hourly-docker-2.hf.space/predict_flood_with_data';
-const WATER_STATIONS_API_URL =
-	'https://pasig-marikina-tullahanffws.pagasa.dost.gov.ph/water/main_list.do';
-const TARGET_TABLE = 'automated_flood_detection';
-const COORDINATES_TABLE = 'automated_detection_locations';
-const MAX_CONCURRENCY = 2;
-const MAX_RETRIES = 2;
-const UPSERT_BATCH_SIZE = 10;
-
 import {
 	SUPABASE_URL,
 	SUPABASE_SERVICE_KEY,
@@ -17,6 +8,15 @@ import {
 	APAW_HF_API_KEY,
 	VITE_HF_TOKEN
 } from '$env/static/private';
+
+const HF_BATCH_API_URL =
+	'https://hunterexist2-apaw-hourly-docker-2.hf.space/predict_flood_with_data_batch_persist';
+const WATER_STATIONS_API_URL =
+	'https://pasig-marikina-tullahanffws.pagasa.dost.gov.ph/water/main_list.do';
+const COORDINATES_TABLE = 'automated_detection_locations';
+const MAX_CONCURRENCY = 2;
+const MAX_RETRIES = 2;
+const HF_BATCH_TIMEOUT_MS = 180000;
 
 let supabaseClient = null;
 
@@ -27,7 +27,25 @@ function getSupabaseClient() {
 	return supabaseClient;
 }
 
-const PRECONFIGURED_COORDINATES = [];
+function msSince(startedAt) {
+	return Date.now() - startedAt;
+}
+
+function sleep(ms) {
+	return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function normalizeSecret(value) {
+	if (typeof value !== 'string') return '';
+	const trimmed = value.trim();
+	if (
+		(trimmed.startsWith('"') && trimmed.endsWith('"')) ||
+		(trimmed.startsWith("'") && trimmed.endsWith("'"))
+	) {
+		return trimmed.slice(1, -1).trim();
+	}
+	return trimmed;
+}
 
 function cleanWaterLevel(wl) {
 	if (typeof wl !== 'string') return wl;
@@ -71,20 +89,32 @@ function parseIds(value) {
 		.filter(Boolean);
 }
 
-function sleep(ms) {
-	return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-function normalizeSecret(value) {
-	if (typeof value !== 'string') return '';
-	const trimmed = value.trim();
-	if (
-		(trimmed.startsWith('\"') && trimmed.endsWith('\"')) ||
-		(trimmed.startsWith("'") && trimmed.endsWith("'"))
-	) {
-		return trimmed.slice(1, -1).trim();
+function normalizeStaticParams(rawValue) {
+	let parsed = rawValue;
+	if (typeof parsed === 'string') {
+		try {
+			parsed = JSON.parse(parsed);
+		} catch {
+			parsed = null;
+		}
 	}
-	return trimmed;
+	if (!parsed || typeof parsed !== 'object') return null;
+
+	const output = {
+		elevation_m: toNumberOrNull(parsed.elevation_m),
+		dist_to_nearest_river_m: toNumberOrNull(parsed.dist_to_nearest_river_m),
+		dist_to_river_m: toNumberOrNull(parsed.dist_to_river_m),
+		dist_to_stream_m: toNumberOrNull(parsed.dist_to_stream_m),
+		dist_to_canal_m: toNumberOrNull(parsed.dist_to_canal_m),
+		dist_to_drain_m: toNumberOrNull(parsed.dist_to_drain_m),
+		dist_to_ditch_m: toNumberOrNull(parsed.dist_to_ditch_m),
+		waterway_elevation_m: toNumberOrNull(parsed.waterway_elevation_m),
+		elevation_diff_to_waterway_m: toNumberOrNull(parsed.elevation_diff_to_waterway_m),
+		distance_to_water_m: toNumberOrNull(parsed.distance_to_water_m)
+	};
+
+	const hasAnyValue = Object.values(output).some((value) => value !== null);
+	return hasAnyValue ? output : null;
 }
 
 async function runWithConcurrency(items, concurrency, worker) {
@@ -118,7 +148,6 @@ async function fetchElevation(lat, lng) {
 		throw new Error('Invalid data format from Open-Meteo.');
 	} catch (error) {
 		console.warn(`Could not fetch elevation from Open-Meteo: ${error.message}. Falling back...`);
-
 		try {
 			const fallbackResponse = await fetch(
 				`https://api.opentopodata.org/v1/srtm30m?locations=${lat},${lng}`
@@ -196,10 +225,7 @@ async function fetchConfiguredCoordinates() {
 			.order('location_name', { ascending: true });
 
 		if (fallbackQuery.error) {
-			console.warn(
-				`[automated-flood-detection] Could not load coordinates from ${COORDINATES_TABLE}. Using fallback list. Error: ${fallbackQuery.error.message}`
-			);
-			return PRECONFIGURED_COORDINATES;
+			throw new Error(`Could not load coordinates: ${fallbackQuery.error.message}`);
 		}
 
 		data = fallbackQuery.data;
@@ -212,12 +238,7 @@ async function fetchConfiguredCoordinates() {
 			location_name: String(row.location_name ?? '').trim(),
 			lat: Number(row.latitude),
 			lon: Number(row.longitude),
-			static_params:
-				row && typeof row.static_params === 'object' && row.static_params !== null
-					? row.static_params
-					: null,
-			static_params_version: row?.static_params_version ?? null,
-			static_params_computed_at: row?.static_params_computed_at ?? null
+			static_params: normalizeStaticParams(row?.static_params)
 		}))
 		.filter(
 			(row) =>
@@ -227,75 +248,10 @@ async function fetchConfiguredCoordinates() {
 				Number.isFinite(row.lon)
 		);
 
-	if (configured.length === 0) {
-		console.warn(
-			`[/automated-flood-detection] ${COORDINATES_TABLE} has no valid active rows. Using fallback list.`
-		);
-		return PRECONFIGURED_COORDINATES;
-	}
-
 	return configured;
 }
 
-async function requestPredictionWithRetry(payload) {
-	let lastError = null;
-
-	for (let attempt = 0; attempt <= MAX_RETRIES; attempt += 1) {
-		try {
-			const hfToken = normalizeSecret(VITE_HF_TOKEN);
-
-			const response = await fetch(HF_API_URL, {
-				method: 'POST',
-				headers: {
-					Authorization: `Bearer ${hfToken}`,
-					'Content-Type': 'application/json'
-				},
-				body: JSON.stringify(payload)
-			});
-
-			let result;
-			try {
-				result = await response.json();
-			} catch {
-				result = { message: 'Invalid JSON response from prediction service.' };
-			}
-
-			const isInvalidResponse =
-				!response.ok || result.status === 'error' || result.status === 'invalid';
-			if (!isInvalidResponse) {
-				return { ok: true, result };
-			}
-
-			const retryable = response.status >= 500 || response.status === 429;
-			lastError = {
-				message: result.message || 'Prediction service returned an error.',
-				status: response.status,
-				result
-			};
-
-			if (!retryable || attempt === MAX_RETRIES) {
-				return { ok: false, error: lastError };
-			}
-		} catch (error) {
-			lastError = {
-				message: error.message || 'Network error while requesting prediction service.'
-			};
-			if (attempt === MAX_RETRIES) {
-				return { ok: false, error: lastError };
-			}
-		}
-
-		const backoffMs = 1000 * 2 ** attempt;
-		await sleep(backoffMs);
-	}
-
-	return {
-		ok: false,
-		error: lastError || { message: 'Unknown prediction error.' }
-	};
-}
-
-function pickCoordinates(controls, sourceCoordinates = PRECONFIGURED_COORDINATES) {
+function pickCoordinates(controls, sourceCoordinates) {
 	let selected = [...sourceCoordinates];
 	if (controls.ids.length > 0) {
 		const idSet = new Set(controls.ids);
@@ -310,201 +266,115 @@ function pickCoordinates(controls, sourceCoordinates = PRECONFIGURED_COORDINATES
 	return selected;
 }
 
-function normalizePredictionResponse(result) {
-	if (Array.isArray(result) && result.length > 0) {
-		return result[0];
-	}
-	return result;
-}
+async function requestBatchPredictionWithRetry(payload, runId = 'n/a') {
+	let lastError = null;
 
-function deriveRiskLevelFromProbability(probability) {
-	if (probability === null) return null;
-	const percentage = probability * 100;
-	if (percentage <= 50) return 'Low Flood Risk';
-	if (percentage <= 60) return 'Moderate Flood Risk';
-	if (percentage <= 80) return 'High Flood Risk';
-	return 'Very High Flood Risk';
-}
+	for (let attempt = 0; attempt <= MAX_RETRIES; attempt += 1) {
+		const attemptStartedAt = Date.now();
+		const controller = new AbortController();
+		const timeoutId = setTimeout(() => controller.abort(), HF_BATCH_TIMEOUT_MS);
 
-function deriveDailyMetrics(day) {
-	const hourlyForecast = Array.isArray(day?.hourly_forecast) ? day.hourly_forecast : [];
-	const probabilities = hourlyForecast
-		.map((hour) => toNumberOrNull(hour?.final_prediction?.flood_probability))
-		.filter((value) => value !== null);
+		try {
+			const hfToken = normalizeSecret(VITE_HF_TOKEN);
+			const payloadText = JSON.stringify(payload);
+			console.log(
+				`[automated-flood-detection] run_id=${runId} hf_batch attempt=${attempt + 1} payload_bytes=${payloadText.length} timeout_ms=${HF_BATCH_TIMEOUT_MS} start`
+			);
 
-	const derivedProbability =
-		probabilities.length > 0
-			? Math.max(...probabilities)
-			: toNumberOrNull(day?.flood_probability ?? day?.probability ?? day?.chance_of_flood);
+			const headersStartedAt = Date.now();
+			const response = await fetch(HF_BATCH_API_URL, {
+				method: 'POST',
+				headers: {
+					Authorization: `Bearer ${hfToken}`,
+					'Content-Type': 'application/json'
+				},
+				body: payloadText,
+				signal: controller.signal
+			});
 
-	const derivedRiskLevel =
-		day?.risk_level ?? day?.flood_risk_level ?? deriveRiskLevelFromProbability(derivedProbability);
+			const headersMs = msSince(headersStartedAt);
+			const contentLength = response.headers.get('content-length') ?? 'unknown';
+			console.log(
+				`[automated-flood-detection] run_id=${runId} hf_batch attempt=${attempt + 1} headers_received_ms=${headersMs} status=${response.status} content_length=${contentLength}`
+			);
 
-	const floodedHours = hourlyForecast.filter(
-		(hour) => Number(hour?.final_prediction?.is_flooded) === 1
-	).length;
+			const bodyStartedAt = Date.now();
+			const resultText = await response.text();
+			const bodyMs = msSince(bodyStartedAt);
+			console.log(
+				`[automated-flood-detection] run_id=${runId} hf_batch attempt=${attempt + 1} body_read_ms=${bodyMs} body_bytes=${resultText.length}`
+			);
 
-	return {
-		riskLevel: derivedRiskLevel,
-		floodProbability: derivedProbability,
-		floodedHours,
-		hourlyCount: hourlyForecast.length
-	};
-}
+			let result;
+			try {
+				result = resultText ? JSON.parse(resultText) : {};
+			} catch (parseError) {
+				console.warn(
+					`[automated-flood-detection] run_id=${runId} hf_batch attempt=${attempt + 1} body_parse_failed name=${parseError.name ?? 'Error'} message=${parseError.message}`
+				);
+				result = {
+					status: 'error',
+					message: 'Invalid JSON response from batch prediction service.'
+				};
+			}
 
-function summarizeForecastDay(day) {
-	const metrics = deriveDailyMetrics(day);
-	const hourlyForecast = Array.isArray(day?.hourly_forecast) ? day.hourly_forecast : [];
-	let maxPredictedHeightCm = null;
-	for (const hour of hourlyForecast) {
-		const value = toNumberOrNull(hour?.final_prediction?.predicted_height_cm);
-		if (value === null) continue;
-		if (maxPredictedHeightCm === null || value > maxPredictedHeightCm) {
-			maxPredictedHeightCm = value;
+			const isInvalidResponse = !response.ok || result.status === 'error';
+			if (!isInvalidResponse) {
+				console.log(
+					`[automated-flood-detection] run_id=${runId} hf_batch attempt=${attempt + 1} success total_attempt_ms=${msSince(attemptStartedAt)}`
+				);
+				return { ok: true, result };
+			}
+
+			const retryable = response.status >= 500 || response.status === 429;
+			lastError = {
+				message: result.message || 'Batch prediction service returned an error.',
+				status: response.status,
+				result
+			};
+
+			console.warn(
+				`[automated-flood-detection] run_id=${runId} hf_batch attempt=${attempt + 1} failed status=${response.status} retryable=${retryable} total_attempt_ms=${msSince(attemptStartedAt)} message=${lastError.message}`
+			);
+
+			if (!retryable || attempt === MAX_RETRIES) {
+				return { ok: false, error: lastError };
+			}
+		} catch (error) {
+			const wasTimeout = error?.name === 'AbortError';
+			lastError = {
+				message: wasTimeout
+					? `Batch prediction request timed out after ${HF_BATCH_TIMEOUT_MS}ms.`
+					: error.message || 'Network error while requesting batch prediction service.'
+			};
+			console.warn(
+				`[automated-flood-detection] run_id=${runId} hf_batch attempt=${attempt + 1} transport_error timeout=${wasTimeout} total_attempt_ms=${msSince(attemptStartedAt)} message=${lastError.message}`
+			);
+			if (attempt === MAX_RETRIES) {
+				return { ok: false, error: lastError };
+			}
+		} finally {
+			clearTimeout(timeoutId);
 		}
-	}
 
-	return {
-		date: day?.date ?? day?.datetime ?? null,
-		risk_level: metrics.riskLevel,
-		flood_probability: metrics.floodProbability,
-		flooded_hours: metrics.floodedHours,
-		hourly_count: metrics.hourlyCount,
-		max_predicted_height_cm: maxPredictedHeightCm
-	};
-}
-
-function summarizeModelPayload(prediction) {
-	return {
-		status: prediction?.status ?? null,
-		model_version: prediction?.model_version ?? null,
-		warnings: Array.isArray(prediction?.warnings) ? prediction.warnings : []
-	};
-}
-
-function sanitizeStaticParamsForStorage(params) {
-	if (!params || typeof params !== 'object') return null;
-
-	const output = {
-		elevation_m: toNumberOrNull(params.elevation_m),
-		dist_to_nearest_river_m: toNumberOrNull(params.dist_to_nearest_river_m),
-		dist_to_river_m: toNumberOrNull(params.dist_to_river_m),
-		dist_to_stream_m: toNumberOrNull(params.dist_to_stream_m),
-		dist_to_canal_m: toNumberOrNull(params.dist_to_canal_m),
-		dist_to_drain_m: toNumberOrNull(params.dist_to_drain_m),
-		dist_to_ditch_m: toNumberOrNull(params.dist_to_ditch_m),
-		waterway_elevation_m: toNumberOrNull(params.waterway_elevation_m),
-		elevation_diff_to_waterway_m: toNumberOrNull(params.elevation_diff_to_waterway_m),
-		distance_to_water_m: toNumberOrNull(params.distance_to_water_m)
-	};
-
-	const hasAnyValue = Object.values(output).some((value) => value !== null);
-	if (!hasAnyValue) return null;
-
-	return output;
-}
-
-function extractStaticParamsFromPrediction(prediction) {
-	if (!prediction || typeof prediction !== 'object') return null;
-	const candidate =
-		prediction?.static_params?.values ??
-		prediction?.static_params ??
-		prediction?.meta?.static_params ??
-		null;
-	return sanitizeStaticParamsForStorage(candidate);
-}
-
-async function persistComputedStaticParams(supabase, rows, runId) {
-	if (!Array.isArray(rows) || rows.length === 0) return;
-
-	const payload = rows
-		.filter((row) => row?.coordinate_id && row?.static_params)
-		.map((row) => ({
-			coordinate_id: row.coordinate_id,
-			static_params: row.static_params,
-			static_params_version: row.static_params_version || 'v1',
-			static_params_computed_at: row.static_params_computed_at || new Date().toISOString(),
-			is_active: true
-		}));
-
-	if (payload.length === 0) return;
-
-	const { error } = await supabase.from(COORDINATES_TABLE).upsert(payload, {
-		onConflict: 'coordinate_id'
-	});
-
-	if (error) {
-		console.warn(
-			`[automated-flood-detection] run_id=${runId} could not persist static_params: ${error.message}`
-		);
-	}
-}
-
-async function upsertRowsInBatches(supabase, rows, runId) {
-	const totalBatches = Math.ceil(rows.length / UPSERT_BATCH_SIZE);
-	for (let index = 0; index < rows.length; index += UPSERT_BATCH_SIZE) {
-		const batchNumber = Math.floor(index / UPSERT_BATCH_SIZE) + 1;
-		const batch = rows.slice(index, index + UPSERT_BATCH_SIZE);
-		const { error } = await supabase
-			.from(TARGET_TABLE)
-			.upsert(batch, { onConflict: 'coordinate_id,forecast_date,request_date' });
-
+		const backoffMs = 1000 * 2 ** attempt;
 		console.log(
-			`[automated-flood-detection] run_id=${runId} upsert batch ${batchNumber}/${totalBatches} size=${batch.length} error=${error ? error.message : 'none'}`
+			`[automated-flood-detection] run_id=${runId} hf_batch retrying_in_ms=${backoffMs} next_attempt=${attempt + 2}`
 		);
-
-		if (error) return error;
+		await sleep(backoffMs);
 	}
 
-	return null;
-}
-
-function flattenForecastRows({
-	coordinate,
-	runId,
-	triggeredAt,
-	triggerSource,
-	inputDate,
-	prediction
-}) {
-	const forecastByDay = Array.isArray(prediction?.forecast_by_day)
-		? prediction.forecast_by_day
-		: [];
-
-	return forecastByDay.map((day, index) => {
-		const metrics = deriveDailyMetrics(day);
-		return {
-			run_id: runId,
-			triggered_at: triggeredAt,
-			trigger_source: triggerSource,
-			coordinate_id: coordinate.coordinate_id,
-			location_name: coordinate.location_name,
-			latitude: coordinate.lat,
-			longitude: coordinate.lon,
-			request_date: inputDate,
-			forecast_date: day.date || day.datetime || null,
-			forecast_index: index,
-			risk_level: metrics.riskLevel,
-			flood_probability: metrics.floodProbability,
-			forecast_payload: summarizeForecastDay(day),
-			model_payload: summarizeModelPayload(prediction)
-		};
-	});
+	return {
+		ok: false,
+		error: lastError || { message: 'Unknown batch prediction error.' }
+	};
 }
 
 export async function POST({ request, url }) {
+	const requestStartedAt = Date.now();
 	const authHeader = request.headers.get('Authorization') ?? request.headers.get('authorization');
 	const receivedToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7).trim() : null;
 	const expectedToken = JOB_TRIGGER_SECRET?.trim();
-
-	console.log('[automated-flood-detection] Received authHeader:', authHeader);
-	console.log('[automated-flood-detection] Expected token:', `Bearer ${expectedToken}`);
-	console.log('[automated-flood-detection] Auth debug:', {
-		receivedLen: receivedToken?.length ?? 0,
-		expectedLen: expectedToken?.length ?? 0,
-		startsWithBearer: Boolean(authHeader?.startsWith('Bearer ')),
-		isMatch: receivedToken === expectedToken
-	});
 
 	if (receivedToken == null || receivedToken !== expectedToken) {
 		return json({ error: 'Unauthorized: Invalid or missing secret token.' }, { status: 401 });
@@ -536,8 +406,19 @@ export async function POST({ request, url }) {
 		triggerSource: String(body.trigger_source ?? 'github-actions')
 	};
 
-	const availableCoordinates = await fetchConfiguredCoordinates();
+	let availableCoordinates = [];
+	const coordinatesLoadStartedAt = Date.now();
+	try {
+		availableCoordinates = await fetchConfiguredCoordinates();
+	} catch (error) {
+		return json(
+			{ error: 'Failed to load configured coordinates.', details: error.message },
+			{ status: 500 }
+		);
+	}
 	const selectedCoordinates = pickCoordinates(controls, availableCoordinates);
+	const coordinatesLoadMs = msSince(coordinatesLoadStartedAt);
+
 	if (selectedCoordinates.length === 0) {
 		return json(
 			{
@@ -561,19 +442,9 @@ export async function POST({ request, url }) {
 
 	const runId = crypto.randomUUID();
 	const triggeredAt = new Date().toISOString();
-	console.log('[automated-flood-detection] HF credential debug:', {
-		apiKeyLen: normalizedHfApiKey.length,
-		apiKeyPrefix: normalizedHfApiKey.slice(0, 4),
-		apiKeySuffix: normalizedHfApiKey.slice(-4),
-		hfTokenLen: normalizedHfToken.length,
-		hfTokenPrefix: normalizedHfToken.slice(0, 4),
-		hfTokenSuffix: normalizedHfToken.slice(-4)
-	});
-	console.log(
-		`[automated-flood-detection] run_id=${runId} starting with ${selectedCoordinates.length} coordinates`
-	);
 
 	let waterStationData = [];
+	const waterStationsStartedAt = Date.now();
 	try {
 		waterStationData = await fetchWaterStations();
 	} catch (error) {
@@ -587,153 +458,134 @@ export async function POST({ request, url }) {
 			{ status: 503 }
 		);
 	}
+	const waterStationsFetchMs = msSince(waterStationsStartedAt);
 
-	const perCoordinateResults = await runWithConcurrency(
+	const coordinatePrepStartedAt = Date.now();
+	const preparedCoordinates = await runWithConcurrency(
 		selectedCoordinates,
 		MAX_CONCURRENCY,
 		async (coordinate) => {
-			const base = {
-				coordinate_id: coordinate.coordinate_id,
-				location_name: coordinate.location_name,
-				lat: coordinate.lat,
-				lon: coordinate.lon
-			};
-
-			const precomputedStaticParams = sanitizeStaticParamsForStorage(coordinate.static_params);
+			const precomputedStaticParams = normalizeStaticParams(coordinate.static_params);
 			let elevation = toNumberOrNull(precomputedStaticParams?.elevation_m);
-
 			if (elevation === null) {
 				const elevationResult = await fetchElevation(coordinate.lat, coordinate.lon);
 				if (elevationResult.error) {
 					return {
-						...base,
+						coordinate_id: coordinate.coordinate_id,
+						location_name: coordinate.location_name,
+						lat: coordinate.lat,
+						lon: coordinate.lon,
 						status: 'failed',
-						error: elevationResult.error
+						error: elevationResult.error,
+						error_payload: null
 					};
 				}
 				elevation = toNumberOrNull(elevationResult.elevation);
 			}
 
-			const payload = {
-				latitude: coordinate.lat,
-				longitude: coordinate.lon,
-				date_str: controls.inputDate,
-				elevation_m: elevation,
-				water_station_data: waterStationData,
-				api_key: normalizedHfApiKey,
-				precomputed_static_params: precomputedStaticParams
-			};
-
-			const predictionResponse = await requestPredictionWithRetry(payload);
-			if (!predictionResponse.ok) {
+			if (elevation === null) {
 				return {
-					...base,
+					coordinate_id: coordinate.coordinate_id,
+					location_name: coordinate.location_name,
+					lat: coordinate.lat,
+					lon: coordinate.lon,
 					status: 'failed',
-					error: predictionResponse.error?.message || 'Prediction request failed.',
-					error_payload: predictionResponse.error?.result || null
+					error: 'Could not resolve elevation for coordinate.',
+					error_payload: null
 				};
 			}
-
-			console.log(`[automated-flood-detection] run_id=  prediction successful`);
-			const normalizedPrediction = normalizePredictionResponse(predictionResponse.result);
-			const firstForecastDay = normalizedPrediction?.forecast_by_day?.[0];
-			console.log('[automated-flood-detection] HF response sample:', {
-				coordinate_id: coordinate.coordinate_id,
-				status: normalizedPrediction?.status ?? null,
-				firstDayKeys: firstForecastDay ? Object.keys(firstForecastDay) : [],
-				firstHourFinalPrediction: firstForecastDay?.hourly_forecast?.[0]?.final_prediction ?? null
-			});
-			const rows = flattenForecastRows({
-				coordinate,
-				runId,
-				triggeredAt,
-				triggerSource: controls.triggerSource,
-				inputDate: controls.inputDate,
-				prediction: normalizedPrediction
-			});
-
-			if (rows.length === 0) {
-				return {
-					...base,
-					status: 'failed',
-					error: 'Prediction completed but forecast_by_day was empty.'
-				};
-			}
-
-			const computedStaticParams = extractStaticParamsFromPrediction(normalizedPrediction);
 
 			return {
-				...base,
-				status: 'success',
-				rows,
-				static_params:
-					computedStaticParams ||
-					(precomputedStaticParams
-						? { ...precomputedStaticParams, elevation_m: elevation }
-						: sanitizeStaticParamsForStorage({ elevation_m: elevation })),
-				static_params_version: 'v1',
-				static_params_computed_at: new Date().toISOString()
+				coordinate_id: coordinate.coordinate_id,
+				location_name: coordinate.location_name,
+				lat: coordinate.lat,
+				lon: coordinate.lon,
+				elevation,
+				precomputed_static_params: precomputedStaticParams,
+				status: 'ready'
 			};
 		}
 	);
 
-	const rowsToUpsert = perCoordinateResults
-		.filter((item) => item.status === 'success')
-		.flatMap((item) => item.rows);
+	const coordinatePrepMs = msSince(coordinatePrepStartedAt);
+	const elevationFailures = preparedCoordinates.filter((item) => item.status === 'failed');
+	const readyCoordinates = preparedCoordinates.filter((item) => item.status === 'ready');
 
-	console.log(
-		`[automated-flood-detection] run_id=${runId} preparing to upsert ${rowsToUpsert.length} rows`
-	);
+	const batchPayload = {
+		run_id: runId,
+		trigger_source: controls.triggerSource,
+		date_str: controls.inputDate,
+		water_station_data: waterStationData,
+		api_key: normalizedHfApiKey,
+		coordinates: readyCoordinates.map((coordinate) => ({
+			coordinate_id: coordinate.coordinate_id,
+			location_name: coordinate.location_name,
+			latitude: coordinate.lat,
+			longitude: coordinate.lon,
+			elevation_m: coordinate.elevation,
+			precomputed_static_params: coordinate.precomputed_static_params
+		}))
+	};
 
-	const supabase = getSupabaseClient();
+	const hfBatchStartedAt = Date.now();
+	const batchPredictionResponse = await requestBatchPredictionWithRetry(batchPayload, runId);
+	const hfBatchRequestMs = msSince(hfBatchStartedAt);
 
-	if (rowsToUpsert.length > 0) {
-		const upsertError = await upsertRowsInBatches(supabase, rowsToUpsert, runId);
-		if (upsertError) {
-			return json(
-				{
-					run_id: runId,
-					status: 'error',
-					message: 'Failed to upsert automated flood detection rows.',
-					details: upsertError.message
-				},
-				{ status: 500 }
-			);
-		}
+	if (!batchPredictionResponse.ok) {
+		return json(
+			{
+				run_id: runId,
+				status: 'error',
+				message: 'Batch prediction request failed.',
+				details: batchPredictionResponse.error?.message || 'Unknown batch prediction error.',
+				elevation_failures: elevationFailures
+			},
+			{ status: 502 }
+		);
 	}
 
-	await persistComputedStaticParams(
-		supabase,
-		perCoordinateResults.filter((item) => item.status === 'success'),
-		runId
-	);
+	const hfSummary = batchPredictionResponse.result?.summary ?? {};
+	const hfFailures = Array.isArray(batchPredictionResponse.result?.failures)
+		? batchPredictionResponse.result.failures
+		: [];
+	const allFailures = [...elevationFailures, ...hfFailures];
+	const totalMs = msSince(requestStartedAt);
 
-	const failedItems = perCoordinateResults.filter((item) => item.status === 'failed');
 	const summary = {
-		run_id: runId,
+		run_id: batchPredictionResponse.result?.run_id ?? runId,
 		triggered_at: triggeredAt,
 		trigger_source: controls.triggerSource,
 		request_date: controls.inputDate,
 		concurrency: MAX_CONCURRENCY,
 		total_available: availableCoordinates.length,
 		selected_count: selectedCoordinates.length,
-		succeeded_count: perCoordinateResults.length - failedItems.length,
-		failed_count: failedItems.length,
-		inserted_or_updated_rows: rowsToUpsert.length,
-		static_params_persist_attempted: perCoordinateResults.filter(
-			(item) => item.status === 'success'
-		).length
+		succeeded_count: Number(hfSummary.success ?? 0),
+		failed_count: allFailures.length,
+		inserted_or_updated_rows: Number(hfSummary.rows_upserted ?? 0),
+		static_params_persist_attempted: Number(hfSummary.success ?? 0),
+		static_params_persisted: Number(hfSummary.static_params_persisted ?? 0),
+		static_params_persist_error: null,
+		persistence_mode: 'huggingface-direct',
+		timing_ms: {
+			total: totalMs,
+			coordinates_load: coordinatesLoadMs,
+			water_stations_fetch: waterStationsFetchMs,
+			coordinate_prep: coordinatePrepMs,
+			hf_batch_request: hfBatchRequestMs,
+			hf_internal_batch: toNumberOrNull(hfSummary.total_timing_ms),
+			hf_db_write: toNumberOrNull(hfSummary.db_timing_ms)
+		}
 	};
 
-	const httpStatus = failedItems.length > 0 ? 207 : 200;
+	const httpStatus = allFailures.length > 0 ? 207 : 200;
 	return json(
 		{
 			message:
-				failedItems.length > 0
-					? 'Automated flood detection run completed with partial failures.'
-					: 'Automated flood detection run completed successfully.',
+				allFailures.length > 0
+					? 'Automated flood detection run completed with partial failures (HF direct persist).'
+					: 'Automated flood detection run completed successfully (HF direct persist).',
 			summary,
-			failures: failedItems
+			failures: allFailures
 		},
 		{ status: httpStatus }
 	);
