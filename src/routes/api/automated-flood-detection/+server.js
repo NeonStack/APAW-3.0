@@ -5,6 +5,7 @@ const HF_API_URL = 'https://hunterexist2-apaw-hourly-docker-2.hf.space/predict_f
 const WATER_STATIONS_API_URL =
 	'https://pasig-marikina-tullahanffws.pagasa.dost.gov.ph/water/main_list.do';
 const TARGET_TABLE = 'automated_flood_detection';
+const COORDINATES_TABLE = 'automated_detection_locations';
 const MAX_CONCURRENCY = 2;
 const MAX_RETRIES = 2;
 const UPSERT_BATCH_SIZE = 10;
@@ -26,14 +27,7 @@ function getSupabaseClient() {
 	return supabaseClient;
 }
 
-const PRECONFIGURED_COORDINATES = [
-	{
-		coordinate_id: 'caloocan-north',
-		location_name: 'Caloocan (North)',
-		lat: 14.774679,
-		lon: 121.052984
-	}
-];
+const PRECONFIGURED_COORDINATES = [];
 
 function cleanWaterLevel(wl) {
 	if (typeof wl !== 'string') return wl;
@@ -182,6 +176,46 @@ async function fetchWaterStations() {
 		.filter(isStationFunctioning);
 }
 
+async function fetchConfiguredCoordinates() {
+	const supabase = getSupabaseClient();
+	const { data, error } = await supabase
+		.from(COORDINATES_TABLE)
+		.select('coordinate_id, location_name, latitude, longitude, is_active')
+		.order('location_name', { ascending: true });
+
+	if (error) {
+		console.warn(
+			`[automated-flood-detection] Could not load coordinates from ${COORDINATES_TABLE}. Using fallback list. Error: ${error.message}`
+		);
+		return PRECONFIGURED_COORDINATES;
+	}
+
+	const configured = (data ?? [])
+		.filter((row) => row.is_active !== false)
+		.map((row) => ({
+			coordinate_id: String(row.coordinate_id ?? '').trim(),
+			location_name: String(row.location_name ?? '').trim(),
+			lat: Number(row.latitude),
+			lon: Number(row.longitude)
+		}))
+		.filter(
+			(row) =>
+				row.coordinate_id &&
+				row.location_name &&
+				Number.isFinite(row.lat) &&
+				Number.isFinite(row.lon)
+		);
+
+	if (configured.length === 0) {
+		console.warn(
+			`[/automated-flood-detection] ${COORDINATES_TABLE} has no valid active rows. Using fallback list.`
+		);
+		return PRECONFIGURED_COORDINATES;
+	}
+
+	return configured;
+}
+
 async function requestPredictionWithRetry(payload) {
 	let lastError = null;
 
@@ -240,8 +274,8 @@ async function requestPredictionWithRetry(payload) {
 	};
 }
 
-function pickCoordinates(controls) {
-	let selected = [...PRECONFIGURED_COORDINATES];
+function pickCoordinates(controls, sourceCoordinates = PRECONFIGURED_COORDINATES) {
+	let selected = [...sourceCoordinates];
 	if (controls.ids.length > 0) {
 		const idSet = new Set(controls.ids);
 		selected = selected.filter((item) => idSet.has(item.coordinate_id));
@@ -423,13 +457,14 @@ export async function POST({ request, url }) {
 		triggerSource: String(body.trigger_source ?? 'github-actions')
 	};
 
-	const selectedCoordinates = pickCoordinates(controls);
+	const availableCoordinates = await fetchConfiguredCoordinates();
+	const selectedCoordinates = pickCoordinates(controls, availableCoordinates);
 	if (selectedCoordinates.length === 0) {
 		return json(
 			{
 				message: 'No coordinates selected after applying filters.',
 				controls,
-				total_available: PRECONFIGURED_COORDINATES.length
+				total_available: availableCoordinates.length
 			},
 			{ status: 400 }
 		);
@@ -439,7 +474,7 @@ export async function POST({ request, url }) {
 		return json({
 			message: 'Dry run completed.',
 			controls,
-			total_available: PRECONFIGURED_COORDINATES.length,
+			total_available: availableCoordinates.length,
 			selected_count: selectedCoordinates.length,
 			selected_coordinates: selectedCoordinates
 		});
@@ -578,7 +613,7 @@ export async function POST({ request, url }) {
 		trigger_source: controls.triggerSource,
 		request_date: controls.inputDate,
 		concurrency: MAX_CONCURRENCY,
-		total_available: PRECONFIGURED_COORDINATES.length,
+		total_available: availableCoordinates.length,
 		selected_count: selectedCoordinates.length,
 		succeeded_count: perCoordinateResults.length - failedItems.length,
 		failed_count: failedItems.length,
