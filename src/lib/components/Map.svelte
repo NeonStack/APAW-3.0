@@ -301,6 +301,14 @@
 		return 'Low';
 	}
 
+	function getAutomatedPopupRiskLabel(riskLevel, probability) {
+		const raw = String(riskLevel || '').trim();
+		if (raw) return raw;
+
+		const severity = getAutomatedAlertSeverity(riskLevel, probability);
+		return `${severity} Flood Risk`;
+	}
+
 	function getAutomatedAlertColor(riskLevel, probability) {
 		const normalized = String(riskLevel || '').toLowerCase();
 		if (normalized.includes('very high')) return '#dc2626';
@@ -340,6 +348,7 @@
 				const payload = parseForecastPayload(row.forecast_payload);
 				const color = getAutomatedAlertColor(row.risk_level, row.flood_probability);
 				const severity = getAutomatedAlertSeverity(row.risk_level, row.flood_probability);
+				const popupRiskLabel = getAutomatedPopupRiskLabel(row.risk_level, row.flood_probability);
 				const shortSeverity = severity === 'Very High' ? 'V.High' : severity;
 				const probabilityPct = (Number(row.flood_probability) * 100).toFixed(0);
 				const floodHourIndices =
@@ -399,12 +408,12 @@
 					';color:' +
 					color +
 					';">' +
-					severity +
+					popupRiskLabel +
 					'</span>' +
 					'</div>' +
-					'<p class="automated-alert-popup-date">Forecast: ' +
+					'<p class="automated-alert-popup-date"><span>Forecast</span><strong>' +
 					formatForecastDateLabel(row.forecast_date) +
-					'</p>' +
+					'</strong></p>' +
 					'<div class="automated-alert-popup-grid">' +
 					'<div><span class="k">Flood chance</span><span class="v">' +
 					probabilityPct +
@@ -904,18 +913,19 @@
 	}
 
 	:global(.automated-alert-popup .leaflet-popup-content-wrapper) {
-		border-radius: 12px;
+		border-radius: 14px;
 		padding: 0;
 		overflow: hidden;
+		box-shadow: 0 10px 28px rgba(15, 23, 42, 0.16);
 	}
 
 	:global(.automated-alert-popup .leaflet-popup-content) {
 		margin: 0;
-		min-width: 230px;
+		min-width: 250px;
 	}
 
 	:global(.automated-alert-popup-card) {
-		padding: 10px;
+		padding: 12px;
 		background: linear-gradient(180deg, #f8fafc 0%, #ffffff 100%);
 	}
 
@@ -923,43 +933,61 @@
 		display: flex;
 		justify-content: space-between;
 		align-items: flex-start;
-		gap: 8px;
+		gap: 10px;
 	}
 
 	:global(.automated-alert-popup-title) {
 		margin: 0;
-		font-size: 12px;
+		font-size: 13px;
 		font-weight: 700;
 		color: #0f172a;
+		line-height: 1.25;
 	}
 
 	:global(.automated-alert-popup-badge) {
 		border: 1px solid;
 		border-radius: 999px;
-		padding: 2px 7px;
+		padding: 2px 8px;
 		font-size: 10px;
 		font-weight: 700;
-		background: rgba(255, 255, 255, 0.8);
+		background: rgba(255, 255, 255, 0.94);
 		white-space: nowrap;
 	}
 
 	:global(.automated-alert-popup-date) {
-		margin: 6px 0 8px;
+		margin: 8px 0 10px;
 		font-size: 11px;
 		color: #475569;
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		gap: 8px;
+		padding: 7px 8px;
+		border: 1px solid #e2e8f0;
+		border-radius: 8px;
+		background: #ffffff;
+	}
+
+	:global(.automated-alert-popup-date span) {
+		color: #64748b;
+	}
+
+	:global(.automated-alert-popup-date strong) {
+		font-weight: 700;
+		color: #0f172a;
 	}
 
 	:global(.automated-alert-popup-grid) {
 		display: grid;
 		grid-template-columns: 1fr 1fr;
-		gap: 6px;
+		gap: 8px;
 	}
 
 	:global(.automated-alert-popup-grid > div) {
 		display: flex;
 		flex-direction: column;
-		gap: 2px;
-		padding: 6px;
+		gap: 3px;
+		padding: 8px;
 		border: 1px solid #e2e8f0;
 		border-radius: 8px;
 		background: #fff;
@@ -971,20 +999,20 @@
 	}
 
 	:global(.automated-alert-popup-grid .v) {
-		font-size: 11px;
+		font-size: 12px;
 		font-weight: 700;
 		color: #0f172a;
 	}
 
 	:global(.automated-alert-popup-times) {
-		margin-top: 6px;
-		padding: 8px;
+		margin-top: 8px;
+		padding: 9px;
 		border: 1px solid #e2e8f0;
 		border-radius: 8px;
 		background: #fff;
 		display: flex;
 		flex-direction: column;
-		gap: 3px;
+		gap: 4px;
 	}
 
 	:global(.automated-alert-popup-times .k) {

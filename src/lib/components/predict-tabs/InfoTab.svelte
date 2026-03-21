@@ -810,23 +810,23 @@
 
 <div class="info-tab space-y-3">
 	<!-- COMBINED Alerts & Data Status Section -->
-	<div class="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
+	<div class="overflow-hidden rounded-xl border border-gray-200/90 bg-white shadow-sm">
 		<button
 			onclick={() => (alertsExpanded = !alertsExpanded)}
-			class="flex w-full cursor-pointer items-center justify-between p-3 text-left transition-colors hover:bg-gray-50"
+			class="flex w-full cursor-pointer items-center justify-between p-3.5 text-left transition-colors hover:bg-slate-50"
 		>
 			<div class="flex items-center gap-4">
 				{#if activeAlertsCount === 0}
-					<div class="flex h-8 w-8 items-center justify-center rounded-lg bg-green-100">
+					<div class="flex h-9 w-9 items-center justify-center rounded-xl bg-green-100 ring-1 ring-green-200">
 						<Icon icon="mdi:check-circle" class="text-green-600" width="20" />
 					</div>
 				{:else}
-					<div class="flex h-8 w-8 items-center justify-center rounded-lg bg-orange-100">
+					<div class="flex h-9 w-9 items-center justify-center rounded-xl bg-orange-100 ring-1 ring-orange-200">
 						<Icon icon="mdi:alert-circle" class="text-orange-600" width="20" />
 					</div>
 				{/if}
 				<div>
-					<h3 class="text-sm font-bold text-gray-800">Alerts & Data Status</h3>
+					<h3 class="text-sm font-bold tracking-tight text-gray-800">Alerts & Data Status</h3>
 					<p class="text-xs text-gray-500">
 						{#if activeAlertsCount === 0}
 							All systems normal
@@ -846,33 +846,39 @@
 		{#if alertsExpanded}
 			<div class="border-t border-gray-200">
 				<!-- Tab Navigation -->
-				<div class="grid grid-cols-2 gap-1 border-b border-gray-200 bg-gray-50 p-1">
+				<div class="grid grid-cols-2 gap-1.5 border-b border-gray-200 bg-slate-50 p-1.5">
 					<button
 						onclick={() => (activeAlertsTab = 'sources')}
-						class="relative flex cursor-pointer items-center justify-center gap-1 rounded-md px-2 py-2 text-xs font-semibold transition-all"
+						class="relative flex min-h-10 cursor-pointer items-center justify-center gap-1 rounded-lg px-2 py-2 text-xs font-semibold transition-all"
 						class:bg-white={activeAlertsTab === 'sources'}
 						class:text-primary={activeAlertsTab === 'sources'}
 						class:text-gray-600={activeAlertsTab !== 'sources'}
 						class:hover:bg-white={activeAlertsTab !== 'sources'}
+						class:shadow-sm={activeAlertsTab === 'sources'}
 					>
 						{#if activeAlertsTab === 'sources'}
 							<div class="bg-primary absolute right-0 bottom-0 left-0 h-0.5"></div>
 						{/if}
-						<Icon icon="mdi:database-check" width="16" />
+						<span class="flex h-5 w-5 items-center justify-center rounded-md bg-gray-100">
+							<Icon icon="mdi:database-check" width="14" />
+						</span>
 						<span>Sources</span>
 					</button>
 					<button
 						onclick={() => (activeAlertsTab = 'cyclone')}
-						class="relative flex cursor-pointer items-center justify-center gap-1 rounded-md px-2 py-2 text-xs font-semibold transition-all"
+						class="relative flex min-h-10 cursor-pointer items-center justify-center gap-1 rounded-lg px-2 py-2 text-xs font-semibold transition-all"
 						class:bg-white={activeAlertsTab === 'cyclone'}
 						class:text-primary={activeAlertsTab === 'cyclone'}
 						class:text-gray-600={activeAlertsTab !== 'cyclone'}
 						class:hover:bg-white={activeAlertsTab !== 'cyclone'}
+						class:shadow-sm={activeAlertsTab === 'cyclone'}
 					>
 						{#if activeAlertsTab === 'cyclone'}
 							<div class="bg-primary absolute right-0 bottom-0 left-0 h-0.5"></div>
 						{/if}
-						<Icon icon="mdi:weather-hurricane" width="16" />
+						<span class="flex h-5 w-5 items-center justify-center rounded-md bg-gray-100">
+							<Icon icon="mdi:weather-hurricane" width="14" />
+						</span>
 						<span>Cyclones</span>
 						{#if $tropicalCycloneTrackerStore.data?.length > 0}
 							<span
@@ -884,16 +890,19 @@
 					</button>
 					<button
 						onclick={() => (activeAlertsTab = 'advisory')}
-						class="relative flex cursor-pointer items-center justify-center gap-1 rounded-md px-2 py-2 text-xs font-semibold transition-all"
+						class="relative flex min-h-10 cursor-pointer items-center justify-center gap-1 rounded-lg px-2 py-2 text-xs font-semibold transition-all"
 						class:bg-white={activeAlertsTab === 'advisory'}
 						class:text-primary={activeAlertsTab === 'advisory'}
 						class:text-gray-600={activeAlertsTab !== 'advisory'}
 						class:hover:bg-white={activeAlertsTab !== 'advisory'}
+						class:shadow-sm={activeAlertsTab === 'advisory'}
 					>
 						{#if activeAlertsTab === 'advisory'}
 							<div class="bg-primary absolute right-0 bottom-0 left-0 h-0.5"></div>
 						{/if}
-						<Icon icon="mdi:water-alert" width="16" />
+						<span class="flex h-5 w-5 items-center justify-center rounded-md bg-gray-100">
+							<Icon icon="mdi:water-alert" width="14" />
+						</span>
 						<span>Advisory</span>
 						{#if $generalFloodAdvisoryStore.data}
 							<span
@@ -906,16 +915,19 @@
 
 					<button
 						onclick={() => (activeAlertsTab = 'automated')}
-						class="relative flex cursor-pointer items-center justify-center gap-1 rounded-md px-2 py-2 text-xs font-semibold transition-all"
+						class="relative flex min-h-10 cursor-pointer items-center justify-center gap-1 rounded-lg px-2 py-2 text-xs font-semibold transition-all"
 						class:bg-white={activeAlertsTab === 'automated'}
 						class:text-primary={activeAlertsTab === 'automated'}
 						class:text-gray-600={activeAlertsTab !== 'automated'}
 						class:hover:bg-white={activeAlertsTab !== 'automated'}
+						class:shadow-sm={activeAlertsTab === 'automated'}
 					>
 						{#if activeAlertsTab === 'automated'}
 							<div class="bg-primary absolute right-0 bottom-0 left-0 h-0.5"></div>
 						{/if}
-						<Icon icon="mdi:brain" width="16" />
+						<span class="flex h-5 w-5 items-center justify-center rounded-md bg-gray-100">
+							<Icon icon="mdi:brain" width="14" />
+						</span>
 						<span>AI Watch</span>
 						{#if automatedAlertCount > 0}
 							<span
@@ -928,7 +940,7 @@
 				</div>
 
 				<!-- Tab Content -->
-				<div class="bg-gray-50 p-2 md:p-4">
+				<div class="bg-slate-50 p-2 md:p-4">
 					{#if activeAlertsTab === 'sources'}
 						<!-- Data Sources Content -->
 						<div class="space-y-3">
@@ -943,14 +955,20 @@
 										href={source.url}
 										target="_blank"
 										rel="noopener noreferrer"
-										class="group relative rounded-lg border bg-white p-3 shadow-sm transition-all hover:scale-[1.03] hover:shadow-md"
+										class="group relative rounded-xl border bg-white p-3 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md"
 										class:border-gray-200={source.status === 'pending' || source.status === 'idle'}
 										class:border-green-300={source.status === 'success'}
 										class:border-red-300={source.status === 'error'}
 									>
 										<div class="flex items-center gap-3">
 											<div
-												class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-gray-50 p-1.5"
+												class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl p-1.5 ring-1"
+												class:bg-gray-50={source.status === 'pending' || source.status === 'idle'}
+												class:ring-gray-200={source.status === 'pending' || source.status === 'idle'}
+												class:bg-green-50={source.status === 'success'}
+												class:ring-green-200={source.status === 'success'}
+												class:bg-red-50={source.status === 'error'}
+												class:ring-red-200={source.status === 'error'}
 											>
 												{#if source.type === 'img'}
 													<img
@@ -1011,7 +1029,16 @@
 							<div
 								class="rounded-xl border border-sky-200 bg-gradient-to-br from-sky-50 via-white to-blue-50 p-4 shadow-sm"
 							>
-								<p class="text-base font-bold text-[#0c3143]">APAW AI Automated Prediction</p>
+								<div class="mb-2 flex items-center gap-2">
+									<span
+										class="flex h-7 w-7 items-center justify-center rounded-lg bg-white/80 text-sky-700 ring-1 ring-sky-200"
+									>
+										<Icon icon="mdi:brain" width="16" />
+									</span>
+									<p class="text-base font-bold tracking-tight text-[#0c3143]">
+										APAW AI Automated Prediction
+									</p>
+								</div>
 								<p class="mt-1 text-xs leading-relaxed text-gray-600">
 									Model-generated flood prediction summary. This is not an official government
 									flood advisory.
@@ -1022,19 +1049,24 @@
 								<button
 									type="button"
 									onclick={refreshAutomatedAlerts}
-									class="flex w-full cursor-pointer items-center justify-center gap-1 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-700 shadow-sm hover:bg-gray-50"
+									class="flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50"
 								>
-									<Icon icon="mdi:refresh" width="14" /> Update
+									<span class="rounded-md bg-slate-100 p-1 text-slate-600">
+										<Icon icon="mdi:refresh" width="12" />
+									</span>
+									Update
 								</button>
 								<button
 									type="button"
 									onclick={() => setAutomatedAlertsMapVisibility(!$automatedFloodAlerts.showOnMap)}
-									class="flex w-full cursor-pointer items-center justify-center gap-1 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-700 shadow-sm hover:bg-gray-50"
+									class="flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50"
 								>
-									<Icon
-										icon={$automatedFloodAlerts.showOnMap ? 'mdi:eye' : 'mdi:eye-off'}
-										width="14"
-									/>
+									<span class="rounded-md bg-slate-100 p-1 text-slate-600">
+										<Icon
+											icon={$automatedFloodAlerts.showOnMap ? 'mdi:eye' : 'mdi:eye-off'}
+											width="12"
+										/>
+									</span>
 									{$automatedFloodAlerts.showOnMap ? 'Show on map: On' : 'Show on map: Off'}
 								</button>
 							</div>
@@ -1090,7 +1122,7 @@
 											payload?.max_predicted_height_cm !== null
 												? Number(payload.max_predicted_height_cm)
 												: null}
-										<div class="rounded-xl border border-gray-200 bg-white p-3 shadow-sm">
+										<div class="rounded-xl border border-gray-200 bg-white p-3 shadow-sm transition-shadow hover:shadow-md">
 											<div class="mb-2 flex items-center justify-between gap-2">
 												<p class="text-sm font-bold text-gray-800">{item.location_name}</p>
 												<span
@@ -1102,9 +1134,7 @@
 													{getAutomatedRiskLabel(item)}
 												</span>
 											</div>
-											<div
-												class="grid grid-cols-2 gap-2 rounded-lg border border-gray-100 bg-gray-50 p-2"
-											>
+											<div class="grid grid-cols-2 gap-2 rounded-lg border border-slate-200 bg-slate-50 p-2.5">
 												<div>
 													<p class="text-[11px] text-gray-500">Flood chance</p>
 													<p class="text-sm font-bold text-gray-900">
@@ -1128,9 +1158,12 @@
 													</p>
 												</div>
 											</div>
-											<div class="mt-2 rounded-lg border border-gray-100 bg-gray-50 p-2">
-												<p class="text-[11px] text-gray-500">Flood around</p>
-												<p class="text-sm font-semibold text-gray-800">
+											<div class="mt-2 rounded-lg border border-slate-200 bg-slate-50 p-2.5">
+												<p class="flex items-center gap-1 text-[11px] text-gray-500">
+													<Icon icon="mdi:clock-alert-outline" width="13" class="text-slate-500" />
+													Flood around
+												</p>
+												<p class="mt-0.5 text-sm font-semibold text-gray-800">
 													{formatFloodAroundTimes(floodHourIndices)}
 												</p>
 											</div>
