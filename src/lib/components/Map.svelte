@@ -15,6 +15,10 @@
 		fetchWaterStations
 	} from '$lib/stores/waterStationStore.js';
 	import { tropicalCycloneTrackerStore } from '$lib/stores/tropicalCycloneTrackerStore.js';
+	import {
+		automatedFloodAlerts,
+		focusedAutomatedAlert
+	} from '$lib/stores/automatedFloodAlertStore.js';
 	import { get } from 'svelte/store';
 	import Icon from '@iconify/svelte';
 	import MapSearchBar from './MapSearchBar.svelte';
@@ -67,6 +71,7 @@
 	let map;
 	let marker = null;
 	let waterStationMarkers = [];
+	let automatedAlertMarkers = [];
 	let L;
 	let waterStationSubscription;
 	let focusedWaterStationSubscription;
@@ -76,6 +81,7 @@
 	let paddedNcrBounds = null;
 
 	let tropicalCycloneLayerGroup;
+	let automatedAlertLayerGroup = null;
 	let cycloneUpdateInterval = null;
 	let tropicalCycloneData = null;
 
@@ -237,6 +243,197 @@
 		}
 	}
 
+	function formatForecastDateLabel(dateText) {
+		if (!dateText) return 'Unknown date';
+		const parsed = new Date(String(dateText) + 'T00:00:00');
+		if (Number.isNaN(parsed.getTime())) return String(dateText);
+		return new Intl.DateTimeFormat('en-US', {
+			weekday: 'short',
+			month: 'short',
+			day: 'numeric',
+			year: 'numeric'
+		}).format(parsed);
+	}
+
+	function parseForecastPayload(rawPayload) {
+		if (!rawPayload) return {};
+		if (typeof rawPayload === 'string') {
+			try {
+				return JSON.parse(rawPayload);
+			} catch {
+				return {};
+			}
+		}
+		if (typeof rawPayload === 'object') return rawPayload;
+		return {};
+	}
+
+	function formatFloodAroundTimes(hourList) {
+		if (!Array.isArray(hourList) || hourList.length === 0) return 'No flooded-hour timing data';
+
+		const normalized = [...new Set(hourList.map((h) => Number(h)).filter((h) => Number.isFinite(h)))].sort(
+			(a, b) => a - b
+		);
+
+		if (normalized.length === 0) return 'No flooded-hour timing data';
+
+		const labels = normalized.map((h) => {
+			const hour = ((Math.floor(h) % 24) + 24) % 24;
+			const period = hour >= 12 ? 'pm' : 'am';
+			const display = hour % 12 === 0 ? 12 : hour % 12;
+			return `${display}${period}`;
+		});
+
+		return labels.join(', ');
+	}
+
+	function getAutomatedAlertSeverity(riskLevel, probability) {
+		const normalized = String(riskLevel || '').toLowerCase();
+		if (normalized.includes('very high')) return 'Very High';
+		if (normalized.includes('high')) return 'High';
+		if (normalized.includes('moderate')) return 'Moderate';
+		if (normalized.includes('low')) return 'Low';
+
+		const p = Number(probability);
+		if (p >= 0.8) return 'Very High';
+		if (p >= 0.65) return 'High';
+		if (p >= 0.5) return 'Moderate';
+		return 'Low';
+	}
+
+	function getAutomatedPopupRiskLabel(riskLevel, probability) {
+		const raw = String(riskLevel || '').trim();
+		if (raw) return raw;
+
+		const severity = getAutomatedAlertSeverity(riskLevel, probability);
+		return `${severity} Flood Risk`;
+	}
+
+	function getAutomatedAlertColor(riskLevel, probability) {
+		const normalized = String(riskLevel || '').toLowerCase();
+		if (normalized.includes('very high')) return '#dc2626';
+		if (normalized.includes('high')) return '#ea580c';
+		if (normalized.includes('moderate')) return '#ca8a04';
+		if (normalized.includes('low')) return '#16a34a';
+
+		const p = Number(probability);
+		if (p >= 0.8) return '#dc2626';
+		if (p >= 0.65) return '#ea580c';
+		if (p >= 0.5) return '#ca8a04';
+		return '#16a34a';
+	}
+
+	function refreshAutomatedAlertMarkers() {
+		const layerGroup = automatedAlertLayerGroup;
+		if (!map || !L || !layerGroup) return;
+		layerGroup.clearLayers();
+		automatedAlertMarkers = [];
+
+		const alertState = $automatedFloodAlerts;
+		if (!alertState || alertState.loading || !Array.isArray(alertState.data)) return;
+
+		if (!alertState.showOnMap) return;
+
+		const activeForecastIndex = Number(alertState.selectedForecastIndex ?? 0);
+		const minProbability = Number(alertState?.meta?.min_probability ?? 0.5);
+
+		alertState.data
+			.filter((row) => Number(row.forecast_index) === activeForecastIndex)
+			.filter((row) => Number(row.flood_probability) >= minProbability)
+			.forEach((row) => {
+				const lat = Number(row.latitude);
+				const lon = Number(row.longitude);
+				if (!Number.isFinite(lat) || !Number.isFinite(lon)) return;
+
+				const payload = parseForecastPayload(row.forecast_payload);
+				const color = getAutomatedAlertColor(row.risk_level, row.flood_probability);
+				const severity = getAutomatedAlertSeverity(row.risk_level, row.flood_probability);
+				const popupRiskLabel = getAutomatedPopupRiskLabel(row.risk_level, row.flood_probability);
+				const shortSeverity = severity === 'Very High' ? 'V.High' : severity;
+				const probabilityPct = (Number(row.flood_probability) * 100).toFixed(0);
+				const floodHourIndices =
+					Array.isArray(payload?.flood_hour_indices)
+						? payload.flood_hour_indices
+						: Array.isArray(payload?.flooded_hours_list)
+							? payload.flooded_hours_list
+							: [];
+				const maxHeight =
+					payload?.max_predicted_height_cm !== undefined &&
+					payload?.max_predicted_height_cm !== null
+						? Number(payload.max_predicted_height_cm)
+						: null;
+				const floodAroundLabel = formatFloodAroundTimes(floodHourIndices);
+				const maxHeightLabel =
+					maxHeight !== null && Number.isFinite(maxHeight)
+						? `${maxHeight.toFixed(1)} cm`
+						: 'No depth data';
+				const icon = L.divIcon({
+					html:
+						'<div class="automated-alert-chip" style="border-color:' +
+						color +
+						';">' +
+						'<span class="automated-alert-mini" style="background:' +
+						color +
+						';">' +
+						probabilityPct +
+						'%</span>' +
+						'<span class="automated-alert-expanded">' +
+						'<span class="automated-alert-severity">' +
+						shortSeverity +
+						'</span>' +
+						'<span class="automated-alert-prob">' +
+						probabilityPct +
+						'%</span>' +
+						'</span>' +
+						'</div>',
+					className: 'automated-alert-icon',
+					iconSize: [120, 30],
+					iconAnchor: [20, 15]
+				});
+
+				const marker = L.marker([lat, lon], {
+					icon,
+					alertCoordinateId: row.coordinate_id,
+					forecastIndex: row.forecast_index
+				});
+
+				marker.bindPopup(
+					'<div class="automated-alert-popup-card">' +
+					'<div class="automated-alert-popup-head">' +
+					'<p class="automated-alert-popup-title">' +
+					row.location_name +
+					'</p>' +
+					'<span class="automated-alert-popup-badge" style="border-color:' +
+					color +
+					';color:' +
+					color +
+					';">' +
+					popupRiskLabel +
+					'</span>' +
+					'</div>' +
+					'<p class="automated-alert-popup-date"><span>Forecast</span><strong>' +
+					formatForecastDateLabel(row.forecast_date) +
+					'</strong></p>' +
+					'<div class="automated-alert-popup-grid">' +
+					'<div><span class="k">Flood chance</span><span class="v">' +
+					probabilityPct +
+					'%</span></div>' +
+					'<div><span class="k">Peak depth</span><span class="v">' +
+					maxHeightLabel +
+					'</span></div>' +
+					'</div>' +
+					'<div class="automated-alert-popup-times">' +
+					'<span class="k">Flood around</span><span class="v">' +
+					floodAroundLabel +
+					'</span>' +
+					'</div>' +
+					'</div>',
+					{ className: 'automated-alert-popup' }
+				);
+				layerGroup.addLayer(marker);
+				automatedAlertMarkers.push(marker);
+			});
+	}
 	onMount(async () => {
 		if (!browser) return;
 
@@ -269,6 +466,7 @@
 		strictNcrBounds = mapConfig.strictNcrBounds;
 		paddedNcrBounds = mapConfig.paddedNcrBounds;
 		tropicalCycloneLayerGroup = L.layerGroup();
+		automatedAlertLayerGroup = L.layerGroup().addTo(map);
 
 		// --- Layer Initialization from Registry ---
 		const baseLayerPromises = baseLayers.map(async (layer) => {
@@ -532,6 +730,25 @@
 		});
 	});
 
+	$: if (browser && map && L && $automatedFloodAlerts) {
+		refreshAutomatedAlertMarkers();
+	}
+
+	$: if (browser && map && L && $focusedAutomatedAlert) {
+		const target = $focusedAutomatedAlert;
+		const marker = automatedAlertMarkers.find(
+			(item) =>
+				item?.options?.alertCoordinateId === target.coordinate_id &&
+				Number(item?.options?.forecastIndex) === Number(target.forecast_index)
+		);
+		if (marker) {
+			const markerLatLng = marker.getLatLng();
+			panTo(markerLatLng.lat, markerLatLng.lng);
+			marker.openPopup();
+		}
+		focusedAutomatedAlert.set(null);
+	}
+
 	$: if (
 		browser &&
 		map &&
@@ -558,6 +775,11 @@
 		// Clear all layer update intervals
 		Object.values(layerUpdateIntervals).forEach(clearInterval);
 		layerUpdateIntervals = {};
+		if (automatedAlertLayerGroup) {
+			automatedAlertLayerGroup.clearLayers();
+			automatedAlertLayerGroup.remove();
+			automatedAlertLayerGroup = null;
+		}
 		if (map) {
 			try {
 				map.off();
@@ -622,6 +844,187 @@
 	:global(.water-station-marker) {
 		background: transparent;
 		border: none;
+	}
+
+	:global(.automated-alert-icon) {
+		background: transparent;
+		border: none;
+	}
+
+	:global(.automated-alert-chip) {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		padding: 2px;
+		border-radius: 999px;
+		border: 2px solid #f59e0b;
+		background: rgba(255, 255, 255, 0.92);
+		box-shadow: 0 2px 7px rgba(0, 0, 0, 0.24);
+		font-size: 10px;
+		font-weight: 700;
+		line-height: 1;
+		color: #1f2937;
+		width: 36px;
+		overflow: hidden;
+		transition: width 0.2s ease, box-shadow 0.2s ease;
+	}
+
+	:global(.automated-alert-icon:hover .automated-alert-chip) {
+		width: 118px;
+		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.28);
+	}
+
+	:global(.automated-alert-mini) {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		min-width: 28px;
+		height: 28px;
+		border-radius: 999px;
+		color: #fff;
+		font-weight: 800;
+		font-size: 10px;
+		flex-shrink: 0;
+	}
+
+	:global(.automated-alert-expanded) {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		opacity: 0;
+		transform: translateX(4px);
+		transition: opacity 0.2s ease, transform 0.2s ease;
+		padding-right: 8px;
+		white-space: nowrap;
+	}
+
+	:global(.automated-alert-icon:hover .automated-alert-expanded) {
+		opacity: 1;
+		transform: translateX(0);
+	}
+
+	:global(.automated-alert-severity) {
+		font-weight: 700;
+		letter-spacing: 0.01em;
+	}
+
+	:global(.automated-alert-prob) {
+		font-weight: 800;
+	}
+
+	:global(.automated-alert-popup .leaflet-popup-content-wrapper) {
+		border-radius: 14px;
+		padding: 0;
+		overflow: hidden;
+		box-shadow: 0 10px 28px rgba(15, 23, 42, 0.16);
+	}
+
+	:global(.automated-alert-popup .leaflet-popup-content) {
+		margin: 0;
+		min-width: 250px;
+	}
+
+	:global(.automated-alert-popup-card) {
+		padding: 12px;
+		background: linear-gradient(180deg, #f8fafc 0%, #ffffff 100%);
+	}
+
+	:global(.automated-alert-popup-head) {
+		display: flex;
+		justify-content: space-between;
+		align-items: flex-start;
+		gap: 10px;
+	}
+
+	:global(.automated-alert-popup-title) {
+		margin: 0;
+		font-size: 13px;
+		font-weight: 700;
+		color: #0f172a;
+		line-height: 1.25;
+	}
+
+	:global(.automated-alert-popup-badge) {
+		border: 1px solid;
+		border-radius: 999px;
+		padding: 2px 8px;
+		font-size: 10px;
+		font-weight: 700;
+		background: rgba(255, 255, 255, 0.94);
+		white-space: nowrap;
+	}
+
+	:global(.automated-alert-popup-date) {
+		margin: 8px 0 10px;
+		font-size: 11px;
+		color: #475569;
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		gap: 8px;
+		padding: 7px 8px;
+		border: 1px solid #e2e8f0;
+		border-radius: 8px;
+		background: #ffffff;
+	}
+
+	:global(.automated-alert-popup-date span) {
+		color: #64748b;
+	}
+
+	:global(.automated-alert-popup-date strong) {
+		font-weight: 700;
+		color: #0f172a;
+	}
+
+	:global(.automated-alert-popup-grid) {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 8px;
+	}
+
+	:global(.automated-alert-popup-grid > div) {
+		display: flex;
+		flex-direction: column;
+		gap: 3px;
+		padding: 8px;
+		border: 1px solid #e2e8f0;
+		border-radius: 8px;
+		background: #fff;
+	}
+
+	:global(.automated-alert-popup-grid .k) {
+		font-size: 10px;
+		color: #64748b;
+	}
+
+	:global(.automated-alert-popup-grid .v) {
+		font-size: 12px;
+		font-weight: 700;
+		color: #0f172a;
+	}
+
+	:global(.automated-alert-popup-times) {
+		margin-top: 8px;
+		padding: 9px;
+		border: 1px solid #e2e8f0;
+		border-radius: 8px;
+		background: #fff;
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+	}
+
+	:global(.automated-alert-popup-times .k) {
+		font-size: 10px;
+		color: #64748b;
+	}
+
+	:global(.automated-alert-popup-times .v) {
+		font-size: 11px;
+		font-weight: 700;
+		color: #0f172a;
+		line-height: 1.35;
 	}
 
 	:global(.water-station-icon) {

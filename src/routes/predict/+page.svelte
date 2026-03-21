@@ -4,6 +4,7 @@
 	import { fetchWaterStations } from '$lib/stores/waterStationStore.js';
 	import { fetchWeatherData } from '$lib/stores/weatherStore.js';
 	import { fetchGeneralFloodAdvisory } from '$lib/stores/generalFloodAdvisoryStore.js';
+	import { fetchAutomatedFloodAlerts } from '$lib/stores/automatedFloodAlertStore.js';
 	import PredictSidebar from '$lib/components/PredictSidebar.svelte';
 	import { onMount } from 'svelte';
 	import Icon from '@iconify/svelte';
@@ -33,7 +34,13 @@
 			isSidebarOpen = false;
 		}
 
-		await Promise.all([fetchWeatherData(), fetchWaterStations(), fetchTropicalCycloneTracker(), fetchGeneralFloodAdvisory()]);
+		await Promise.all([
+			fetchWeatherData(),
+			fetchWaterStations(),
+			fetchTropicalCycloneTracker(),
+			fetchGeneralFloodAdvisory(),
+			fetchAutomatedFloodAlerts({ forecastIndices: [0, 1, 2, 3, 4], minProbability: 0.5 })
+		]);
 
 		window.addEventListener('resize', handleResize);
 		return () => window.removeEventListener('resize', handleResize);
