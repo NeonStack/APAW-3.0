@@ -1,9 +1,20 @@
 <script>
 	import { enhance } from '$app/forms';
-	import { onMount } from 'svelte';
+	import { onMount, onDestroy } from 'svelte';
 	import { getLocationName } from '$lib/stores/locationStore.js';
 	import MapSearchBar from '$lib/components/MapSearchBar.svelte';
-	import { loadGeoJSON } from '$lib/components/map_components/GeoJsonUtils.js';
+	import {
+		loadGeoJSON,
+		loadAndProcessGeoJson
+	} from '$lib/components/map_components/GeoJsonUtils.js';
+	import { setupGroupedLayerControl } from '$lib/components/map_components/GroupedLayerControl.js';
+	import {
+		baseLayers,
+		overlayLayers,
+		weatherLayers,
+		allOverlayLayers
+	} from '$lib/components/map_components/LayerRegistry.js';
+	import { handleLayerToggle } from '$lib/components/map_components/LayerManager.js';
 
 	export let data;
 	let mapHost;
@@ -19,6 +30,15 @@
 	let coordinateId = '';
 	let isResolvingName = false;
 	let helperMessage = '';
+	let layerControl;
+
+	let facilityLayers = {};
+	let loadedGeojsonData = {};
+	let activeLeafletLayers = {};
+	let instantiatedLayers = {};
+	let layerUpdateIntervals = {};
+
+	const OPENWEATHER_MAP_API_KEY = import.meta.env.VITE_OPENWEATHER_MAP_API_KEY || '';
 
 	const BRAND_GREEN = '#3ba630';
 	const BRAND_DARK = '#0c3143';
@@ -115,8 +135,33 @@
 		await handlePointSelection(Number(lat.toFixed(6)), Number(lon.toFixed(6)), name);
 	}
 
+	function ensureGroupedLayerControlAssets() {
+		if (!document.getElementById('leaflet-groupedlayercontrol-css')) {
+			const groupedLayerControlCSS = document.createElement('link');
+			groupedLayerControlCSS.id = 'leaflet-groupedlayercontrol-css';
+			groupedLayerControlCSS.rel = 'stylesheet';
+			groupedLayerControlCSS.href =
+				'https://unpkg.com/leaflet-groupedlayercontrol/dist/leaflet.groupedlayercontrol.min.css';
+			document.head.appendChild(groupedLayerControlCSS);
+		}
+
+		return new Promise((resolve) => {
+			if (window?.L?.control?.groupedLayers) {
+				resolve();
+				return;
+			}
+
+			const groupedLayerControlScript = document.createElement('script');
+			groupedLayerControlScript.src =
+				'https://unpkg.com/leaflet-groupedlayercontrol/dist/leaflet.groupedlayercontrol.min.js';
+			groupedLayerControlScript.onload = resolve;
+			document.head.appendChild(groupedLayerControlScript);
+		});
+	}
+
 	onMount(async () => {
 		L = await import('leaflet');
+		await ensureGroupedLayerControlAssets();
 
 		const geojsonData = await loadGeoJSON();
 		if (geojsonData) {
@@ -137,9 +182,26 @@
 			maxBoundsViscosity: 0.9
 		});
 
-		L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-			attribution: '&copy; OpenStreetMap contributors'
-		}).addTo(map);
+		const baseLayerPromises = baseLayers.map(async (layer) => {
+			instantiatedLayers[layer.id] = await layer.createLayer(L);
+		});
+
+		overlayLayers.forEach((layer) => {
+			const layerGroup = L.layerGroup();
+			instantiatedLayers[layer.id] = layerGroup;
+			facilityLayers[layer.id] = layerGroup;
+		});
+
+		const weatherLayerPromises = weatherLayers.map(async (layer) => {
+			instantiatedLayers[layer.id] = await layer.createLayer(L, OPENWEATHER_MAP_API_KEY);
+		});
+
+		await Promise.all([...baseLayerPromises, ...weatherLayerPromises]);
+
+		if (instantiatedLayers.standard) instantiatedLayers.standard.addTo(map);
+		if (instantiatedLayers.none) instantiatedLayers.none.addTo(map);
+
+		layerControl = setupGroupedLayerControl(L, map, instantiatedLayers);
 
 		if (geojsonData) {
 			L.geoJSON(geojsonData, {
@@ -161,8 +223,90 @@
 			await handlePointSelection(lat, lon);
 		});
 
+		map.on('overlayadd', (e) => {
+			const layerConfig = allOverlayLayers.find((lc) => e.name && String(e.name).includes(lc.name));
+			if (!layerConfig) return;
+
+			if (layerConfig.updateInterval && typeof layerConfig.updateLayer === 'function') {
+				if (layerUpdateIntervals[layerConfig.id]) {
+					clearInterval(layerUpdateIntervals[layerConfig.id]);
+				}
+
+				layerUpdateIntervals[layerConfig.id] = setInterval(() => {
+					const layerInstance = instantiatedLayers[layerConfig.id];
+					if (layerInstance && map.hasLayer(layerInstance)) {
+						layerConfig.updateLayer(layerInstance);
+					}
+				}, layerConfig.updateInterval);
+			}
+
+			if (layerConfig.type === 'facility' || layerConfig.type === 'hazard') {
+				handleLayerToggle(
+					layerConfig,
+					true,
+					true,
+					map,
+					L,
+					facilityLayers,
+					loadedGeojsonData,
+					activeLeafletLayers,
+					layerControl
+				);
+			}
+		});
+
+		map.on('overlayremove', (e) => {
+			const layerConfig = allOverlayLayers.find((lc) => e.name && String(e.name).includes(lc.name));
+			if (!layerConfig) return;
+
+			if (layerUpdateIntervals[layerConfig.id]) {
+				clearInterval(layerUpdateIntervals[layerConfig.id]);
+				delete layerUpdateIntervals[layerConfig.id];
+			}
+
+			if (layerConfig.type === 'facility' || layerConfig.type === 'hazard') {
+				handleLayerToggle(
+					layerConfig,
+					false,
+					false,
+					map,
+					L,
+					facilityLayers,
+					loadedGeojsonData,
+					activeLeafletLayers,
+					layerControl
+				);
+			}
+		});
+
+		const facilitiesConfig = overlayLayers.find((layer) => layer.id === 'facilities');
+		if (facilitiesConfig) {
+			loadAndProcessGeoJson(facilitiesConfig, loadedGeojsonData, true).catch((error) => {
+				console.warn(`Failed to pre-load ${facilitiesConfig.name}:`, error);
+			});
+		}
+
 		setTimeout(() => map.invalidateSize(), 80);
 	});
+
+	onDestroy(() => {
+		Object.values(layerUpdateIntervals).forEach((intervalId) => clearInterval(intervalId));
+		layerUpdateIntervals = {};
+
+		if (map) {
+			try {
+				map.off();
+				map.remove();
+			} catch (error) {
+				console.warn('Error during map cleanup:', error);
+			}
+			map = null;
+		}
+	});
+
+	$: if (map && L) {
+		addSavedMarkers();
+	}
 
 	$: if (locationName && latitude && longitude) {
 		coordinateId = deriveCoordinateId(locationName, latitude, longitude);
@@ -176,6 +320,7 @@
 
 <svelte:head>
 	<title>Internal Coordinates | APAW</title>
+	<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />
 </svelte:head>
 
 <div class="mx-auto max-w-7xl px-4 py-6">
@@ -314,8 +459,6 @@
 </div>
 
 <style>
-	@import 'leaflet/dist/leaflet.css';
-
 	:global(:root) {
 		--brand-green: #3ba630;
 		--brand-dark: #0c3143;
