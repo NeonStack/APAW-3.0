@@ -5,9 +5,22 @@ location_name text not null,
 latitude double precision not null,
 longitude double precision not null,
 is_active boolean not null default true,
+static_params jsonb,
+static_params_version text,
+static_params_computed_at timestamptz,
 created_at timestamptz not null default now(),
 updated_at timestamptz not null default now()
 );
+
+-- Safe backfill for already-existing tables.
+alter table public.automated_detection_locations
+add column if not exists static_params jsonb;
+
+alter table public.automated_detection_locations
+add column if not exists static_params_version text;
+
+alter table public.automated_detection_locations
+add column if not exists static_params_computed_at timestamptz;
 
 create or replace function public.set_automated_detection_locations_updated_at()
 returns trigger

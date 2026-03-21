@@ -178,16 +178,31 @@ async function fetchWaterStations() {
 
 async function fetchConfiguredCoordinates() {
 	const supabase = getSupabaseClient();
-	const { data, error } = await supabase
+	let { data, error } = await supabase
 		.from(COORDINATES_TABLE)
-		.select('coordinate_id, location_name, latitude, longitude, is_active')
+		.select(
+			'coordinate_id, location_name, latitude, longitude, is_active, static_params, static_params_version, static_params_computed_at'
+		)
 		.order('location_name', { ascending: true });
 
 	if (error) {
 		console.warn(
-			`[automated-flood-detection] Could not load coordinates from ${COORDINATES_TABLE}. Using fallback list. Error: ${error.message}`
+			`[automated-flood-detection] Could not load extended coordinate fields from ${COORDINATES_TABLE}. Retrying with base fields. Error: ${error.message}`
 		);
-		return PRECONFIGURED_COORDINATES;
+
+		const fallbackQuery = await supabase
+			.from(COORDINATES_TABLE)
+			.select('coordinate_id, location_name, latitude, longitude, is_active')
+			.order('location_name', { ascending: true });
+
+		if (fallbackQuery.error) {
+			console.warn(
+				`[automated-flood-detection] Could not load coordinates from ${COORDINATES_TABLE}. Using fallback list. Error: ${fallbackQuery.error.message}`
+			);
+			return PRECONFIGURED_COORDINATES;
+		}
+
+		data = fallbackQuery.data;
 	}
 
 	const configured = (data ?? [])
@@ -196,7 +211,13 @@ async function fetchConfiguredCoordinates() {
 			coordinate_id: String(row.coordinate_id ?? '').trim(),
 			location_name: String(row.location_name ?? '').trim(),
 			lat: Number(row.latitude),
-			lon: Number(row.longitude)
+			lon: Number(row.longitude),
+			static_params:
+				row && typeof row.static_params === 'object' && row.static_params !== null
+					? row.static_params
+					: null,
+			static_params_version: row?.static_params_version ?? null,
+			static_params_computed_at: row?.static_params_computed_at ?? null
 		}))
 		.filter(
 			(row) =>
@@ -361,6 +382,64 @@ function summarizeModelPayload(prediction) {
 	};
 }
 
+function sanitizeStaticParamsForStorage(params) {
+	if (!params || typeof params !== 'object') return null;
+
+	const output = {
+		elevation_m: toNumberOrNull(params.elevation_m),
+		dist_to_nearest_river_m: toNumberOrNull(params.dist_to_nearest_river_m),
+		dist_to_river_m: toNumberOrNull(params.dist_to_river_m),
+		dist_to_stream_m: toNumberOrNull(params.dist_to_stream_m),
+		dist_to_canal_m: toNumberOrNull(params.dist_to_canal_m),
+		dist_to_drain_m: toNumberOrNull(params.dist_to_drain_m),
+		dist_to_ditch_m: toNumberOrNull(params.dist_to_ditch_m),
+		waterway_elevation_m: toNumberOrNull(params.waterway_elevation_m),
+		elevation_diff_to_waterway_m: toNumberOrNull(params.elevation_diff_to_waterway_m),
+		distance_to_water_m: toNumberOrNull(params.distance_to_water_m)
+	};
+
+	const hasAnyValue = Object.values(output).some((value) => value !== null);
+	if (!hasAnyValue) return null;
+
+	return output;
+}
+
+function extractStaticParamsFromPrediction(prediction) {
+	if (!prediction || typeof prediction !== 'object') return null;
+	const candidate =
+		prediction?.static_params?.values ??
+		prediction?.static_params ??
+		prediction?.meta?.static_params ??
+		null;
+	return sanitizeStaticParamsForStorage(candidate);
+}
+
+async function persistComputedStaticParams(supabase, rows, runId) {
+	if (!Array.isArray(rows) || rows.length === 0) return;
+
+	const payload = rows
+		.filter((row) => row?.coordinate_id && row?.static_params)
+		.map((row) => ({
+			coordinate_id: row.coordinate_id,
+			static_params: row.static_params,
+			static_params_version: row.static_params_version || 'v1',
+			static_params_computed_at: row.static_params_computed_at || new Date().toISOString(),
+			is_active: true
+		}));
+
+	if (payload.length === 0) return;
+
+	const { error } = await supabase.from(COORDINATES_TABLE).upsert(payload, {
+		onConflict: 'coordinate_id'
+	});
+
+	if (error) {
+		console.warn(
+			`[automated-flood-detection] run_id=${runId} could not persist static_params: ${error.message}`
+		);
+	}
+}
+
 async function upsertRowsInBatches(supabase, rows, runId) {
 	const totalBatches = Math.ceil(rows.length / UPSERT_BATCH_SIZE);
 	for (let index = 0; index < rows.length; index += UPSERT_BATCH_SIZE) {
@@ -520,22 +599,29 @@ export async function POST({ request, url }) {
 				lon: coordinate.lon
 			};
 
-			const elevationResult = await fetchElevation(coordinate.lat, coordinate.lon);
-			if (elevationResult.error) {
-				return {
-					...base,
-					status: 'failed',
-					error: elevationResult.error
-				};
+			const precomputedStaticParams = sanitizeStaticParamsForStorage(coordinate.static_params);
+			let elevation = toNumberOrNull(precomputedStaticParams?.elevation_m);
+
+			if (elevation === null) {
+				const elevationResult = await fetchElevation(coordinate.lat, coordinate.lon);
+				if (elevationResult.error) {
+					return {
+						...base,
+						status: 'failed',
+						error: elevationResult.error
+					};
+				}
+				elevation = toNumberOrNull(elevationResult.elevation);
 			}
 
 			const payload = {
 				latitude: coordinate.lat,
 				longitude: coordinate.lon,
 				date_str: controls.inputDate,
-				elevation_m: elevationResult.elevation,
+				elevation_m: elevation,
 				water_station_data: waterStationData,
-				api_key: normalizedHfApiKey
+				api_key: normalizedHfApiKey,
+				precomputed_static_params: precomputedStaticParams
 			};
 
 			const predictionResponse = await requestPredictionWithRetry(payload);
@@ -574,10 +660,19 @@ export async function POST({ request, url }) {
 				};
 			}
 
+			const computedStaticParams = extractStaticParamsFromPrediction(normalizedPrediction);
+
 			return {
 				...base,
 				status: 'success',
-				rows
+				rows,
+				static_params:
+					computedStaticParams ||
+					(precomputedStaticParams
+						? { ...precomputedStaticParams, elevation_m: elevation }
+						: sanitizeStaticParamsForStorage({ elevation_m: elevation })),
+				static_params_version: 'v1',
+				static_params_computed_at: new Date().toISOString()
 			};
 		}
 	);
@@ -590,8 +685,9 @@ export async function POST({ request, url }) {
 		`[automated-flood-detection] run_id=${runId} preparing to upsert ${rowsToUpsert.length} rows`
 	);
 
+	const supabase = getSupabaseClient();
+
 	if (rowsToUpsert.length > 0) {
-		const supabase = getSupabaseClient();
 		const upsertError = await upsertRowsInBatches(supabase, rowsToUpsert, runId);
 		if (upsertError) {
 			return json(
@@ -606,6 +702,12 @@ export async function POST({ request, url }) {
 		}
 	}
 
+	await persistComputedStaticParams(
+		supabase,
+		perCoordinateResults.filter((item) => item.status === 'success'),
+		runId
+	);
+
 	const failedItems = perCoordinateResults.filter((item) => item.status === 'failed');
 	const summary = {
 		run_id: runId,
@@ -617,7 +719,10 @@ export async function POST({ request, url }) {
 		selected_count: selectedCoordinates.length,
 		succeeded_count: perCoordinateResults.length - failedItems.length,
 		failed_count: failedItems.length,
-		inserted_or_updated_rows: rowsToUpsert.length
+		inserted_or_updated_rows: rowsToUpsert.length,
+		static_params_persist_attempted: perCoordinateResults.filter(
+			(item) => item.status === 'success'
+		).length
 	};
 
 	const httpStatus = failedItems.length > 0 ? 207 : 200;
