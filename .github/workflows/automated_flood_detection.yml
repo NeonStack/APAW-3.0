@@ -20,7 +20,7 @@ jobs:
           echo "Triggering: ${TARGET_URL}"
 
           HTTP_CODE=$(curl --silent --show-error --location \
-            --max-time 120 \
+            --max-time 240 \
             --retry 2 \
             --retry-delay 3 \
             --write-out "%{http_code}" \
