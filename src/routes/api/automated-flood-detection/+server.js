@@ -415,19 +415,26 @@ function extractStaticParamsFromPrediction(prediction) {
 }
 
 async function persistComputedStaticParams(supabase, rows, runId) {
-	if (!Array.isArray(rows) || rows.length === 0) return;
+	if (!Array.isArray(rows) || rows.length === 0) {
+		return { attempted: 0, persisted: 0, error: null };
+	}
 
 	const payload = rows
 		.filter((row) => row?.coordinate_id && row?.static_params)
 		.map((row) => ({
 			coordinate_id: row.coordinate_id,
+			location_name: row.location_name,
+			latitude: row.lat,
+			longitude: row.lon,
 			static_params: row.static_params,
 			static_params_version: row.static_params_version || 'v1',
 			static_params_computed_at: row.static_params_computed_at || new Date().toISOString(),
 			is_active: true
 		}));
 
-	if (payload.length === 0) return;
+	if (payload.length === 0) {
+		return { attempted: 0, persisted: 0, error: null };
+	}
 
 	const { error } = await supabase.from(COORDINATES_TABLE).upsert(payload, {
 		onConflict: 'coordinate_id'
@@ -437,7 +444,10 @@ async function persistComputedStaticParams(supabase, rows, runId) {
 		console.warn(
 			`[automated-flood-detection] run_id=${runId} could not persist static_params: ${error.message}`
 		);
+		return { attempted: payload.length, persisted: 0, error: error.message };
 	}
+
+	return { attempted: payload.length, persisted: payload.length, error: null };
 }
 
 async function upsertRowsInBatches(supabase, rows, runId) {
@@ -702,7 +712,7 @@ export async function POST({ request, url }) {
 		}
 	}
 
-	await persistComputedStaticParams(
+	const staticPersistResult = await persistComputedStaticParams(
 		supabase,
 		perCoordinateResults.filter((item) => item.status === 'success'),
 		runId
@@ -720,9 +730,9 @@ export async function POST({ request, url }) {
 		succeeded_count: perCoordinateResults.length - failedItems.length,
 		failed_count: failedItems.length,
 		inserted_or_updated_rows: rowsToUpsert.length,
-		static_params_persist_attempted: perCoordinateResults.filter(
-			(item) => item.status === 'success'
-		).length
+		static_params_persist_attempted: staticPersistResult.attempted,
+		static_params_persisted: staticPersistResult.persisted,
+		static_params_persist_error: staticPersistResult.error
 	};
 
 	const httpStatus = failedItems.length > 0 ? 207 : 200;
