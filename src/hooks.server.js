@@ -1,8 +1,11 @@
-// src/hooks.server.js
-
-import { json, error } from '@sveltejs/kit';
+import { error, redirect } from '@sveltejs/kit';
 import { building } from '$app/environment';
+import { createClient } from '@supabase/supabase-js';
+import { env } from '$env/dynamic/private';
 import { paramChecker } from '$lib/utils/api/paramChecker';
+
+const SUPABASE_URL = env.SUPABASE_URL;
+const SUPABASE_AUTH_KEY = env.SUPABASE_ANON_KEY || env.VITE_SUPABASE_ANON_KEY;
 
 const ALLOWED_ORIGIN = [
 	'https://apawph.vercel.app',
@@ -11,8 +14,8 @@ const ALLOWED_ORIGIN = [
 ];
 const EXCEPTIONS = ['/api/update-weather', '/api/automated-flood-detection'];
 const CACHE_CONFIG = {
-	'/api/get-weather': 'public, max-age=300, s-maxage=900', // 15 minutes
-	'/api/water-stations': 'public, max-age=900, s-maxage=1800' // 30 minutes
+	'/api/get-weather': 'public, max-age=300, s-maxage=900',
+	'/api/water-stations': 'public, max-age=900, s-maxage=1800'
 };
 const API_PARAM_CONFIG = {
 	'/api/get-weather': ['location'],
@@ -20,9 +23,41 @@ const API_PARAM_CONFIG = {
 	'/api/tropicalCyclone-tracker': []
 };
 
-/** @type {import('@sveltejs/kit').Handle} */
+let authClient;
+function getAuthClient() {
+	if (!authClient && SUPABASE_URL && SUPABASE_AUTH_KEY) {
+		authClient = createClient(SUPABASE_URL, SUPABASE_AUTH_KEY, {
+			auth: { persistSession: false, autoRefreshToken: false }
+		});
+	}
+	return authClient;
+}
+
+async function isInternalSessionValid(token) {
+	if (!token) return false;
+	const client = getAuthClient();
+	if (!client) return false;
+	const { data, error: authError } = await client.auth.getUser(token);
+	return !authError && !!data?.user;
+}
+
 export async function handle({ event, resolve }) {
-	if (event.url.pathname.startsWith('/api') && !EXCEPTIONS.includes(event.url.pathname)) {
+	const pathname = event.url.pathname;
+
+	if (pathname.startsWith('/internal')) {
+		const session = event.cookies.get('internal_session');
+		const isLoginPage = pathname === '/internal/login';
+		const validSession = await isInternalSessionValid(session);
+
+		if (!validSession && !isLoginPage) {
+			throw redirect(303, '/internal/login');
+		}
+		if (validSession && isLoginPage) {
+			throw redirect(303, '/internal/coordinates');
+		}
+	}
+
+	if (pathname.startsWith('/api') && !EXCEPTIONS.includes(pathname)) {
 		if (building) {
 			return resolve(event);
 		}
@@ -31,11 +66,7 @@ export async function handle({ event, resolve }) {
 		const referer = event.request.headers.get('referer');
 		const host = event.url.host;
 
-		// A. Block requests from unauthorized websites (cross-origin)
 		const isBadOrigin = origin && !ALLOWED_ORIGIN.includes(origin);
-
-		// B. Block direct access attempts that are NOT from our own site.
-		// This checks if a request has no origin/referer OR a referer from a different site.
 		const isDirectOrBadReferer = !origin && (!referer || !referer.includes(host));
 
 		if (isBadOrigin || isDirectOrBadReferer) {
@@ -43,19 +74,16 @@ export async function handle({ event, resolve }) {
 			throw error(404, 'Not Found');
 		}
 
-		const paramCheckerResponse = paramChecker(event.url, API_PARAM_CONFIG[event.url.pathname]);
-
+		const paramCheckerResponse = paramChecker(event.url, API_PARAM_CONFIG[pathname]);
 		if (paramCheckerResponse !== null) {
 			return paramCheckerResponse;
 		}
 	}
 
 	const response = await resolve(event);
-
-	const cacheControl = CACHE_CONFIG[event.url.pathname];
+	const cacheControl = CACHE_CONFIG[pathname];
 	if (cacheControl) {
 		response.headers.set('Cache-Control', cacheControl);
 	}
-
 	return response;
 }
