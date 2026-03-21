@@ -7,12 +7,15 @@ const WATER_STATIONS_API_URL =
 const TARGET_TABLE = 'automated_flood_detection';
 const MAX_CONCURRENCY = 2;
 const MAX_RETRIES = 2;
+const UPSERT_BATCH_SIZE = 10;
 
-const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
-const JOB_TRIGGER_SECRET = process.env.JOB_TRIGGER_SECRET;
-const APAW_HF_API_KEY = process.env.APAW_HF_API_KEY;
-const VITE_HF_TOKEN = process.env.VITE_HF_TOKEN;
+import {
+	SUPABASE_URL,
+	SUPABASE_SERVICE_KEY,
+	JOB_TRIGGER_SECRET,
+	APAW_HF_API_KEY,
+	VITE_HF_TOKEN
+} from '$env/static/private';
 
 let supabaseClient = null;
 
@@ -24,34 +27,12 @@ function getSupabaseClient() {
 }
 
 const PRECONFIGURED_COORDINATES = [
-	{ coordinate_id: 'manila', location_name: 'Manila', lat: 14.604595, lon: 120.982569 },
-	{ coordinate_id: 'mandaluyong', location_name: 'Mandaluyong', lat: 14.582112, lon: 121.039043 },
-	{ coordinate_id: 'marikina', location_name: 'Marikina', lat: 14.64806, lon: 121.104192 },
-	{ coordinate_id: 'pasig', location_name: 'Pasig', lat: 14.572916, lon: 121.081955 },
-	{ coordinate_id: 'quezon-city', location_name: 'Quezon City', lat: 14.649734, lon: 121.039224 },
-	{ coordinate_id: 'san-juan', location_name: 'San Juan', lat: 14.602108, lon: 121.035626 },
 	{
 		coordinate_id: 'caloocan-north',
 		location_name: 'Caloocan (North)',
-		lat: 14.761262,
-		lon: 121.045706
-	},
-	{
-		coordinate_id: 'caloocan-south',
-		location_name: 'Caloocan (South)',
-		lat: 14.651013,
-		lon: 120.980904
-	},
-	{ coordinate_id: 'malabon', location_name: 'Malabon', lat: 14.67242, lon: 120.957245 },
-	{ coordinate_id: 'navotas', location_name: 'Navotas', lat: 14.666291, lon: 120.941 },
-	{ coordinate_id: 'valenzuela', location_name: 'Valenzuela', lat: 14.707549, lon: 120.982046 },
-	{ coordinate_id: 'las-pinas', location_name: 'Las Piñas', lat: 14.443451, lon: 120.994801 },
-	{ coordinate_id: 'makati', location_name: 'Makati', lat: 14.551987, lon: 121.024302 },
-	{ coordinate_id: 'muntinlupa', location_name: 'Muntinlupa', lat: 14.402166, lon: 121.030928 },
-	{ coordinate_id: 'paranaque', location_name: 'Parañaque', lat: 14.473714, lon: 121.020472 },
-	{ coordinate_id: 'pasay', location_name: 'Pasay', lat: 14.534401, lon: 121.001278 },
-	{ coordinate_id: 'pateros', location_name: 'Pateros', lat: 14.54508, lon: 121.069831 },
-	{ coordinate_id: 'taguig', location_name: 'Taguig', lat: 14.517084, lon: 121.0572 }
+		lat: 14.774679,
+		lon: 121.052984
+	}
 ];
 
 function cleanWaterLevel(wl) {
@@ -98,6 +79,18 @@ function parseIds(value) {
 
 function sleep(ms) {
 	return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function normalizeSecret(value) {
+	if (typeof value !== 'string') return '';
+	const trimmed = value.trim();
+	if (
+		(trimmed.startsWith('\"') && trimmed.endsWith('\"')) ||
+		(trimmed.startsWith("'") && trimmed.endsWith("'"))
+	) {
+		return trimmed.slice(1, -1).trim();
+	}
+	return trimmed;
 }
 
 async function runWithConcurrency(items, concurrency, worker) {
@@ -194,10 +187,12 @@ async function requestPredictionWithRetry(payload) {
 
 	for (let attempt = 0; attempt <= MAX_RETRIES; attempt += 1) {
 		try {
+			const hfToken = normalizeSecret(VITE_HF_TOKEN);
+
 			const response = await fetch(HF_API_URL, {
 				method: 'POST',
 				headers: {
-					Authorization: `Bearer ${VITE_HF_TOKEN}`,
+					Authorization: `Bearer ${hfToken}`,
 					'Content-Type': 'application/json'
 				},
 				body: JSON.stringify(payload)
@@ -267,6 +262,90 @@ function normalizePredictionResponse(result) {
 	return result;
 }
 
+function deriveRiskLevelFromProbability(probability) {
+	if (probability === null) return null;
+	const percentage = probability * 100;
+	if (percentage <= 50) return 'Low Flood Risk';
+	if (percentage <= 60) return 'Moderate Flood Risk';
+	if (percentage <= 80) return 'High Flood Risk';
+	return 'Very High Flood Risk';
+}
+
+function deriveDailyMetrics(day) {
+	const hourlyForecast = Array.isArray(day?.hourly_forecast) ? day.hourly_forecast : [];
+	const probabilities = hourlyForecast
+		.map((hour) => toNumberOrNull(hour?.final_prediction?.flood_probability))
+		.filter((value) => value !== null);
+
+	const derivedProbability =
+		probabilities.length > 0
+			? Math.max(...probabilities)
+			: toNumberOrNull(day?.flood_probability ?? day?.probability ?? day?.chance_of_flood);
+
+	const derivedRiskLevel =
+		day?.risk_level ?? day?.flood_risk_level ?? deriveRiskLevelFromProbability(derivedProbability);
+
+	const floodedHours = hourlyForecast.filter(
+		(hour) => Number(hour?.final_prediction?.is_flooded) === 1
+	).length;
+
+	return {
+		riskLevel: derivedRiskLevel,
+		floodProbability: derivedProbability,
+		floodedHours,
+		hourlyCount: hourlyForecast.length
+	};
+}
+
+function summarizeForecastDay(day) {
+	const metrics = deriveDailyMetrics(day);
+	const hourlyForecast = Array.isArray(day?.hourly_forecast) ? day.hourly_forecast : [];
+	let maxPredictedHeightCm = null;
+	for (const hour of hourlyForecast) {
+		const value = toNumberOrNull(hour?.final_prediction?.predicted_height_cm);
+		if (value === null) continue;
+		if (maxPredictedHeightCm === null || value > maxPredictedHeightCm) {
+			maxPredictedHeightCm = value;
+		}
+	}
+
+	return {
+		date: day?.date ?? day?.datetime ?? null,
+		risk_level: metrics.riskLevel,
+		flood_probability: metrics.floodProbability,
+		flooded_hours: metrics.floodedHours,
+		hourly_count: metrics.hourlyCount,
+		max_predicted_height_cm: maxPredictedHeightCm
+	};
+}
+
+function summarizeModelPayload(prediction) {
+	return {
+		status: prediction?.status ?? null,
+		model_version: prediction?.model_version ?? null,
+		warnings: Array.isArray(prediction?.warnings) ? prediction.warnings : []
+	};
+}
+
+async function upsertRowsInBatches(supabase, rows, runId) {
+	const totalBatches = Math.ceil(rows.length / UPSERT_BATCH_SIZE);
+	for (let index = 0; index < rows.length; index += UPSERT_BATCH_SIZE) {
+		const batchNumber = Math.floor(index / UPSERT_BATCH_SIZE) + 1;
+		const batch = rows.slice(index, index + UPSERT_BATCH_SIZE);
+		const { error } = await supabase
+			.from(TARGET_TABLE)
+			.upsert(batch, { onConflict: 'coordinate_id,forecast_date,request_date' });
+
+		console.log(
+			`[automated-flood-detection] run_id=${runId} upsert batch ${batchNumber}/${totalBatches} size=${batch.length} error=${error ? error.message : 'none'}`
+		);
+
+		if (error) return error;
+	}
+
+	return null;
+}
+
 function flattenForecastRows({
 	coordinate,
 	runId,
@@ -279,33 +358,49 @@ function flattenForecastRows({
 		? prediction.forecast_by_day
 		: [];
 
-	return forecastByDay.map((day, index) => ({
-		run_id: runId,
-		triggered_at: triggeredAt,
-		trigger_source: triggerSource,
-		coordinate_id: coordinate.coordinate_id,
-		location_name: coordinate.location_name,
-		latitude: coordinate.lat,
-		longitude: coordinate.lon,
-		request_date: inputDate,
-		forecast_date: day.date || day.datetime || null,
-		forecast_index: index,
-		risk_level: day.risk_level || day.flood_risk_level || null,
-		flood_probability: toNumberOrNull(
-			day.flood_probability ?? day.probability ?? day.chance_of_flood
-		),
-		forecast_payload: day,
-		model_payload: prediction
-	}));
+	return forecastByDay.map((day, index) => {
+		const metrics = deriveDailyMetrics(day);
+		return {
+			run_id: runId,
+			triggered_at: triggeredAt,
+			trigger_source: triggerSource,
+			coordinate_id: coordinate.coordinate_id,
+			location_name: coordinate.location_name,
+			latitude: coordinate.lat,
+			longitude: coordinate.lon,
+			request_date: inputDate,
+			forecast_date: day.date || day.datetime || null,
+			forecast_index: index,
+			risk_level: metrics.riskLevel,
+			flood_probability: metrics.floodProbability,
+			forecast_payload: summarizeForecastDay(day),
+			model_payload: summarizeModelPayload(prediction)
+		};
+	});
 }
 
 export async function POST({ request, url }) {
-	const authHeader = request.headers.get('Authorization');
-	if (authHeader !== `Bearer ${JOB_TRIGGER_SECRET}`) {
+	const authHeader = request.headers.get('Authorization') ?? request.headers.get('authorization');
+	const receivedToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7).trim() : null;
+	const expectedToken = JOB_TRIGGER_SECRET?.trim();
+
+	console.log('[automated-flood-detection] Received authHeader:', authHeader);
+	console.log('[automated-flood-detection] Expected token:', `Bearer ${expectedToken}`);
+	console.log('[automated-flood-detection] Auth debug:', {
+		receivedLen: receivedToken?.length ?? 0,
+		expectedLen: expectedToken?.length ?? 0,
+		startsWithBearer: Boolean(authHeader?.startsWith('Bearer ')),
+		isMatch: receivedToken === expectedToken
+	});
+
+	if (receivedToken == null || receivedToken !== expectedToken) {
 		return json({ error: 'Unauthorized: Invalid or missing secret token.' }, { status: 401 });
 	}
 
-	if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY || !APAW_HF_API_KEY || !VITE_HF_TOKEN) {
+	const normalizedHfApiKey = normalizeSecret(APAW_HF_API_KEY);
+	const normalizedHfToken = normalizeSecret(VITE_HF_TOKEN);
+
+	if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY || !normalizedHfApiKey || !normalizedHfToken) {
 		return json(
 			{ error: 'Configuration error: Required server environment variables are missing.' },
 			{ status: 500 }
@@ -352,6 +447,14 @@ export async function POST({ request, url }) {
 
 	const runId = crypto.randomUUID();
 	const triggeredAt = new Date().toISOString();
+	console.log('[automated-flood-detection] HF credential debug:', {
+		apiKeyLen: normalizedHfApiKey.length,
+		apiKeyPrefix: normalizedHfApiKey.slice(0, 4),
+		apiKeySuffix: normalizedHfApiKey.slice(-4),
+		hfTokenLen: normalizedHfToken.length,
+		hfTokenPrefix: normalizedHfToken.slice(0, 4),
+		hfTokenSuffix: normalizedHfToken.slice(-4)
+	});
 	console.log(
 		`[automated-flood-detection] run_id=${runId} starting with ${selectedCoordinates.length} coordinates`
 	);
@@ -397,7 +500,7 @@ export async function POST({ request, url }) {
 				date_str: controls.inputDate,
 				elevation_m: elevationResult.elevation,
 				water_station_data: waterStationData,
-				api_key: APAW_HF_API_KEY
+				api_key: normalizedHfApiKey
 			};
 
 			const predictionResponse = await requestPredictionWithRetry(payload);
@@ -410,7 +513,15 @@ export async function POST({ request, url }) {
 				};
 			}
 
+			console.log(`[automated-flood-detection] run_id=  prediction successful`);
 			const normalizedPrediction = normalizePredictionResponse(predictionResponse.result);
+			const firstForecastDay = normalizedPrediction?.forecast_by_day?.[0];
+			console.log('[automated-flood-detection] HF response sample:', {
+				coordinate_id: coordinate.coordinate_id,
+				status: normalizedPrediction?.status ?? null,
+				firstDayKeys: firstForecastDay ? Object.keys(firstForecastDay) : [],
+				firstHourFinalPrediction: firstForecastDay?.hourly_forecast?.[0]?.final_prediction ?? null
+			});
 			const rows = flattenForecastRows({
 				coordinate,
 				runId,
@@ -440,11 +551,13 @@ export async function POST({ request, url }) {
 		.filter((item) => item.status === 'success')
 		.flatMap((item) => item.rows);
 
+	console.log(
+		`[automated-flood-detection] run_id=${runId} preparing to upsert ${rowsToUpsert.length} rows`
+	);
+
 	if (rowsToUpsert.length > 0) {
 		const supabase = getSupabaseClient();
-		const { error: upsertError } = await supabase
-			.from(TARGET_TABLE)
-			.upsert(rowsToUpsert, { onConflict: 'coordinate_id,forecast_date,request_date' });
+		const upsertError = await upsertRowsInBatches(supabase, rowsToUpsert, runId);
 		if (upsertError) {
 			return json(
 				{
