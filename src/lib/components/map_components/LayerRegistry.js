@@ -145,60 +145,59 @@ export const overlayLayers = [
 
 // --- Weather Layer Definitions ---
 export const weatherLayers = [
-    {
-        id: 'none',
-        name: 'None',
-        group: 'Weather',
-        exclusive: true,
-        createLayer: async (L) => L.layerGroup()
-    },
-    {
-        id: 'pagasaSatellite',
-        name: 'DOST PAGASA Himawari',
-        group: 'Weather',
-        exclusive: true,
-        createLayer: async (L) => createPagasaSatelliteLayer(L),
-        updateInterval: 900000,
-        updateLayer: async (layer) => {
-            const baseUrl =
-                'https://src.meteopilipinas.gov.ph/repo/mtsat-colored/24hour/latest-him-colored-hourly.gif';
-            const newUrl = `${baseUrl}?t=${new Date().getTime()}`;
-            if (layer && typeof layer.setUrl === 'function') {
-                layer.setUrl(newUrl);
-                console.log('PAGASA Satellite layer updated.');
-            }
-        }
-    },
-    {
-        id: 'wind',
-        name: 'Open Weather Wind',
-        group: 'Weather',
-        exclusive: true,
-        createLayer: async (L, apiKey) => {
-            const windDirection = L.tileLayer(
-                `https://maps.openweathermap.org/maps/2.0/weather/WND/{z}/{x}/{y}?appid=${apiKey}`,
-                { attribution: '© OpenWeatherMap', maxZoom: 19, opacity: 0.5 }
-            );
-            const windSpeed = L.tileLayer(
-                `https://maps.openweathermap.org/maps/2.0/weather/WS10/{z}/{x}/{y}?appid=${apiKey}`,
-                { attribution: '© OpenWeatherMap', maxZoom: 19, opacity: 0.5 }
-            );
-            return L.layerGroup([windDirection, windSpeed]);
-        },
-        updateInterval: 600000, // 10 minutes
-        updateLayer: async (layer) => {
-            if (layer && typeof layer.eachLayer === 'function') {
-                layer.eachLayer((subLayer) => {
-                    if (typeof subLayer.redraw === 'function') {
-                        subLayer.redraw();
-                    }
-                });
-                console.log('Open Weather Wind layer updated.');
-            }
-        }
-    }
+	{
+		id: 'none',
+		name: 'None',
+		group: 'Weather',
+		exclusive: true,
+		createLayer: async (L) => L.layerGroup()
+	},
+	{
+		id: 'pagasaSatellite',
+		name: 'DOST PAGASA Himawari',
+		group: 'Weather',
+		exclusive: true,
+		createLayer: async (L) => createPagasaSatelliteLayer(L),
+		updateInterval: 900000,
+		updateLayer: async (layer) => {
+			const baseUrl =
+				'https://src.meteopilipinas.gov.ph/repo/mtsat-colored/24hour/latest-him-colored-hourly.gif';
+			const newUrl = `${baseUrl}?t=${new Date().getTime()}`;
+			if (layer && typeof layer.setUrl === 'function') {
+				layer.setUrl(newUrl);
+				console.log('PAGASA Satellite layer updated.');
+			}
+		}
+	},
+	{
+		id: 'wind',
+		name: 'Open Weather Wind',
+		group: 'Weather',
+		exclusive: true,
+		createLayer: async (L, apiKey) => {
+			const windDirection = L.tileLayer(
+				`https://maps.openweathermap.org/maps/2.0/weather/WND/{z}/{x}/{y}?appid=${apiKey}`,
+				{ attribution: '© OpenWeatherMap', maxZoom: 19, opacity: 0.5 }
+			);
+			const windSpeed = L.tileLayer(
+				`https://maps.openweathermap.org/maps/2.0/weather/WS10/{z}/{x}/{y}?appid=${apiKey}`,
+				{ attribution: '© OpenWeatherMap', maxZoom: 19, opacity: 0.5 }
+			);
+			return L.layerGroup([windDirection, windSpeed]);
+		},
+		updateInterval: 600000, // 10 minutes
+		updateLayer: async (layer) => {
+			if (layer && typeof layer.eachLayer === 'function') {
+				layer.eachLayer((subLayer) => {
+					if (typeof subLayer.redraw === 'function') {
+						subLayer.redraw();
+					}
+				});
+				console.log('Open Weather Wind layer updated.');
+			}
+		}
+	}
 ];
-
 
 // A combined list for easier iteration in map event handlers
 export const allOverlayLayers = [...overlayLayers, ...weatherLayers];

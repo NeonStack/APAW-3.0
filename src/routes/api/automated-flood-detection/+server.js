@@ -14,6 +14,7 @@ const HF_BATCH_API_URL =
 const WATER_STATIONS_API_URL =
 	'https://pasig-marikina-tullahanffws.pagasa.dost.gov.ph/water/main_list.do';
 const COORDINATES_TABLE = 'automated_detection_locations';
+const AUTOMATED_FLOOD_TABLE = 'automated_flood_detection';
 const MAX_CONCURRENCY = 2;
 const MAX_RETRIES = 2;
 const HF_BATCH_TIMEOUT_MS = 180000;
@@ -87,6 +88,24 @@ function parseIds(value) {
 		.split(',')
 		.map((id) => id.trim())
 		.filter(Boolean);
+}
+
+function parseForecastIndices(value) {
+	const raw = parseIds(value);
+	if (raw.length === 0) return [0];
+	const parsed = raw
+		.map((item) => Number.parseInt(item, 10))
+		.filter((item) => Number.isInteger(item) && item >= 0 && item <= 4);
+	return parsed.length > 0 ? [...new Set(parsed)] : [0];
+}
+
+function parseProbability(value, fallback = 0.5) {
+	if (value === undefined || value === null || value === '') return fallback;
+	const parsed = Number(value);
+	if (!Number.isFinite(parsed)) return fallback;
+	if (parsed < 0) return 0;
+	if (parsed > 1) return 1;
+	return parsed;
 }
 
 function normalizeStaticParams(rawValue) {
@@ -368,6 +387,69 @@ async function requestBatchPredictionWithRetry(payload, runId = 'n/a') {
 		ok: false,
 		error: lastError || { message: 'Unknown batch prediction error.' }
 	};
+}
+
+export async function GET({ url }) {
+	if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
+		return json({ error: 'Configuration error: Supabase variables are missing.' }, { status: 500 });
+	}
+
+	const supabase = getSupabaseClient();
+	const requestedDate = url.searchParams.get('request_date');
+	const requestedRunId = url.searchParams.get('run_id');
+	const forecastIndices = parseForecastIndices(url.searchParams.get('forecast_index'));
+	const minProbability = parseProbability(url.searchParams.get('min_probability'), 0.5);
+
+	let requestDate = requestedDate;
+	let runId = requestedRunId;
+	if (!requestDate && !runId) {
+		requestDate = getPhilippineDate();
+	}
+
+	let query = supabase
+		.from(AUTOMATED_FLOOD_TABLE)
+		.select(
+			'id, run_id, triggered_at, trigger_source, coordinate_id, location_name, latitude, longitude, request_date, forecast_date, forecast_index, risk_level, flood_probability, forecast_payload, model_payload'
+		)
+		.gte('flood_probability', minProbability)
+		.order('flood_probability', { ascending: false })
+		.order('location_name', { ascending: true });
+
+	if (runId) {
+		query = query.eq('run_id', runId);
+	} else if (requestedDate) {
+		query = query.eq('request_date', requestDate);
+	}
+
+	if (forecastIndices.length > 0) {
+		query = query.in('forecast_index', forecastIndices);
+	}
+
+	const { data, error } = await query;
+	if (error) {
+		return json(
+			{ error: 'Failed to fetch automated flood alerts.', details: error.message },
+			{ status: 500 }
+		);
+	}
+
+	const normalized = (data ?? []).map((row) => ({
+		...row,
+		lat: Number(row.latitude),
+		lon: Number(row.longitude)
+	}));
+
+	return json({
+		data: normalized,
+		meta: {
+			request_date: requestDate,
+			run_id: runId,
+			snapshot_mode: runId ? 'run' : requestedDate ? 'request_date' : 'aggregate',
+			forecast_indices: forecastIndices,
+			min_probability: minProbability,
+			count: normalized.length
+		}
+	});
 }
 
 export async function POST({ request, url }) {
