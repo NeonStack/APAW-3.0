@@ -126,32 +126,18 @@
 	/>
 </svelte:head>
 
-<!-- Ultra-Premium Hero Section -->
 <section
-	class="relative flex flex-col overflow-hidden bg-gradient-to-b from-white via-white to-slate-100 pt-20 pb-20"
+	class="relative flex flex-col overflow-hidden bg-gradient-to-b from-primary-light/25 via-white to-slate-100 pt-20 pb-20"
 >
-	<!-- Abstract glowing background -->
-	<div class="pointer-events-none absolute inset-0 z-0 overflow-hidden">
-		<div
-			class="bg-primary-light absolute top-[-10%] left-1/2 h-[400px] w-[400px] -translate-x-1/2 rounded-full opacity-10 blur-[80px] sm:top-0 sm:-left-20 sm:h-[600px] sm:w-[600px] sm:translate-x-0 sm:blur-[120px]"
-		></div>
-		<div
-			class="bg-primary absolute right-1/2 bottom-[-10%] h-[300px] w-[300px] translate-x-1/2 rounded-full opacity-10 blur-[80px] sm:-right-20 sm:-bottom-32 sm:h-[500px] sm:w-[500px] sm:translate-x-0 sm:blur-[100px]"
-		></div>
-	</div>
+
 
 	<div class="relative z-10 container mx-auto px-6">
 		<div class="mx-auto max-w-5xl text-center">
-			<div
-				class="bg-opacity-80 mb-8 inline-flex items-center gap-2 rounded-full border border-blue-200 bg-white px-5 py-2.5 shadow-sm backdrop-blur-md"
-			>
-				<Icon icon="mdi:information-outline" class="text-primary h-5 w-5" />
-				<span class="text-primary text-sm font-bold uppercase tracking-wide"
-					>The Vision Behind APAW</span
-				>
-			</div>
-
-			<img src="/APAW_TRANSPARENT.webp" alt="APAW Logo" class="mx-auto mb-8 h-40 drop-shadow-md" />
+			<img
+				src="/APAW_TRANSPARENT.webp"
+				alt="APAW Logo"
+				class="mx-auto mb-8 h-auto w-full max-w-[220px] object-contain drop-shadow-md sm:max-w-[280px]"
+			/>
 
 			<p
 				class="mx-auto max-w-3xl text-lg leading-relaxed font-light text-gray-600 md:text-xl lg:text-2xl"
@@ -491,7 +477,7 @@
 </section>
 
 <!-- Mission & Vision Dual Card -->
-<section class="mb-10 bg-white py-20 pb-32">
+<section class="bg-slate-50 py-20 pb-32">
 	<div class="container mx-auto max-w-6xl px-6">
 		<div
 			class="grid grid-cols-1 overflow-hidden rounded-[3rem] shadow-[0_30px_80px_rgba(12,49,67,0.12)] lg:grid-cols-2"

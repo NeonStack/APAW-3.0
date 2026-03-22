@@ -127,7 +127,13 @@ async function getLatestNcrGfaUrl() {
 
     const xmlText = await response.text();
     const feed = parser.parse(xmlText);
-    const entries = feed.feed.entry;
+    const rawEntries = feed?.feed?.entry;
+    const entries = Array.isArray(rawEntries) ? rawEntries : rawEntries ? [rawEntries] : [];
+
+    if (entries.length === 0) {
+        console.warn('GFA BACKGROUND: PAGASA feed has no entries to scan.');
+        return null;
+    }
 
     const cutoffDate = new Date();
     cutoffDate.setHours(cutoffDate.getHours() - CONFIG.GFA_CUTOFF_HOURS);

@@ -68,6 +68,7 @@
 	export let height = '100%';
 
 	let mapContainer;
+	let searchOverlay;
 	let map;
 	let marker = null;
 	let waterStationMarkers = [];
@@ -90,6 +91,53 @@
 	let activeLeafletLayers = {};
 	let instantiatedLayers = {};
 	let layerUpdateIntervals = {};
+	let isLayerPanelExpanded = false;
+	let layerControlContainer = null;
+	let layerControlObserver = null;
+	let layoutObserver = null;
+	let resizeHandler = null;
+
+	function updateLayerControlOffset() {
+		if (!browser || !mapContainer || !layerControlContainer) return;
+
+		const mapRect = mapContainer.getBoundingClientRect();
+		const searchRect = searchOverlay?.getBoundingClientRect();
+		const controlRect = layerControlContainer.getBoundingClientRect();
+		const defaultTop = 0;
+		let topOffset = defaultTop;
+
+		if (searchRect && controlRect) {
+			const isNarrowViewport = window.innerWidth <= 400;
+			const hasHorizontalOverlap = searchRect.right + 8 > controlRect.left;
+
+			if (isNarrowViewport || hasHorizontalOverlap) {
+				topOffset = Math.max(defaultTop, Math.round(searchRect.bottom - mapRect.top + 8));
+			}
+		}
+
+		mapContainer.style.setProperty('--leaflet-right-top', `${topOffset}px`);
+	}
+
+	function syncLayerPanelState() {
+		if (!layerControlContainer) {
+			isLayerPanelExpanded = false;
+			return;
+		}
+		isLayerPanelExpanded = layerControlContainer.classList.contains(
+			'leaflet-control-layers-expanded'
+		);
+		updateLayerControlOffset();
+	}
+
+	function handleInteractionBlockerClick(event) {
+		event.preventDefault();
+		event.stopPropagation();
+
+		if (layerControlContainer) {
+			layerControlContainer.classList.remove('leaflet-control-layers-expanded');
+			syncLayerPanelState();
+		}
+	}
 
 	// --- NEW: Centralized function for handling location selection and marker updates ---
 	async function handleLocationSelection(lat, lng, name = null) {
@@ -499,6 +547,36 @@
 
 		// Setup grouped layer control
 		layerControl = setupGroupedLayerControl(L, map, instantiatedLayers);
+		layerControlContainer =
+			layerControl?.getContainer?.() ||
+			document.querySelector('.leaflet-control-layers.leaflet-control');
+
+		if (layerControlContainer) {
+			syncLayerPanelState();
+			layerControlObserver = new MutationObserver(() => {
+				syncLayerPanelState();
+			});
+			layerControlObserver.observe(layerControlContainer, {
+				attributes: true,
+				attributeFilter: ['class']
+			});
+		}
+
+		resizeHandler = () => updateLayerControlOffset();
+		window.addEventListener('resize', resizeHandler);
+
+		if (typeof ResizeObserver !== 'undefined') {
+			layoutObserver = new ResizeObserver(() => {
+				updateLayerControlOffset();
+			});
+
+			if (searchOverlay) layoutObserver.observe(searchOverlay);
+			if (mapContainer) layoutObserver.observe(mapContainer);
+			if (layerControlContainer) layoutObserver.observe(layerControlContainer);
+		}
+
+		await tick();
+		updateLayerControlOffset();
 
 		// Add zoom control
 		L.control.zoom({ position: 'bottomleft' }).addTo(map);
@@ -780,6 +858,20 @@
 			automatedAlertLayerGroup.remove();
 			automatedAlertLayerGroup = null;
 		}
+		if (layerControlObserver) {
+			layerControlObserver.disconnect();
+			layerControlObserver = null;
+		}
+		if (layoutObserver) {
+			layoutObserver.disconnect();
+			layoutObserver = null;
+		}
+		if (resizeHandler) {
+			window.removeEventListener('resize', resizeHandler);
+			resizeHandler = null;
+		}
+		layerControlContainer = null;
+		isLayerPanelExpanded = false;
 		if (map) {
 			try {
 				map.off();
@@ -798,11 +890,19 @@
 </svelte:head>
 
 <div bind:this={mapContainer} style="height: {height}; width: 100%;" class="map-container z-10">
-	<div class="search-overlay pointer-events-none">
+	<div bind:this={searchOverlay} class="search-overlay pointer-events-none">
 		<div class="pointer-events-auto">
 			<MapSearchBar on:selectLocation={handleSearchLocation} disabled={isSelectingLocation} />
 		</div>
 	</div>
+	<div
+		class="map-interaction-blocker"
+		class:active={isLayerPanelExpanded}
+		on:click={handleInteractionBlockerClick}
+		on:touchstart={handleInteractionBlockerClick}
+		on:pointerdown={handleInteractionBlockerClick}
+		aria-hidden="true"
+	></div>
 </div>
 
 <style>
@@ -816,7 +916,7 @@
 		top: 10px;
 		left: 10px;
 		right: 10px;
-		z-index: 1000;
+		z-index: 1001;
 		max-width: 420px;
 	}
 
@@ -831,7 +931,7 @@
 	}
 
 	:global(.leaflet-control-container) {
-		z-index: 40 !important;
+		z-index: 1000 !important;
 	}
 
 	:global(.leaflet-popup-content) {
@@ -1224,15 +1324,29 @@
 		margin-bottom: 5px !important;
 	}
 
-	/* Adjust layer control position on mobile */
-	@media (max-width: 640px) {
-		:global(.leaflet-top.leaflet-right) {
-			top: 10px !important;
-			right: 10px !important;
-		}
+	:global(.leaflet-top.leaflet-right) {
+		top: var(--leaflet-right-top, 0px) !important;
+		right: 10px !important;
+	}
 
-		:global(.leaflet-control-layers) {
-			margin-right: 0 !important;
+	:global(.leaflet-control-layers) {
+		margin-right: 0 !important;
+	}
+
+	.map-interaction-blocker {
+		position: absolute;
+		inset: 0;
+		z-index: 999;
+		display: none;
+		background: rgba(0, 0, 0, 0);
+		pointer-events: none;
+	}
+
+	@media (max-width: 1024px) {
+		.map-interaction-blocker.active {
+			display: block;
+			background: rgba(0, 0, 0, 0.4);
+			pointer-events: auto;
 		}
 	}
 
