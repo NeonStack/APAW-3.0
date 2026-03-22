@@ -1511,11 +1511,6 @@
 					<Icon icon="eos-icons:loading" class="animate-spin text-blue-300" width="18" />
 					<span class="tracking-wide">Analyzing Models...</span>
 				{:else}
-					<Icon
-						icon="mdi:magic-staff"
-						class="text-blue-300 transition-transform group-hover:-rotate-12"
-						width="18"
-					/>
 					<span class="tracking-wide">Generate Prediction</span>
 				{/if}
 			</button>

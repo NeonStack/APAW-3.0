@@ -816,7 +816,7 @@
 		top: 10px;
 		left: 10px;
 		right: 10px;
-		z-index: 1000;
+		z-index: 1001;
 		max-width: 420px;
 	}
 
@@ -831,7 +831,7 @@
 	}
 
 	:global(.leaflet-control-container) {
-		z-index: 40 !important;
+		z-index: 1000 !important;
 	}
 
 	:global(.leaflet-popup-content) {
@@ -1224,15 +1224,30 @@
 		margin-bottom: 5px !important;
 	}
 
-	/* Adjust layer control position on mobile */
-	@media (max-width: 640px) {
+	/* Adjust layer control position on mobile, md, and lg screens */
+	@media (max-width: 1024px) {
 		:global(.leaflet-top.leaflet-right) {
-			top: 10px !important;
+			top: 70px !important;
 			right: 10px !important;
 		}
 
 		:global(.leaflet-control-layers) {
 			margin-right: 0 !important;
+		}
+	}
+
+	/* Subtle overlay on mobile and md screens when layer is active */
+	@media (max-width: 768px) {
+		:global(.map-container:has(.leaflet-control-layers-expanded)::after) {
+			content: '';
+			position: absolute;
+			top: 0;
+			left: 0;
+			right: 0;
+			bottom: 0;
+			background-color: rgba(0, 0, 0, 0.4); /* subtle dark overlay */
+			z-index: 999; /* covers map but sits behind the layers control with z-index 1000 */
+			pointer-events: auto; /* absorbs map clicks */
 		}
 	}
 
