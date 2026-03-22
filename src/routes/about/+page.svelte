@@ -4,30 +4,30 @@
 	// Technical achievements data
 	const achievements = [
 		{
-			title: 'High Accuracy Classification',
+			title: 'Training Classification',
 			description:
-				'Our flood detection model achieves 88% accuracy in determining whether flooding will occur, with a 73% recall rate for identifying potential flood events.',
+				'During initial model training, our flood detection algorithm achieved 88% accuracy in determining potential flood conditions, alongside a 73% recall rate.',
 			icon: 'mdi:target',
 			metric: '88% Accuracy'
 		},
 		{
-			title: 'Reliable Depth Prediction',
+			title: 'Depth Estimation Metrics',
 			description:
-				'When floods are predicted, our LSTM model estimates flood depth with a Mean Absolute Error of just 8.07 cm, providing highly valuable information for preparation.',
+				'When testing depth predictions, the LSTM model recorded a Mean Absolute Error of 8.07 cm on our historical data sets, providing a baseline for localized estimations.',
 			icon: 'mdi:ruler',
 			metric: '8.07cm MAE'
 		},
 		{
 			title: 'Hourly Forecast Window',
 			description:
-				'Unlike traditional same-day flood warnings, APAW provides hourly predictions up to 5 days in advance, enabling better preparation time.',
+				'We aim to provide hourly predictions up to 5 days in advance, a research approach intended to expand preparation windows.',
 			icon: 'mdi:calendar-range',
 			metric: 'Hourly Up to 5 Days'
 		},
 		{
 			title: 'Fast Response Time',
 			description:
-				'Our optimized system delivers predictions in 5-15 seconds, making it practical for real-time decision making.',
+				'Our system is computationally optimized to deliver predictive calculations within 5-15 seconds for timely data analysis.',
 			icon: 'mdi:speedometer',
 			metric: '5-15 Seconds'
 		}
@@ -39,29 +39,29 @@
 			step: '1',
 			title: 'Data Integration',
 			description:
-				'We combine weather forecasts, historical flood records, geographic features, and soil conditions from multiple reliable sources to create a comprehensive dataset.',
-			icon: 'mdi:database',
+				'We combine weather forecasts, historical flood records, and geographic features from multiple reliable sources to create a comprehensive dataset.',
+			icon: 'mdi:database'
 		},
 		{
 			step: '2',
 			title: 'Flood Detection with Random Forest',
 			description:
-				'Our Random Forest classifier analyzes patterns in the integrated data to predict whether flooding will occur at a specific location and time.',
-			icon: 'mdi:tree',
+				'Our Random Forest model (a pattern-matching algorithm) analyzes patterns in the integrated data to estimate the likelihood of flooding at a specific location and time.',
+			icon: 'mdi:tree'
 		},
 		{
 			step: '3',
 			title: 'Depth Prediction with LSTM',
 			description:
-				'When flooding is detected, our LSTM neural network processes temporal sequences to accurately predict flood depth by learning from historical water level patterns.',
-			icon: 'mdi:waves',
+				'When a potential flood is detected, our LSTM model (which learns from historical sequences) processes temporal data to estimate flood depth based on past water level patterns.',
+			icon: 'mdi:waves'
 		},
 		{
 			step: '4',
-			title: 'Real-time Forecasting',
+			title: 'Real-time Aggregation',
 			description:
-				'The system continuously processes current weather conditions to generate updated hourly flood risk forecasts up to 5 days ahead for any location in Metro Manila.',
-			icon: 'mdi:clock-fast',
+				'The system continuously processes recent weather conditions to generate updated hourly flood risk assessments up to 5 days ahead for locations across Metro Manila.',
+			icon: 'mdi:clock-fast'
 		}
 	];
 
@@ -94,29 +94,28 @@
 		{
 			title: 'Accuracy',
 			description:
-				'We are committed to thorough analysis and continuous improvement to provide the most reliable flood risk predictions possible, ensuring our models deliver precise and dependable results.',
+				'We are committed to thorough analysis and continuous improvement to provide reliable flood risk assessments, striving to make our experimental models as helpful as possible for academic research.',
 			icon: 'mdi:bullseye-arrow'
 		},
 		{
 			title: 'Preparedness',
 			description:
-				'We empower individuals, communities, and authorities with timely information that enables proactive planning and effective preparation for potential flood events before they occur.',
+				'We aim to empower individuals and communities with accessible information that fosters awareness and promotes proactive planning for potential localized flood events.',
 			icon: 'mdi:shield-alert'
 		},
 		{
 			title: 'Accessibility',
 			description:
-				'We strive to make complex flood risk information understandable and readily available to everyone through user-friendly interfaces and clear, actionable communication.',
+				'We strive to make complex flood risk data understandable and readily available to everyone through user-friendly interfaces and clear, community-focused communication.',
 			icon: 'mdi:hand-heart'
 		},
 		{
 			title: 'Wisdom',
 			description:
-				'We leverage data-driven insights and cutting-edge machine learning to transform raw information into actionable knowledge that helps communities make informed decisions about flood risks.',
+				'We leverage data-driven insights and machine learning concepts to help translate raw statistical information into accessible knowledge for communities.',
 			icon: 'mdi:brain'
 		}
 	];
-	const valueCardGradient = 'from-primary-light to-primary-light';
 </script>
 
 <svelte:head>
@@ -127,67 +126,114 @@
 	/>
 </svelte:head>
 
-<!-- Header section -->
-<div class="bg-primary relative mb-16 overflow-hidden px-4 py-16 text-white">
-	<div class="absolute top-0 left-0 h-full w-full opacity-10">
+<!-- Ultra-Premium Hero Section -->
+<section
+	class="relative flex min-h-[70svh] flex-col justify-center overflow-hidden bg-gradient-to-b from-white via-white to-slate-100 pt-20 pb-20"
+>
+	<!-- Abstract glowing background -->
+	<div class="pointer-events-none absolute inset-0 z-0 overflow-hidden">
 		<div
-			class="bg-primary-light absolute top-0 left-0 h-full w-1/2 translate-x-[-50%] translate-y-[-50%] rotate-45 transform"
+			class="bg-primary-light absolute top-[-10%] left-1/2 h-[400px] w-[400px] -translate-x-1/2 rounded-full opacity-10 blur-[80px] sm:top-0 sm:-left-20 sm:h-[600px] sm:w-[600px] sm:translate-x-0 sm:blur-[120px]"
 		></div>
 		<div
-			class="bg-primary-light absolute right-0 bottom-0 h-full w-1/2 translate-x-[50%] translate-y-[50%] -rotate-45 transform"
+			class="bg-primary absolute right-1/2 bottom-[-10%] h-[300px] w-[300px] translate-x-1/2 rounded-full opacity-10 blur-[80px] sm:-right-20 sm:-bottom-32 sm:h-[500px] sm:w-[500px] sm:translate-x-0 sm:blur-[100px]"
 		></div>
 	</div>
-	<div class="relative z-10 container mx-auto">
-		<h1 class="mb-6 text-center text-5xl font-bold md:text-6xl">About APAW</h1>
-		<div class="bg-primary-light mx-auto mb-8 h-1.5 w-32 rounded-full"></div>
-		<p class="mx-auto max-w-3xl text-center text-xl leading-relaxed">
-			Applying supervised learning models to analyze integrated hydrometeorological data and predict potential flood occurrences within Metro Manila.
-		</p>
-	</div>
-</div>
 
-<!-- Project Overview Section -->
-<section class="bg-gradient-to-b from-white to-gray-50 py-20">
-	<div class="container mx-auto px-6 md:px-12 lg:px-20">
-		<div class="mx-auto max-w-5xl">
-			<div class="border-primary-light rounded-2xl border-t-4 bg-white p-8 shadow-xl md:p-12">
-				<div class="mb-8 flex items-start">
-					<div class="mr-6 hidden flex-shrink-0 lg:block">
-						<div class="rounded-xl bg-gradient-to-br from-blue-50 to-cyan-50 p-4">
-							<img src="/APAW_SHORT_TRANSPARENT.webp" alt="APAW LOGO" class="w-10">
-						</div>
+	<div class="relative z-10 container mx-auto px-6">
+		<div class="mx-auto max-w-5xl text-center">
+			<div
+				class="bg-opacity-80 mb-8 inline-flex items-center gap-2 rounded-full border border-blue-200 bg-white px-5 py-2.5 shadow-sm backdrop-blur-md"
+			>
+				<Icon icon="mdi:information-outline" class="text-primary h-5 w-5" />
+				<span class="text-primary text-sm font-bold tracking-wide uppercase"
+					>The Vision Behind APAW</span
+				>
+			</div>
+
+			<img src="/APAW_TRANSPARENT.webp" alt="APAW Logo" class="mx-auto mb-8 h-40 drop-shadow-md" />
+
+			<p
+				class="mx-auto max-w-3xl text-lg leading-relaxed font-light text-gray-600 md:text-xl lg:text-2xl"
+			>
+				A machine learning-based predictive analytics platform for flood risk assessment, applying
+				trained models to evaluate complex hydrometeorological data for Metro Manila.
+			</p>
+		</div>
+	</div>
+</section>
+
+<!-- Project Overview (Bento Grid Style) -->
+<section class="relative z-20 bg-white py-24">
+	<div class="container mx-auto max-w-7xl px-6">
+		<div class="grid grid-cols-1 items-stretch gap-8 lg:grid-cols-12">
+			<!-- Main info card -->
+			<div
+				class="group relative overflow-hidden rounded-[2rem] border border-gray-100 bg-white p-10 shadow-[0_20px_50px_rgba(12,49,67,0.08)] transition-transform duration-500 hover:-translate-y-1 lg:col-span-8 lg:p-16"
+			>
+				<div
+					class="absolute top-0 right-0 p-8 opacity-5 transition-opacity duration-700 group-hover:opacity-10"
+				>
+					<Icon
+						icon="mdi:water-search"
+						width="200"
+						height="200"
+						class="text-primary-light translate-x-10 -translate-y-10"
+					/>
+				</div>
+				<div class="relative z-10">
+					<img
+						src="/APAW_SHORT_TRANSPARENT.webp"
+						alt="APAW Symbol"
+						class="mb-8 h-16 drop-shadow-md"
+					/>
+					<h2 class="mb-6 text-4xl leading-tight font-extrabold text-slate-800">
+						What is <span class="text-primary-light">APAW</span>?
+					</h2>
+					<p class="mb-6 text-lg leading-relaxed text-gray-600">
+						APAW (Advanced Predictive Analysis of Water-related Flood Risk) is a machine
+						learning-based predictive analytics platform developed as a capstone project. By
+						leveraging pattern-matching algorithms and learning models, APAW interprets weather
+						datasets, geographical features, and historical timelines to estimate potential flood
+						risks.
+					</p>
+					<p class="text-lg leading-relaxed text-gray-600">
+						Designed to complement official government systems, our experimental infrastructure
+						explores localized insights for specific coordinates across Metro Manila, aiming to aid
+						in community awareness and modern disaster preparedness education.
+					</p>
+				</div>
+			</div>
+
+			<!-- Core stats vertical stack -->
+			<div class="flex flex-col gap-8 lg:col-span-4">
+				<div
+					class="from-primary to-primary-light relative flex flex-1 transform flex-col justify-center overflow-hidden rounded-[2rem] border border-blue-200 bg-gradient-to-br p-8 text-white shadow-xl transition-transform duration-500 hover:-translate-y-1"
+				>
+					<div class="absolute -right-4 -bottom-4 opacity-20">
+						<Icon icon="mdi:calendar-clock" width="120" height="120" />
 					</div>
-					<div>
-						<h3 class="text-primary mb-4 text-center text-2xl font-bold lg:text-left">
-							What is APAW?
-						</h3>
-						<p class="mb-6 text-lg leading-relaxed text-gray-700">
-							APAW (Advanced Predictive Analysis of Water-related Flood Risk) is an innovative flood
-							prediction platform developed as part of our academic capstone project. Using advanced
-							machine learning techniques, APAW analyzes weather patterns, geographical features, and
-							historical data to predict flood risks with hourly prediction of up to 5 days in
-							advance.
-						</p>
-						<p class="text-lg leading-relaxed text-gray-700">
-							Our system addresses a critical gap in flood preparedness by providing
-							location-specific predictions for any area within Metro Manila, moving beyond
-							traditional regional flood warnings to enable proactive community preparation.
-						</p>
+					<div class="text-opacity-80 mb-2 text-sm font-bold tracking-widest text-white uppercase">
+						Advance Forecast
 					</div>
+					<div class="mb-1 text-5xl font-black">5 Days</div>
+					<div class="text-opacity-90 text-white">Detailed predictive window</div>
 				</div>
 
-				<div class="mt-8 grid grid-cols-1 gap-6 border-t border-gray-200 pt-8 md:grid-cols-3">
-					<div class="text-center">
-						<div class="text-primary-light mb-2 text-4xl font-bold">5 Days</div>
-						<div class="text-gray-600">Advance Forecast</div>
+				<div
+					class="group relative flex flex-1 transform flex-col justify-center overflow-hidden rounded-[2rem] border border-gray-100 bg-white p-8 shadow-[0_15px_40px_rgba(12,49,67,0.06)] transition-transform duration-500 hover:-translate-y-1"
+				>
+					<div class="mb-2 text-sm font-bold tracking-widest text-blue-500 uppercase">
+						Architecture
 					</div>
-					<div class="text-center">
-						<div class="text-primary-light mb-2 text-4xl font-bold">Hourly</div>
-						<div class="text-gray-600">Prediction Updates</div>
+					<div
+						class="group-hover:text-primary mb-2 text-4xl font-black text-slate-800 transition-colors"
+					>
+						RF + LSTM
 					</div>
-					<div class="text-center">
-						<div class="text-primary-light mb-2 text-4xl font-bold">2 Models</div>
-						<div class="text-gray-600">RF + LSTM</div>
+					<div class="text-sm text-gray-500">
+						<strong>Random Forest</strong> (a pattern-matching model) paired with
+						<strong>LSTM</strong> (a system that learns from historical sequences)
 					</div>
 				</div>
 			</div>
@@ -195,36 +241,50 @@
 	</div>
 </section>
 
-<!-- Technical Achievements Section -->
-<section class="bg-white py-20">
-	<div class="container mx-auto px-6 md:px-12 lg:px-20">
-		<div class="mb-12 text-center">
-			<h2 class="text-primary mb-4 text-3xl font-bold md:text-4xl">Technical Achievements</h2>
-			<div class="bg-primary-light mx-auto mb-4 h-1 w-20 rounded-full"></div>
-			<p class="mx-auto max-w-2xl text-lg text-gray-600">
-				Our system demonstrates strong performance across multiple metrics
+<!-- Technical Achievements -->
+<section class="relative overflow-hidden bg-slate-50 py-24">
+	<div
+		class="pointer-events-none absolute top-0 right-0 h-full w-1/3 bg-gradient-to-l from-blue-50 to-transparent"
+	></div>
+
+	<div class="relative z-10 container mx-auto max-w-7xl px-6">
+		<div class="mb-16 items-end justify-between gap-8 md:flex">
+			<div class="max-w-2xl">
+				<div class="text-primary-light mb-3 text-sm font-bold tracking-widest uppercase">
+					Model Performance
+				</div>
+				<h2 class="text-4xl font-extrabold tracking-tight text-slate-900 lg:text-5xl">
+					System Benchmarks
+				</h2>
+			</div>
+			<p
+				class="mt-4 max-w-sm border-l-2 border-blue-200 py-1 pl-4 font-medium text-gray-500 md:mt-0"
+			>
+				Our machine learning models were evaluated on training data to establish baseline
+				performance metrics for our capstone research.
 			</p>
 		</div>
 
-		<div class="mx-auto grid max-w-7xl grid-cols-1 gap-8 lg:grid-cols-2">
+		<div class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:gap-8">
 			{#each achievements as achievement}
 				<div
-					class="group relative overflow-hidden rounded-2xl border border-gray-100 bg-gradient-to-br from-white to-gray-50 shadow-lg transition-all duration-300 hover:scale-101 hover:shadow-2xl"
+					class="group flex flex-col items-start gap-6 rounded-3xl border border-white bg-white p-8 shadow-[0_10px_30px_rgba(12,49,67,0.04)] transition-all duration-500 hover:border-blue-200 hover:shadow-[0_20px_40px_rgba(12,49,67,0.1)] sm:flex-row"
 				>
-					<div class="bg-primary-light absolute top-0 left-0 h-1.5 w-full"></div>
-					<div class="p-8">
-						<div class="mb-6 flex items-center justify-between">
-							<div
-								class="flex h-16 w-16 items-center justify-center rounded-xl bg-gradient-to-br from-blue-50 to-cyan-50 shadow-md transition-transform duration-300 group-hover:scale-110"
-							>
-								<Icon icon={achievement.icon} class="text-primary-light" width="36" height="36" />
-							</div>
+					<div
+						class="text-primary-light group-hover:bg-primary flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-2xl bg-slate-50 shadow-inner transition-colors duration-500 group-hover:text-white"
+					>
+						<Icon icon={achievement.icon} width="32" height="32" />
+					</div>
+					<div>
+						<div
+							class="text-primary mb-3 inline-block rounded-lg bg-blue-50 px-3 py-1 text-sm font-black"
+						>
+							{achievement.metric}
 						</div>
-						<div class="mb-4">
-							<div class="text-primary-light mb-2 text-2xl font-bold">{achievement.metric}</div>
-							<h3 class="text-xl font-bold text-gray-800">{achievement.title}</h3>
-						</div>
-						<p class="leading-relaxed text-gray-600">{achievement.description}</p>
+						<h3 class="mb-3 text-xl font-bold text-slate-800">{achievement.title}</h3>
+						<p class="text-sm leading-relaxed text-gray-600 lg:text-base">
+							{achievement.description}
+						</p>
 					</div>
 				</div>
 			{/each}
@@ -232,249 +292,241 @@
 	</div>
 </section>
 
-<!-- Methodology Section -->
-<section class="bg-gradient-to-b from-gray-50 to-white py-20">
-	<div class="container mx-auto px-6 md:px-12 lg:px-20">
-		<div class="mb-12 text-center">
-			<h2 class="text-primary mb-4 text-3xl font-bold md:text-4xl">Our Methodology</h2>
-			<div class="bg-primary-light mx-auto mb-4 h-1 w-20 rounded-full"></div>
-			<p class="mx-auto max-w-2xl text-lg text-gray-600">
-				A sophisticated four-step process combining traditional ML and deep learning
+<!-- Methodology Streamline -->
+<section class="relative bg-white py-32">
+	<div class="container mx-auto max-w-5xl px-6">
+		<div class="mb-20 text-center">
+			<h2 class="mb-4 text-4xl font-extrabold tracking-tight text-slate-900 lg:text-5xl">
+				The Methodology
+			</h2>
+			<p class="mx-auto max-w-2xl text-xl text-gray-500">
+				A four-step pipeline combining data aggregation with predictive machine learning models.
 			</p>
 		</div>
 
-		<div class="mx-auto max-w-5xl">
-			<div class="relative">
-				<!-- Connection line -->
-				<div
-					class="from-primary via-primary-light to-primary absolute top-1 bottom-1 left-8 hidden w-1 bg-gradient-to-b opacity-20 rounded lg:block"
-				></div>
-
-				<div class="space-y-8 mx-auto">
-					{#each methodology as step, index}
-						<div class="group relative flex items-start">
-							<!-- Step number circle -->
-							<div class="relative z-10 flex-shrink-0 mt-[0.05rem]">
-								<div
-									class=" bg-primary-light h-16 w-16 items-center justify-center rounded-2xl text-2xl font-bold text-white shadow-lg transition-transform duration-300 group-hover:scale-110 hidden lg:flex"
-								>
-									{step.step}
-								</div>
-							</div>
-
-							<!-- Content card -->
-							<div class="ml-auto lg:ml-8 flex-grow">
-								<div
-									class="rounded-2xl border border-gray-100 bg-white p-8 shadow-lg transition-all duration-300 group-hover:shadow-xl"
-								>
-									<div class="mb-4 flex items-center gap-4 lg:gap-0">
-										<div class="mr-4 rounded-xl bg-gradient-to-br from-gray-50 to-gray-100 p-3 hidden lg:block">
-											<Icon icon={step.icon} class="text-primary-light" width="28" height="28" />
-										</div>
-										<div class="relative z-10 flex-shrink-0 lg:hidden">
-											<div
-												class="bg-gradient-to-br from-primary-light to-primary-light flex h-8 w-8 items-center justify-center rounded-2xl text-2xl font-bold text-white shadow-lg transition-transform duration-300 group-hover:scale-110"
-											>
-												{step.step}
-											</div>
-										</div>
-										<h3 class="text-lg font-bold  text-gray-800 lg:text-2xl">{step.title}</h3>
-									</div>
-									<p class="text-lg leading-relaxed text-gray-700">{step.description}</p>
-								</div>
-							</div>
-						</div>
-					{/each}
-				</div>
-			</div>
-		</div>
-	</div>
-</section>
-
-<!-- Comparison Section -->
-<section class="bg-white py-20">
-	<div class="container mx-auto px-6 md:px-12 lg:px-20">
-		<div class="mb-12 text-center">
-			<h2 class="text-primary mb-4 text-3xl font-bold md:text-4xl">APAW vs Traditional Systems</h2>
-			<div class="bg-primary-light mx-auto mb-4 h-1 w-20 rounded-full"></div>
-			<p class="mx-auto max-w-2xl text-lg text-gray-600">
-				See how our platform advances beyond conventional flood warning systems
-			</p>
-		</div>
-
-		<div class="mx-auto max-w-5xl">
-			<div class="overflow-hidden rounded-2xl border border-gray-200 shadow-2xl">
-				<div class="overflow-x-auto">
-					<table class="w-full">
-						<thead>
-							<tr class="bg-primary-light text-white">
-								<th class="px-8 py-5 text-left text-lg font-bold">Feature</th>
-								<th class="px-8 py-5 text-left text-lg font-bold">APAW Platform</th>
-								<th class="px-8 py-5 text-left text-lg font-bold">Traditional Systems</th>
-							</tr>
-						</thead>
-						<tbody class="divide-y divide-gray-200 bg-white">
-							{#each features as feature, index}
-								<tr
-									class="transition-colors duration-200 hover:bg-gradient-to-r hover:from-blue-50 hover:to-cyan-50"
-								>
-									<td class="px-8 py-6 text-lg font-bold text-gray-900">{feature.feature}</td>
-									<td class="px-8 py-6">
-										<div class="flex items-center">
-											<Icon
-												icon="mdi:check-circle"
-												class="text-primary-light mr-2 w-5 h-5 flex-shrink-0"
-												width="20"
-												height="20"
-												aria-hidden="true"
-											/>
-											<span class="text-primary-light font-semibold">{feature.apaw}</span>
-										</div>
-									</td>
-									<td class="px-8 py-6 text-gray-600">{feature.traditional}</td>
-								</tr>
-							{/each}
-						</tbody>
-					</table>
-				</div>
-			</div>
-		</div>
-	</div>
-</section>
-
-<!-- Academic Context Section -->
-<!-- <section class="py-20 bg-gradient-to-b from-gray-50 to-white">
-    <div class="container mx-auto px-6 md:px-12 lg:px-20">
-        <div class="mb-12 text-center">
-            <h2 class="text-primary text-3xl font-bold md:text-4xl mb-4">Academic Excellence</h2>
-            <div class="bg-primary-light mx-auto h-1 w-20 rounded-full"></div>
-        </div>
-        
-        <div class="max-w-5xl mx-auto">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div class="bg-white rounded-2xl p-8 shadow-xl border-t-4 border-blue-500 hover:shadow-2xl transition-all duration-300">
-                    <div class="flex items-center mb-6">
-                        <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-4 mr-4">
-                            <Icon icon="mdi:school" class="text-blue-600" width="40" height="40" />
-                        </div>
-                        <h3 class="text-2xl font-bold text-gray-800">Educational Institution</h3>
-                    </div>
-                    <p class="text-gray-700 leading-relaxed text-lg">
-                        We are Bachelor of Science in Information Technology students from Our Lady of Fatima University - Quezon City Campus, and this project represents our capstone research achievement.
-                    </p>
-                </div>
-
-                <div class="bg-white rounded-2xl p-8 shadow-xl border-t-4 border-green-500 hover:shadow-2xl transition-all duration-300">
-                    <div class="flex items-center mb-6">
-                        <div class="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-4 mr-4">
-                            <Icon icon="mdi:flask" class="text-green-600" width="40" height="40" />
-                        </div>
-                        <h3 class="text-2xl font-bold text-gray-800">Research Focus</h3>
-                    </div>
-                    <p class="text-gray-700 leading-relaxed text-lg">
-                        Our research explores the application of Random Forest classification and LSTM regression for predictive analysis of water-related flood risks in urban environments.
-                    </p>
-                </div>
-            </div>
-        </div>
-    </div>
-</section> -->
-
-<!-- Mission and Vision Section -->
-<section class="bg-white py-20">
-	<div class="container mx-auto px-6 md:px-12 lg:px-20">
-		<div class="mb-12 text-center">
-			<h2 class="text-primary mb-4 text-3xl font-bold md:text-4xl">Our Mission & Vision</h2>
-			<div class="bg-primary-light mx-auto h-1 w-20 rounded-full"></div>
-		</div>
-
-		<div class="mx-auto grid max-w-6xl grid-cols-1 gap-8 md:grid-cols-2">
-			<!-- Mission -->
+		<div class="relative">
+			<!-- Vertical Line -->
 			<div
-				class="relative overflow-hidden rounded-2xl border border-gray-100  shadow-xl transition-all duration-300 hover:scale-101 hover:shadow-2xl"
-			>
-				<div
-					class="absolute top-0 left-0 h-2 w-full bg-gradient-to-r from-primary-light to-primary-light"
-				></div>
-				<div class="p-10">
-					<div class="mb-6 flex items-center">
-						<div class="mr-4 rounded-xl bg-gradient-to-br from-primary-light to-primary-light p-4 shadow-lg">
-							<Icon icon="mdi:target-variant" class="text-white" width="36" height="36" />
-						</div>
-						<h3 class="text-primary text-2xl font-bold">Our Mission</h3>
-					</div>
-					<p class="text-lg leading-relaxed text-gray-700">
-						Our mission is to enhance community resilience and safety by developing and providing
-						accessible, data-driven predictions for water-related flood risks, empowering proactive
-						preparedness and response.
-					</p>
-				</div>
-			</div>
+				class="from-primary via-primary-light absolute top-4 bottom-4 left-8 w-1 rounded-full bg-gradient-to-b to-transparent opacity-20 lg:left-1/2 lg:-translate-x-1/2"
+			></div>
 
-			<!-- Vision -->
-			<div
-				class="relative overflow-hidden rounded-2xl border border-gray-100 shadow-xl transition-all duration-300 hover:scale-101 hover:shadow-2xl"
-			>
-				<div
-					class="absolute top-0 left-0 h-2 w-full bg-gradient-to-r from-primary-light to-primary-light"
-				></div>
-				<div class="p-10">
-					<div class="mb-6 flex items-center">
+			<div class="space-y-12 lg:space-y-24">
+				{#each methodology as step, index}
+					<div
+						class="group relative flex flex-col items-start justify-between gap-8 lg:flex-row lg:items-center lg:gap-16"
+					>
+						<!-- Timeline Node (Mobile: Left, Desktop: Center) -->
 						<div
-							class="mr-4 rounded-xl bg-gradient-to-br from-primary-light to-primary-light p-4 shadow-lg"
+							class="absolute top-0 left-8 z-10 mt-1 flex h-8 w-8 -translate-x-[14px] items-center justify-center lg:left-1/2 lg:mt-0 lg:-translate-x-1/2"
 						>
-							<Icon icon="mdi:eye-outline" class="text-white" width="36" height="36" />
+							<div
+								class="bg-primary group-hover:bg-primary-light h-4 w-4 rounded-full shadow-[0_0_15px_rgba(12,49,67,0.3)] ring-4 ring-white transition-colors"
+							></div>
+							<div
+								class="absolute inset-0 scale-[2] rounded-full border-2 border-blue-300 opacity-0 group-hover:animate-ping group-hover:opacity-100"
+							></div>
 						</div>
-						<h3 class="text-primary text-2xl font-bold">Our Vision</h3>
+
+						<!-- Left side text (only on even indexes for desktop) -->
+						<div
+							class="hidden text-right lg:block lg:w-1/2 {index % 2 !== 0
+								? 'order-1'
+								: 'invisible order-3 opacity-0 hover:visible'} pr-12"
+						>
+							<div class="text-primary-light -mr-6 mb-[-1.5rem] text-6xl font-black opacity-10">
+								0{step.step}
+							</div>
+							<h3 class="mb-3 text-2xl font-bold text-slate-800">{step.title}</h3>
+							<p class="leading-relaxed text-gray-600">{step.description}</p>
+						</div>
+
+						<!-- Right side text (Mobile & odd indexes for desktop) -->
+						<div
+							class="pl-20 lg:w-1/2 lg:pl-12 {index % 2 === 0
+								? 'lg:order-3'
+								: 'lg:order-1 lg:hidden'}"
+						>
+							<div
+								class="text-primary-light mb-[-1.5rem] -ml-2 text-6xl font-black opacity-10 lg:-ml-6"
+							>
+								0{step.step}
+							</div>
+							<h3 class="mb-3 text-2xl font-bold text-slate-800">{step.title}</h3>
+							<p class="leading-relaxed text-gray-600">{step.description}</p>
+						</div>
 					</div>
-					<p class="text-lg leading-relaxed text-gray-700">
-						Our vision is a future where communities are proactively safeguarded against flood
-						impacts, utilizing accurate and timely predictive insights to minimize risk to lives,
-						property, and livelihoods.
-					</p>
-				</div>
+				{/each}
 			</div>
 		</div>
 	</div>
 </section>
 
-<!-- Core Values Section - APAW -->
-<section class="bg-gradient-to-b from-gray-50 to-white py-20">
-	<div class="container mx-auto px-6 md:px-12 lg:px-20">
-		<div class="mb-12 text-center">
-			<h2 class="text-primary mb-4 text-3xl font-bold md:text-4xl">Our Core Values</h2>
-			<div class="bg-primary-light mx-auto mb-4 h-1 w-20 rounded-full"></div>
-			<p class="mx-auto max-w-2xl text-lg text-gray-600">
-				The principles that guide our work, embodied in our name: <span
-					class="text-primary-light text-xl font-bold">APAW</span
-				>
+<!-- System Comparison -->
+<section class="relative overflow-hidden bg-slate-900 py-24 text-white">
+	<!-- Background Effects -->
+	<div class="absolute inset-0 opacity-20">
+		<div class="bg-primary absolute -top-20 -right-20 h-96 w-96 rounded-full blur-[100px]"></div>
+		<div
+			class="bg-primary-light bg-opacity-50 absolute -bottom-20 -left-20 h-96 w-96 rounded-full blur-[100px]"
+		></div>
+	</div>
+
+	<div class="relative z-10 container mx-auto max-w-7xl px-6">
+		<div class="mb-16 px-4 text-center">
+			<h2 class="mb-4 text-3xl font-extrabold tracking-tight lg:text-5xl">
+				A Localized Approach to Preparedness
+			</h2>
+			<p class="text-primary-light text-lg font-medium">
+				How APAW explores targeted, location-specific flood risk assessment.
 			</p>
 		</div>
 
-		<div class="mx-auto grid max-w-7xl grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-4">
+		<div class="grid gap-8 md:grid-cols-2 lg:gap-12">
+			<!-- Traditional Systems -->
+			<div
+				class="bg-opacity-50 rounded-[2.5rem] border border-slate-700 bg-slate-800 p-8 backdrop-blur-md lg:p-12"
+			>
+				<h3 class="mb-8 flex items-center gap-3 text-2xl font-bold text-slate-300">
+					<Icon icon="mdi:radio-tower" class="text-slate-500" /> Traditional Systems
+				</h3>
+				<ul class="space-y-6">
+					{#each features as feature}
+						<li
+							class="border-opacity-50 flex flex-col gap-2 border-b border-slate-700 pb-6 last:border-0 last:pb-0"
+						>
+							<span class="text-xs font-bold tracking-widest text-slate-500 uppercase"
+								>{feature.feature}</span
+							>
+							<div class="flex items-start gap-3 text-slate-400">
+								<Icon
+									icon="mdi:close-circle"
+									class="text-opacity-80 mt-1 shrink-0 text-red-400"
+									width="20"
+									height="20"
+								/>
+								<span>{feature.traditional}</span>
+							</div>
+						</li>
+					{/each}
+				</ul>
+			</div>
+
+			<!-- APAW System -->
+			<div
+				class="from-primary relative rounded-[2.5rem] border border-blue-300 bg-gradient-to-br to-[#061b26] p-8 shadow-[0_20px_50px_rgba(59,166,208,0.2)] lg:p-12"
+			>
+				<div
+					class="bg-primary-light absolute top-0 right-0 rounded-tr-[2.5rem] rounded-bl-2xl px-4 py-1.5 text-xs font-bold tracking-wider text-white uppercase"
+				>
+					Experimental Model
+				</div>
+				<h3 class="mb-8 flex items-center gap-3 text-2xl font-bold text-white">
+					<Icon icon="mdi:shield-check" class="text-primary-light" /> APAW Architecture
+				</h3>
+				<ul class="space-y-6">
+					{#each features as feature}
+						<li class="flex flex-col gap-2 border-b border-blue-300 pb-6 last:border-0 last:pb-0">
+							<span class="text-primary-light text-xs font-bold tracking-widest uppercase"
+								>{feature.feature}</span
+							>
+							<div class="flex items-start gap-3 font-medium text-blue-50">
+								<Icon
+									icon="mdi:check-decagram"
+									class="text-primary-light mt-1 shrink-0"
+									width="22"
+									height="22"
+								/>
+								<span>{feature.apaw}</span>
+							</div>
+						</li>
+					{/each}
+				</ul>
+			</div>
+		</div>
+	</div>
+</section>
+
+<!-- Values Section -> Defining A P A W -->
+<section class="bg-gradient-to-b from-gray-50 to-white py-24">
+	<div class="container mx-auto max-w-7xl px-6">
+		<div class="mb-16 text-center">
+			<h2 class="mb-4 text-4xl font-extrabold tracking-tight text-slate-900 lg:text-5xl">
+				Our Core Philosophy
+			</h2>
+			<p class="mx-auto max-w-2xl text-xl text-gray-500">
+				The principles stitched into the very acronym of our identity.
+			</p>
+		</div>
+
+		<div class="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-4">
 			{#each values as value, index}
 				<div
-					class="group relative overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-xl transition-all duration-300 hover:scale-101 hover:shadow-2xl"
+					class="group relative z-10 flex h-full flex-col overflow-hidden rounded-[2rem] border border-gray-100 bg-white p-8 shadow-xl transition-all duration-500 hover:-translate-y-2 hover:shadow-2xl"
 				>
-					<div class="absolute top-0 left-0 h-2 w-full bg-gradient-to-r {valueCardGradient}"></div>
-					<div class="p-8">
-						<div class="mb-6">
-							<div
-								class="inline-flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br {valueCardGradient} shadow-lg transition-transform duration-300 group-hover:scale-110"
-							>
-								<Icon icon={value.icon} class="text-white" width="40" height="40" />
-							</div>
-						</div>
-						<div class="mb-4">
-							<h3 class="text-2xl font-bold">
-								<span class="text-primary-light text-4xl">{value.title.charAt(0)}</span
-								><span class="text-gray-800">{value.title.slice(1)}</span>
-							</h3>
-						</div>
-						<p class="leading-relaxed text-gray-600">{value.description}</p>
+					<!-- Giant Background Letter -->
+					<div
+						class="absolute -right-4 -bottom-10 z-[-1] text-[12rem] leading-none font-black text-slate-50 transition-transform duration-500 select-none group-hover:scale-110 group-hover:text-slate-100"
+					>
+						{'APAW'.charAt(index)}
 					</div>
+
+					<div
+						class="from-primary-light to-primary mb-6 flex h-14 w-14 transform items-center justify-center rounded-2xl bg-gradient-to-br text-white shadow-lg transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-3"
+					>
+						<Icon icon={value.icon} width="28" height="28" />
+					</div>
+
+					<h3 class="mb-4 text-2xl font-bold text-slate-800">{value.title}</h3>
+					<p class="relative z-20 flex-grow text-sm leading-relaxed text-gray-600">
+						{value.description}
+					</p>
+
+					<div
+						class="bg-primary-light mt-8 h-1 w-0 rounded-full transition-all duration-500 group-hover:w-full"
+					></div>
 				</div>
 			{/each}
+		</div>
+	</div>
+</section>
+
+<!-- Mission & Vision Dual Card -->
+<section class="mb-10 bg-white py-20 pb-32">
+	<div class="container mx-auto max-w-6xl px-6">
+		<div
+			class="grid grid-cols-1 overflow-hidden rounded-[3rem] shadow-[0_30px_80px_rgba(12,49,67,0.12)] lg:grid-cols-2"
+		>
+			<div class="bg-primary relative overflow-hidden p-12 lg:p-20">
+				<div
+					class="bg-primary-light absolute top-0 right-0 h-64 w-64 rounded-full opacity-20 blur-[60px]"
+				></div>
+				<div class="relative z-10 mb-8 flex items-center gap-4">
+					<Icon icon="mdi:target" class="text-primary-light" width="48" height="48" />
+					<h3 class="text-3xl font-black tracking-wide text-white">The Mission</h3>
+				</div>
+				<p class="relative z-10 text-lg leading-relaxed font-light text-blue-100 lg:text-xl">
+					To contribute to community resilience research through accessible, predictive data models.
+					We visualize a platform that can eventually help individuals and communities explore
+					potential localized flood scenarios ahead of time.
+				</p>
+			</div>
+
+			<div
+				class="border-primary-light relative overflow-hidden border-t-4 bg-white p-12 lg:border-t-0 lg:border-l-4 lg:p-20"
+			>
+				<div
+					class="absolute right-0 bottom-0 h-40 w-40 rounded-full bg-gray-100 mix-blend-multiply blur-[40px]"
+				></div>
+				<div class="relative z-10 mb-8 flex items-center gap-4">
+					<Icon icon="mdi:telescope" class="text-primary" width="48" height="48" />
+					<h3 class="text-3xl font-black tracking-wide text-slate-800">The Vision</h3>
+				</div>
+				<p class="relative z-10 text-lg leading-relaxed text-gray-600 lg:text-xl">
+					To explore how localized machine learning can mitigate the impact of unexpected weather
+					events, fostering a future where communities are better informed about data-driven risk
+					assessment within Metro Manila.
+				</p>
+			</div>
 		</div>
 	</div>
 </section>
