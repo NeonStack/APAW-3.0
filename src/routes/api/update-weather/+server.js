@@ -1,12 +1,13 @@
 import { createClient } from '@supabase/supabase-js';
 import { json } from '@sveltejs/kit';
+import {
+	SUPABASE_URL,
+	SUPABASE_SERVICE_KEY,
+	VISUAL_CROSSING_API_KEY,
+	JOB_TRIGGER_SECRET
+} from '$env/static/private';
 
 // --- CONFIGURATION ---
-const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
-const VISUAL_CROSSING_API_KEY = process.env.VISUAL_CROSSING_API_KEY;
-const JOB_TRIGGER_SECRET = process.env.JOB_TRIGGER_SECRET;
-
 let supabaseClient = null;
 
 function getSupabaseClient() {
@@ -14,6 +15,15 @@ function getSupabaseClient() {
 		supabaseClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 	}
 	return supabaseClient;
+}
+
+function getMissingConfig() {
+	const missing = [];
+	if (!SUPABASE_URL) missing.push('SUPABASE_URL');
+	if (!SUPABASE_SERVICE_KEY) missing.push('SUPABASE_SERVICE_KEY');
+	if (!VISUAL_CROSSING_API_KEY) missing.push('VISUAL_CROSSING_API_KEY');
+	if (!JOB_TRIGGER_SECRET) missing.push('JOB_TRIGGER_SECRET');
+	return missing;
 }
 
 const NCR_LOCATIONS = [
@@ -40,27 +50,57 @@ const NCR_LOCATIONS = [
 const TARGET_TABLE = 'hourly_weather_forecasts';
 
 export async function POST({ request }) {
+	const requestId = globalThis.crypto?.randomUUID?.() ?? `req-${Date.now()}`;
+	console.log(`[update-weather][${requestId}] Incoming POST request`);
+
+	const missingConfig = getMissingConfig();
+	if (missingConfig.length > 0) {
+		console.error(
+			`[update-weather][${requestId}] Missing required environment variables: ${missingConfig.join(', ')}`
+		);
+		return json(
+			{
+				error: 'Server misconfiguration',
+				details: `Missing required env vars: ${missingConfig.join(', ')}`
+			},
+			{ status: 500 }
+		);
+	}
+
 	// 1. --- SECURITY CHECK ---
 	const authHeader = request.headers.get('Authorization');
 	if (authHeader !== `Bearer ${JOB_TRIGGER_SECRET}`) {
+		console.warn(
+			`[update-weather][${requestId}] Unauthorized request. Authorization header present: ${Boolean(authHeader)}`
+		);
 		return json({ error: 'Unauthorized: Invalid or missing secret token.' }, { status: 401 });
 	}
 
-	console.log('Job Trigger authorized. Starting weather data update...');
+	console.log(`[update-weather][${requestId}] Job trigger authorized. Starting weather data update...`);
 	const jobSummary = [];
+	const supabase = getSupabaseClient();
+	if (!supabase) {
+		console.error(`[update-weather][${requestId}] Failed to initialize Supabase client.`);
+		return json({ error: 'Supabase client initialization failed.' }, { status: 500 });
+	}
 
 	try {
 		for (const location of NCR_LOCATIONS) {
+			console.log(`[update-weather][${requestId}] Processing location: ${location.name}`);
+
 			// 2. --- FETCH DATA FROM VISUAL CROSSING ---
 			// The API URL now includes `&include=hours` to ensure we get hourly details
 			const apiUrl = `https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/${location.lat}%2C%20${location.lon}?unitGroup=metric&include=hours&key=${VISUAL_CROSSING_API_KEY}&contentType=json`;
 			const response = await fetch(apiUrl);
 			if (!response.ok) {
-				console.error(`Visual Crossing API error for ${location.name}: ${response.statusText}`);
+				const responseBody = await response.text();
+				console.error(
+					`[update-weather][${requestId}] Visual Crossing API error for ${location.name}: ${response.status} ${response.statusText}. Body: ${responseBody.slice(0, 300)}`
+				);
 				jobSummary.push({
 					location: location.name,
 					status: 'api_error',
-					message: response.statusText
+					message: `${response.status} ${response.statusText}`
 				});
 				continue;
 			}
@@ -83,7 +123,7 @@ export async function POST({ request }) {
 			const endDatePlusOneStr = endDatePlusOne.toISOString().split('T')[0]; // Calculate the next day string
 
 			console.log(
-				`Deleting existing forecast for ${location.name} from ${startDate} to ${endDatePlusOneStr}...`
+				`[update-weather][${requestId}] Deleting existing forecast for ${location.name} from ${startDate} to ${endDatePlusOneStr}...`
 			);
 			const { error: deleteError } = await supabase
 				.from(TARGET_TABLE)
@@ -126,9 +166,7 @@ export async function POST({ request }) {
 			}
 
 			if (recordsToUpsert.length > 0) {
-				const { error: upsertError } = await getSupabaseClient()
-					.from(TARGET_TABLE)
-					.upsert(recordsToUpsert);
+				const { error: upsertError } = await supabase.from(TARGET_TABLE).upsert(recordsToUpsert);
 				if (upsertError) {
 					throw new Error(`Supabase upsert error for ${location.name}: ${upsertError.message}`);
 				}
@@ -137,26 +175,32 @@ export async function POST({ request }) {
 					status: 'success',
 					records_processed: recordsToUpsert.length
 				});
-				console.log(`Successfully updated ${recordsToUpsert.length} records for ${location.name}.`);
+				console.log(
+					`[update-weather][${requestId}] Successfully updated ${recordsToUpsert.length} records for ${location.name}.`
+				);
 			}
 		}
 
 		// 5. --- LONG-TERM DATA RETENTION ---
 		const threeYearsAgo = new Date();
 		threeYearsAgo.setFullYear(threeYearsAgo.getFullYear() - 3);
-		await getSupabaseClient()
+		await supabase
 			.from(TARGET_TABLE)
 			.delete()
 			.lt('datetime', threeYearsAgo.toISOString());
-		console.log('Successfully pruned data older than 3 years.');
+		console.log(`[update-weather][${requestId}] Successfully pruned data older than 3 years.`);
 		jobSummary.push({ task: 'pruning', status: 'success' });
+		console.log(`[update-weather][${requestId}] Job completed successfully.`);
 
 		return json(
 			{ message: 'Weather data update job completed.', summary: jobSummary },
 			{ status: 200 }
 		);
 	} catch (error) {
-		console.error('A critical error occurred in the webhook:', error.message);
+		console.error(`[update-weather][${requestId}] A critical error occurred in the webhook:`, {
+			message: error.message,
+			stack: error.stack
+		});
 		return json({ error: 'Internal Server Error', details: error.message }, { status: 500 });
 	}
 }
