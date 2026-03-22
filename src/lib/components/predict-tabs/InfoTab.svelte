@@ -767,9 +767,9 @@
 	function formatFloodAroundTimes(hourList) {
 		if (!Array.isArray(hourList) || hourList.length === 0) return 'No flooded-hour timing data';
 
-		const normalized = [...new Set(hourList.map((h) => Number(h)).filter((h) => Number.isFinite(h)))].sort(
-			(a, b) => a - b
-		);
+		const normalized = [
+			...new Set(hourList.map((h) => Number(h)).filter((h) => Number.isFinite(h)))
+		].sort((a, b) => a - b);
 
 		if (normalized.length === 0) return 'No flooded-hour timing data';
 
@@ -817,11 +817,15 @@
 		>
 			<div class="flex items-center gap-4">
 				{#if activeAlertsCount === 0}
-					<div class="flex h-9 w-9 items-center justify-center rounded-xl bg-green-100 ring-1 ring-green-200">
+					<div
+						class="flex h-9 w-9 items-center justify-center rounded-xl bg-green-100 ring-1 ring-green-200"
+					>
 						<Icon icon="mdi:check-circle" class="text-green-600" width="20" />
 					</div>
 				{:else}
-					<div class="flex h-9 w-9 items-center justify-center rounded-xl bg-orange-100 ring-1 ring-orange-200">
+					<div
+						class="flex h-9 w-9 items-center justify-center rounded-xl bg-orange-100 ring-1 ring-orange-200"
+					>
 						<Icon icon="mdi:alert-circle" class="text-orange-600" width="20" />
 					</div>
 				{/if}
@@ -964,7 +968,8 @@
 											<div
 												class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl p-1.5 ring-1"
 												class:bg-gray-50={source.status === 'pending' || source.status === 'idle'}
-												class:ring-gray-200={source.status === 'pending' || source.status === 'idle'}
+												class:ring-gray-200={source.status === 'pending' ||
+													source.status === 'idle'}
 												class:bg-green-50={source.status === 'success'}
 												class:ring-green-200={source.status === 'success'}
 												class:bg-red-50={source.status === 'error'}
@@ -1040,8 +1045,8 @@
 									</p>
 								</div>
 								<p class="mt-1 text-xs leading-relaxed text-gray-600">
-									Model-generated flood prediction summary. This is not an official government
-									flood advisory.
+									Model-generated flood prediction summary. This is not an official government flood
+									advisory.
 								</p>
 							</div>
 
@@ -1072,8 +1077,9 @@
 							</div>
 
 							<div class="rounded-lg border border-gray-200 bg-white p-2.5">
-								<label for="automated-forecast-date" class="mb-1 block text-[11px] font-semibold text-gray-600"
-									>Forecast date</label
+								<label
+									for="automated-forecast-date"
+									class="mb-1 block text-[11px] font-semibold text-gray-600">Forecast date</label
 								>
 								<select
 									id="automated-forecast-date"
@@ -1104,25 +1110,27 @@
 										No locations reached 50% or higher flood probability for this day
 									</p>
 									<p class="mt-1 text-xs text-gray-500">
-										Try another forecast date or click on the map to explore flood probabilities for specific locations.
+										Try another forecast date or click on the map to explore flood probabilities for
+										specific locations.
 									</p>
 								</div>
 							{:else}
 								<div class="space-y-2">
 									{#each automatedVisibleAlerts as item (item.id)}
 										{@const payload = getAutomatedForecastPayload(item)}
-										{@const floodHourIndices =
-											Array.isArray(payload?.flood_hour_indices)
-												? payload.flood_hour_indices
-												: Array.isArray(payload?.flooded_hours_list)
-													? payload.flooded_hours_list
-													: []}
+										{@const floodHourIndices = Array.isArray(payload?.flood_hour_indices)
+											? payload.flood_hour_indices
+											: Array.isArray(payload?.flooded_hours_list)
+												? payload.flooded_hours_list
+												: []}
 										{@const maxHeight =
 											payload?.max_predicted_height_cm !== undefined &&
 											payload?.max_predicted_height_cm !== null
 												? Number(payload.max_predicted_height_cm)
 												: null}
-										<div class="rounded-xl border border-gray-200 bg-white p-3 shadow-sm transition-shadow hover:shadow-md">
+										<div
+											class="rounded-xl border border-gray-200 bg-white p-3 shadow-sm transition-shadow hover:shadow-md"
+										>
 											<div class="mb-2 flex items-center justify-between gap-2">
 												<p class="text-sm font-bold text-gray-800">{item.location_name}</p>
 												<span
@@ -1134,7 +1142,9 @@
 													{getAutomatedRiskLabel(item)}
 												</span>
 											</div>
-											<div class="grid grid-cols-2 gap-2 rounded-lg border border-slate-200 bg-slate-50 p-2.5">
+											<div
+												class="grid grid-cols-2 gap-2 rounded-lg border border-slate-200 bg-slate-50 p-2.5"
+											>
 												<div>
 													<p class="text-[11px] text-gray-500">Flood chance</p>
 													<p class="text-sm font-bold text-gray-900">
@@ -1168,8 +1178,8 @@
 												</p>
 											</div>
 											<p class="mt-2 text-xs text-gray-600">
-												Use this as an early heads-up and follow official advisories for final safety
-												decisions.
+												Use this as an early heads-up and follow official advisories for final
+												safety decisions.
 											</p>
 											<div class="mt-2 flex justify-end">
 												<button
@@ -1470,32 +1480,43 @@
 
 	<!-- Compact Prediction Controls - MOVED TO TOP -->
 	<div
-		class="rounded-lg border border-blue-200 bg-gradient-to-r from-blue-50 to-blue-100 p-3 shadow-sm"
+		class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm ring-1 ring-black/5"
 	>
-		<div class="mb-2 flex items-center space-x-2">
-			<div class="bg-primary rounded p-1">
-				<Icon icon="mdi:chart-box" class="text-white" width="12" />
+		<div
+			class="flex items-center justify-between border-b border-gray-100 bg-slate-50 px-3.5 py-2.5"
+		>
+			<div class="flex items-center gap-2">
+				<div
+					class="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-100 text-blue-600 ring-1 ring-blue-200"
+				>
+					<Icon icon="mdi:chart-box-outline" width="16" />
+				</div>
+				<h3 class="text-sm font-bold text-gray-800">Flood Prediction</h3>
 			</div>
-			<h3 class="text-primary text-sm font-semibold">Get Prediction</h3>
+			<div
+				class="flex items-center rounded bg-gray-200/60 px-2 py-0.5 text-[10px] font-medium text-gray-600"
+			>
+				<Icon icon="mdi:cpu-64-bit" class="mr-1" width="12" />
+				RF + LSTM
+			</div>
 		</div>
 
-		<div class="space-y-2">
-			<p class="flex items-center text-xs text-gray-600">
-				<Icon icon="mdi:information-outline" class="mr-1 text-blue-500" width="14" />
-				Advanced ML models (RF & LSTM)
-			</p>
-
+		<div class="p-3.5 pt-4">
 			<button
 				onclick={predictFlood}
 				disabled={isPredicting || !$selectedLocation.lat || locationLoadingState}
-				class="bg-primary hover:bg-primary/90 focus:ring-primary/20 flex w-full cursor-pointer items-center justify-center rounded-md px-3 py-2 text-sm font-medium text-white shadow transition-all duration-200 focus:ring-2 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+				class="group flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg bg-slate-800 px-4 py-2.5 text-sm font-semibold text-white shadow-md transition-all hover:bg-slate-700 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
 			>
 				{#if isPredicting}
-					<Icon icon="eos-icons:loading" class="mr-1.5 animate-spin" width="14" />
-					Predicting...
+					<Icon icon="eos-icons:loading" class="animate-spin text-blue-300" width="18" />
+					<span class="tracking-wide">Analyzing Models...</span>
 				{:else}
-					<Icon icon="mdi:weather-flood" class="mr-1.5" width="14" />
-					Predict Flooding
+					<Icon
+						icon="mdi:magic-staff"
+						class="text-blue-300 transition-transform group-hover:-rotate-12"
+						width="18"
+					/>
+					<span class="tracking-wide">Generate Prediction</span>
 				{/if}
 			</button>
 
@@ -1614,46 +1635,60 @@
 
 	<!-- Compact Loading Indicator -->
 	{#if isPredicting}
-		<div class="rounded-lg border border-blue-200 bg-blue-50 p-3">
-			<div class="mb-2 flex items-center justify-between">
-				<div class="flex items-center">
-					<Icon icon="eos-icons:loading" class="mr-2 animate-spin text-blue-500" width="16" />
-					<div>
-						<p class="text-sm font-semibold text-blue-700">Loading...</p>
-						<p class="text-xs text-blue-600">{locationLoadingMessage || 'Fetching data...'}</p>
+		<div
+			class="overflow-hidden rounded-xl border border-blue-200 bg-white shadow-sm ring-1 ring-blue-50"
+		>
+			<div class="bg-blue-50/50 p-3.5">
+				<div class="mb-3 flex items-center justify-between">
+					<div class="flex items-center gap-2.5">
+						<div
+							class="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 ring-2 ring-blue-50"
+						>
+							<Icon icon="line-md:loading-twotone-loop" class="text-blue-600" width="18" />
+						</div>
+						<div>
+							<p class="text-sm font-bold tracking-tight text-blue-900">Running Models</p>
+							<p class="text-[11px] font-medium text-blue-600">
+								{locationLoadingMessage || 'Fetching location data...'}
+							</p>
+						</div>
+					</div>
+					<div class="text-right">
+						<div class="text-lg font-black tracking-tighter text-blue-600 tabular-nums">
+							{formatProgress(fakeProgress)}
+						</div>
 					</div>
 				</div>
-				<div class="text-right">
-					<div class="text-lg font-bold text-blue-700">{formatProgress(fakeProgress)}</div>
-				</div>
-			</div>
 
-			<!-- Compact Progress Bar -->
-			<div class="relative mb-2 h-2 w-full overflow-hidden rounded-full bg-blue-200">
-				<div
-					class={`absolute top-0 left-0 h-full transition-all duration-200 ease-out ${getProgressBarColor(fakeProgress)}`}
-					style={`width: ${fakeProgress}%;`}
-				>
+				<!-- Compact Progress Bar -->
+				<div class="relative mb-3 h-1.5 w-full overflow-hidden rounded-full bg-blue-100">
 					<div
-						class="absolute inset-0 animate-pulse bg-gradient-to-r from-transparent via-white/20 to-transparent"
-					></div>
+						class={`absolute top-0 left-0 h-full rounded-full transition-all duration-300 ease-out ${getProgressBarColor(fakeProgress)}`}
+						style={`width: ${fakeProgress}%;`}
+					>
+						<div
+							class="absolute inset-0 animate-pulse bg-gradient-to-r from-transparent via-white/30 to-transparent"
+						></div>
+					</div>
 				</div>
-			</div>
 
-			<!-- Compact Status Messages -->
-			<div class="rounded bg-white/70 p-2">
-				<p class="text-xs text-gray-700">
-					<Icon icon="mdi:clock-outline" class="mr-1 inline text-blue-500" width="12" />
-					{#if fakeProgress < phases[0].endProgress}
-						Gathering environmental data
-					{:else if fakeProgress < phases[1].endProgress}
-						Processing terrain analysis
-					{:else if fakeProgress < phases[2].endProgress}
-						Running ML models
-					{:else}
-						Finalizing predictions
-					{/if}
-				</p>
+				<!-- Status Messages -->
+				<div class="rounded-lg border border-white bg-white/80 px-2.5 py-1.5 shadow-sm">
+					<p
+						class="flex items-center text-[10px] font-semibold tracking-wider text-slate-500 uppercase"
+					>
+						<Icon icon="mdi:cogs" class="mr-1.5 text-blue-500" width="14" />
+						{#if fakeProgress < phases[0].endProgress}
+							Gathering environmental data...
+						{:else if fakeProgress < phases[1].endProgress}
+							Processing terrain analysis...
+						{:else if fakeProgress < phases[2].endProgress}
+							Executing RF + LSTM Inference...
+						{:else}
+							Finalizing predictive outputs...
+						{/if}
+					</p>
+				</div>
 			</div>
 		</div>
 	{/if}
@@ -1661,38 +1696,44 @@
 	<!-- Enhanced Prediction Results -->
 	{#if !isPredicting && floodPrediction && floodPrediction.forecast_by_day && floodPrediction.forecast_by_day.length > 0}
 		<div class="space-y-3">
-			<!-- Compact Results Header (removed Location Validation Card) -->
-			<div class="rounded-lg border border-green-200 bg-gradient-to-r from-green-50 to-blue-50 p-3">
-				<div class="flex items-center justify-between">
-					<div class="flex items-center">
-						<Icon icon="mdi:calendar-clock" class="mr-2 text-green-600" width="18" />
-						<div>
-							<h3 class="text-primary text-sm font-bold">Hourly Prediction Results</h3>
-							<p class="text-xs text-gray-600">5-day hourly forecast complete</p>
-						</div>
+			<!-- Sleek Results Header -->
+			<div
+				class="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-3.5 py-3 shadow-sm"
+			>
+				<div class="flex items-center gap-3">
+					<div
+						class="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-100 text-emerald-600"
+					>
+						<Icon icon="mdi:check-decagram" width="18" />
 					</div>
-					<span class="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-800">
-						{floodPrediction.location?.start_date
-							? formatHeaderDate(floodPrediction.location.start_date)
-							: 'Next 5 Days'}
-					</span>
-				</div>
-
-				<!-- Warnings if any -->
-				{#if floodPrediction.warnings && floodPrediction.warnings.length > 0}
-					<div class="mt-2 rounded border border-yellow-300 bg-yellow-50 p-2">
-						<p class="mb-1 flex items-center text-xs font-semibold text-yellow-800">
-							<Icon icon="mdi:alert" class="mr-1" width="14" />
-							Warnings:
+					<div>
+						<h3 class="text-sm font-bold text-slate-800">Prediction Complete</h3>
+						<p class="text-[10px] font-medium tracking-widest text-slate-500 uppercase">
+							5-Day Hourly Forecast
 						</p>
-						<ul class="ml-4 list-disc space-y-0.5 text-xs text-yellow-700">
-							{#each floodPrediction.warnings as warning}
-								<li>{warning}</li>
-							{/each}
-						</ul>
 					</div>
-				{/if}
+				</div>
+				<span class="rounded bg-slate-100 px-2 py-1 text-[10px] font-bold text-slate-600">
+					{floodPrediction.location?.start_date
+						? formatHeaderDate(floodPrediction.location.start_date)
+						: 'Detailed View'}
+				</span>
 			</div>
+
+			<!-- Warnings if any -->
+			{#if floodPrediction.warnings && floodPrediction.warnings.length > 0}
+				<div class="rounded-lg border border-amber-300 bg-amber-50 p-3 shadow-sm">
+					<p class="mb-1 flex items-center text-xs font-bold text-amber-800">
+						<Icon icon="mdi:alert-circle" class="mr-1.5" width="16" />
+						Prediction Advisories
+					</p>
+					<ul class="ml-5 list-disc space-y-1 text-xs font-medium text-amber-700">
+						{#each floodPrediction.warnings as warning}
+							<li>{warning}</li>
+						{/each}
+					</ul>
+				</div>
+			{/if}
 
 			<!-- Daily Prediction Cards -->
 			<div class="space-y-2">
@@ -1792,17 +1833,18 @@
 							</div>
 
 							<!-- Expand/Collapse Section -->
-							<div class="border-t border-gray-200/50 bg-white/50 p-2">
+							<div class="border-t border-gray-100 bg-slate-50/50 p-2">
 								<button
 									onclick={() => toggleExpand(day.date)}
-									class="flex w-full cursor-pointer items-center justify-center rounded border border-dashed border-blue-300 bg-blue-50/50 px-2 py-1.5 text-xs font-medium text-blue-700 transition-all duration-200 hover:bg-blue-100 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+									class="flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-md bg-white px-2 py-2 text-[11px] font-bold text-slate-600 shadow-sm ring-1 ring-slate-200 transition-all hover:bg-slate-50 hover:text-slate-800"
 								>
 									<Icon
-										icon={expandedPredictions[day.date] ? 'mdi:chevron-up' : 'mdi:chevron-down'}
+										icon={expandedPredictions[day.date]
+											? 'mdi:chevron-up'
+											: 'mdi:chart-timeline-variant-shimmer'}
 										width="14"
-										class="mr-1"
 									/>
-									{expandedPredictions[day.date] ? 'Hide Hourly Details' : 'Show Hourly Details'}
+									{expandedPredictions[day.date] ? 'Close Analytics' : 'View 24-Hour Analytics'}
 								</button>
 							</div>
 
@@ -1812,55 +1854,132 @@
 								{@const selectedHourData = day.hourly_forecast[selectedHourIndex]}
 
 								<div class="space-y-3 border-t border-gray-200 bg-gray-50 p-3">
-									<!-- Hourly Forecast Grid (now clickable with flood indicators) -->
-									<div class="rounded border border-blue-200 bg-blue-50 p-2">
+									<!-- Hourly Forecast Interactive Bar Chart -->
+									<div class="rounded-lg border border-blue-200 bg-white p-3 shadow-sm">
 										<h6
-											class="mb-2 flex items-center justify-between text-xs font-bold text-blue-800"
+											class="mb-1 flex items-center justify-between text-xs font-bold text-blue-800"
 										>
 											<span class="flex items-center">
-												<Icon icon="mdi:clock-outline" class="mr-1" width="12" />
-												24-Hour Breakdown
+												<Icon icon="mdi:chart-bar" class="mr-1" width="14" />
+												24-Hour Probability Trend
 											</span>
 											{#if summary.floodedHours > 0}
 												<span
-													class="flex items-center gap-1 text-xs font-medium {summary.riskInfo
+													class="flex items-center gap-1 text-[11px] font-semibold {summary.riskInfo
 														.textColor}"
 												>
 													<Icon icon="mdi:water-alert" width="12" />
-													{summary.floodedHours} flood risk {summary.floodedHours === 1
-														? 'hour'
-														: 'hours'}
+													{summary.floodedHours} hr{summary.floodedHours === 1 ? '' : 's'} flood risk
 												</span>
 											{/if}
 										</h6>
-										<p class="mb-2 text-xs text-blue-700">Click any hour to view detailed data</p>
-										<div class="lg:grid-cols-4h grid grid-cols-3 gap-1 text-xs">
-											{#each day.hourly_forecast as hour, hourIndex}
-												{@const hourRisk = getRiskLevel(hour.final_prediction.flood_probability)}
-												{@const isSelected = selectedHourIndex === hourIndex}
-												{@const isFlooded = hour.final_prediction.is_flooded === 1}
-												<button
-													onclick={() => selectHour(day.date, hourIndex)}
-													class="relative cursor-pointer rounded border p-1 text-center transition-all hover:shadow-md {hourRisk.borderStyle} {isSelected
-														? 'shadow-md ring-2 ring-blue-500'
-														: ''}"
-												>
-													<!-- Flood indicator badge (changed to warning triangle) -->
-													{#if isFlooded}
-														<div
-															class="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full border-2 border-white bg-orange-500"
-														>
-															<Icon icon="mdi:alert" class="text-white" width="10" />
-														</div>
-													{/if}
-													<div class="font-bold text-gray-800">{formatTo12Hour(hour.hour)}</div>
-													<div class="text-xs font-semibold {hourRisk.boldTextColor}">
-														{Math.round(hour.final_prediction.flood_probability * 100)}%
+										<p class="mb-4 text-[11px] text-gray-500">
+											Click any bar to view detailed data for that hour
+										</p>
+
+										<!-- Interactive Bar Chart (Split into 4 periods for better mobile visibility) -->
+										<div class="mt-3 flex flex-col gap-5 pb-2">
+											{#each [{ label: '12am to 5am', start: 0, end: 6 }, { label: '6am to 11am', start: 6, end: 12 }, { label: '12pm to 5pm', start: 12, end: 18 }, { label: '6pm to 11pm', start: 18, end: 24 }] as period}
+												<div>
+													<p
+														class="mb-1 border-b border-slate-100 pb-1 text-[10px] font-bold text-slate-500"
+													>
+														{period.label}
+													</p>
+													<div class="relative flex h-24 items-end gap-[3px]">
+														{#each day.hourly_forecast.slice(period.start, period.end) as hour, i}
+															{@const hourIndex = i + period.start}
+															{@const isSelected = selectedHourIndex === hourIndex}
+															{@const isFlooded = hour.final_prediction.is_flooded === 1}
+															{@const prob = hour.final_prediction.flood_probability * 100}
+															{@const barColor = isSelected
+																? prob <= 50
+																	? 'bg-emerald-500 shadow-sm'
+																	: prob <= 60
+																		? 'bg-yellow-500 shadow-sm'
+																		: prob <= 80
+																			? 'bg-orange-500 shadow-sm'
+																			: 'bg-red-600 shadow-sm'
+																: prob <= 50
+																	? 'bg-emerald-300 hover:bg-emerald-400'
+																	: prob <= 60
+																		? 'bg-yellow-400 hover:bg-yellow-500'
+																		: prob <= 80
+																			? 'bg-orange-400 hover:bg-orange-500'
+																			: 'bg-red-400 hover:bg-red-500'}
+
+															<button
+																type="button"
+																onclick={() => selectHour(day.date, hourIndex)}
+																class="group relative flex h-full flex-1 cursor-pointer flex-col justify-end transition-all focus:outline-none"
+															>
+																<!-- Bar Fill -->
+																<div
+																	class="w-full rounded-t-sm transition-all duration-200 {barColor}"
+																	style="height: {Math.max(prob, 6)}%;"
+																></div>
+
+																<!-- Flooded Warning Indicator Dot -->
+																{#if isFlooded}
+																	<div
+																		class="absolute -top-3 left-1/2 h-1.5 w-1.5 -translate-x-1/2 rounded-full bg-red-600"
+																	></div>
+																{/if}
+
+																<!-- Time Label -->
+																<span
+																	class="mt-1 text-center text-[9px] font-semibold transition-colors {isSelected
+																		? 'font-bold text-slate-800'
+																		: 'text-slate-400 group-hover:text-slate-600'}"
+																>
+																	{#if hour.hour === 0}
+																		12am
+																	{:else if hour.hour < 12}
+																		{hour.hour}am
+																	{:else if hour.hour === 12}
+																		12pm
+																	{:else}
+																		{hour.hour - 12}pm
+																	{/if}
+																</span>
+
+																<!-- Active Indicator Overlay -->
+																{#if isSelected}
+																	<div
+																		class="absolute right-0 -bottom-1 left-0 h-0.5 rounded-full bg-slate-800"
+																	></div>
+																{/if}
+
+																<!-- Tooltip Dropdown (Hover) -->
+																<div
+																	class="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 hidden -translate-x-1/2 flex-col items-center group-hover:flex"
+																>
+																	<div
+																		class="rounded bg-slate-800 px-2 py-1 text-center whitespace-nowrap shadow-lg"
+																	>
+																		<p class="mb-0.5 text-[10px] font-bold text-white">
+																			{formatTo12Hour(hour.hour)}
+																		</p>
+																		<p
+																			class="text-[10px] font-medium {prob <= 50
+																				? 'text-emerald-300'
+																				: prob <= 60
+																					? 'text-yellow-300'
+																					: prob <= 80
+																						? 'text-orange-300'
+																						: 'text-red-300'}"
+																		>
+																			{Math.round(prob)}% risk
+																		</p>
+																	</div>
+																	<div
+																		class="h-1 w-1 -translate-y-1/2 rotate-45 bg-slate-800"
+																	></div>
+																</div>
+															</button>
+														{/each}
 													</div>
-													<div class="text-xs text-gray-600">
-														{formatHeight(hour.final_prediction.predicted_height_cm, isFlooded)}
-													</div>
-												</button>
+												</div>
 											{/each}
 										</div>
 									</div>
@@ -1870,45 +1989,47 @@
 										{@const selectedHourRisk = getRiskLevel(
 											selectedHourData.final_prediction.flood_probability
 										)}
-										<div class="rounded border border-gray-300 bg-white p-2">
-											<h6
-												class="mb-1 flex items-center justify-between text-xs font-bold text-gray-800"
+										<div class="mt-2 rounded-lg border border-gray-200 bg-white p-3 shadow-sm">
+											<div
+												class="mb-3 flex items-center justify-between border-b border-gray-100 pb-2"
 											>
-												<span class="flex items-center">
+												<h6 class="flex items-center text-xs font-bold text-gray-800">
 													<Icon
-														icon="mdi:weather-partly-cloudy"
-														class="mr-1 text-gray-600"
-														width="12"
+														icon="mdi:clock-check-outline"
+														class="mr-1 text-blue-600"
+														width="16"
 													/>
-													Complete Environmental Data
-												</span>
+													Detailed Metrics
+												</h6>
 												<span
-													class="flex items-center gap-1 rounded bg-blue-100 px-2 py-0.5 text-blue-800"
+													class="flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-bold text-slate-700"
 												>
 													{#if selectedHourData.final_prediction.is_flooded === 1}
-														<Icon icon="mdi:water-alert" class="text-orange-600" width="12" />
+														<div class="h-2 w-2 animate-pulse rounded-full bg-orange-500"></div>
 													{/if}
 													{formatTo12Hour(selectedHourData.hour)}
 												</span>
-											</h6>
+											</div>
 
-											<!-- Prediction info for selected hour -->
-											<div class="mb-2 space-y-1 rounded bg-gray-50 p-2">
-												<div class="flex items-center justify-between text-xs">
-													<span class="text-gray-600">Flood Status:</span>
-													<span class="font-bold {selectedHourRisk.boldTextColor}">
-														{selectedHourRisk.level}
-													</span>
+											<!-- Core Prediction Status -->
+											<div class="mb-3 grid grid-cols-2 gap-2 text-center text-xs">
+												<div class="rounded-lg border border-gray-100 bg-gray-50 p-2">
+													<span
+														class="mb-0.5 block text-[10px] font-semibold tracking-widest text-gray-500 uppercase"
+														>Probability</span
+													>
+													<span class="text-sm font-bold text-gray-900"
+														>{Math.round(
+															selectedHourData.final_prediction.flood_probability * 100
+														)}%</span
+													>
 												</div>
-												<div class="flex items-center justify-between text-xs">
-													<span class="text-gray-600">Flood Probability:</span>
-													<span class="font-bold text-gray-800">
-														{Math.round(selectedHourData.final_prediction.flood_probability * 100)}%
-													</span>
-												</div>
-												<div class="flex items-center justify-between text-xs">
-													<span class="text-gray-600">Predicted Height:</span>
-													<span class="font-bold text-gray-800">
+												<div class="rounded-lg border border-gray-100 bg-gray-50 p-2">
+													<span
+														class="mb-0.5 block text-[10px] font-semibold tracking-widest text-gray-500 uppercase"
+														>Est. Level</span
+													>
+													<span class="text-sm font-bold text-gray-900">
 														{formatHeight(
 															selectedHourData.final_prediction.predicted_height_cm,
 															selectedHourData.final_prediction.is_flooded === 1
@@ -1917,21 +2038,29 @@
 												</div>
 											</div>
 
-											<div class="space-y-0.5">
+											<!-- Detailed Features Grid -->
+											<div class="grid grid-cols-2 gap-2 text-xs">
 												{#each Object.entries(selectedHourData.key_features) as [key, value]}
-													<div class="flex items-center justify-between text-xs">
-														<span class="truncate text-gray-600" title={key}>
-															{key.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())}:
+													<div
+														class="flex flex-col justify-center rounded border border-slate-100 bg-slate-50 p-2"
+													>
+														<span
+															class="mb-0.5 truncate text-[10px] font-semibold tracking-wide text-slate-500 uppercase"
+															title={key}
+														>
+															{key.replace(/_/g, ' ').replace('precip', 'rain')}
 														</span>
-														<span class="ml-2 font-bold text-gray-800">
-															{typeof value === 'number' ? value.toFixed(2) : value}
-															{key.includes('temp')
-																? '°C'
-																: key.includes('precip')
-																	? 'mm'
-																	: key.includes('waterlevel')
-																		? 'm'
-																		: ''}
+														<span class="font-mono text-sm font-semibold text-slate-800">
+															{typeof value === 'number' ? value.toFixed(1) : value}
+															<span class="ml-0.5 font-sans text-[10px] text-slate-500">
+																{key.includes('temp')
+																	? '°C'
+																	: key.includes('precip')
+																		? 'mm'
+																		: key.includes('waterlevel')
+																			? 'm'
+																			: ''}
+															</span>
 														</span>
 													</div>
 												{/each}

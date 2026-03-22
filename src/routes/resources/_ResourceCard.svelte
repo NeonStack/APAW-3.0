@@ -4,64 +4,65 @@
 </script>
 
 <div
-	class="group flex flex-col overflow-hidden rounded-xl border border-gray-100 bg-white shadow-lg transition-all duration-300 hover:scale-101 hover:shadow-xl"
+	class="group relative z-10 flex h-full flex-col overflow-hidden rounded-[2rem] border border-white bg-white p-8 shadow-[0_10px_30px_rgba(12,49,67,0.04)] transition-all duration-500 hover:-translate-y-2 hover:border-blue-200 hover:shadow-[0_20px_40px_rgba(12,49,67,0.1)]"
 >
-	<div class="bg-primary-light h-2 w-full"></div>
-	<div class="flex h-full flex-col p-6">
-		<div class="mb-5 flex items-center">
-			<div
-				class="mr-4 flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-lg bg-white shadow-md transition-transform duration-300 group-hover:scale-110"
-			>
-				{#if resource.iconType === 'iconify'}
-					<Icon icon={resource.icon} width="32" height="32" />
-				{:else if resource.iconType === 'image'}
-					<img src={resource.icon} alt={resource.title} class="h-8 w-8 object-contain" />
-				{/if}
-			</div>
-			<div>
-				<h3 class="mb-1 text-xl leading-tight font-semibold">
-					{#if resource.url}
-						<a
-							href={resource.url}
-							target="_blank"
-							rel="noopener noreferrer"
-							class="text-primary hover:text-primary-light transition-colors duration-300"
-							>{resource.title}</a
-						>
-					{:else}
-						<span class="text-primary">{resource.title}</span>
-					{/if}
-				</h3>
-			</div>
-		</div>
-
-		<p class="flex-grow leading-relaxed text-gray-600">{resource.description}</p>
-
-		{#if resource.url}
-			<div class="mt-4 text-right">
-				<a
-					href={resource.url}
-					target="_blank"
-					rel="noopener noreferrer"
-					class="text-primary-light hover:text-primary inline-flex items-center p-5 text-sm font-medium transition-all duration-500 group-hover:translate-x-1"
-				>
-					Learn more
-					<svg
-						xmlns="http://www.w3.org/2000/svg"
-						class="ml-1 h-4 w-4"
-						fill="none"
-						viewBox="0 0 24 24"
-						stroke="currentColor"
-					>
-						<path
-							stroke-linecap="round"
-							stroke-linejoin="round"
-							stroke-width="2"
-							d="M14 5l7 7m0 0l-7 7m7-7H3"
-						/>
-					</svg>
-				</a>
-			</div>
-		{/if}
+	<!-- Subtle background glow on hover -->
+	<div
+		class="absolute -top-4 -right-4 z-[-1] opacity-0 transition-opacity duration-700 group-hover:opacity-100"
+	>
+		<div class="h-32 w-32 rounded-full bg-blue-50 blur-[30px]"></div>
 	</div>
+
+	<div class="mb-6 flex items-center items-start gap-5">
+		<div
+			class="text-primary-light group-hover:bg-primary flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-2xl bg-slate-50 shadow-inner transition-colors duration-500 group-hover:text-white"
+		>
+			{#if resource.iconType === 'iconify'}
+				<Icon icon={resource.icon} width="32" height="32" />
+			{:else if resource.iconType === 'image'}
+				<img
+					src={resource.icon}
+					alt={resource.title}
+					class="h-8 w-8 transform object-contain drop-shadow-sm transition-transform duration-500 group-hover:scale-110"
+				/>
+			{/if}
+		</div>
+		<div>
+			<h3
+				class="group-hover:text-primary text-xl leading-tight font-bold text-slate-800 transition-colors"
+			>
+				{#if resource.url}
+					<a
+						href={resource.url}
+						target="_blank"
+						rel="noopener noreferrer"
+						class="focus:outline-none">{resource.title}</a
+					>
+				{:else}
+					<span>{resource.title}</span>
+				{/if}
+			</h3>
+		</div>
+	</div>
+
+	<p class="relative z-20 mb-6 flex-grow text-sm leading-relaxed text-gray-600">
+		{resource.description}
+	</p>
+
+	{#if resource.url}
+		<div class="mt-auto">
+			<a
+				href={resource.url}
+				target="_blank"
+				rel="noopener noreferrer"
+				class="text-primary hover:text-primary-light inline-flex items-center text-sm font-bold tracking-wide transition-all duration-300"
+			>
+				LEARN MORE
+				<Icon
+					icon="mdi:arrow-right"
+					class="ml-2 h-4 w-4 transform transition-transform duration-300 group-hover:translate-x-2"
+				/>
+			</a>
+		</div>
+	{/if}
 </div>
