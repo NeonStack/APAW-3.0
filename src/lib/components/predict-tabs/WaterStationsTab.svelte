@@ -301,137 +301,193 @@
 				{@const status = getStationStatus(station)}
 				{@const change = calculateWaterChange(station)}
 
-				<div class="rounded-lg border border-gray-200 bg-white shadow-sm hover:shadow-md transition-shadow">
-					<div class="p-3">
-						<div class="mb-2">
-							<div class="mb-1 flex items-center justify-between">
-								<h4 class="flex items-center text-sm font-bold text-gray-800">
-									<Icon icon="mdi:water-check" class="mr-1.5 text-blue-600" width="14" />
-									{station.obsnm}
-								</h4>
+				<div
+					class="group relative overflow-hidden rounded-xl border border-slate-200/80 bg-white shadow-sm transition-all hover:border-slate-300 hover:shadow-md"
+				>
+					<!-- Color accent bar at the top -->
+					<div
+						class={`absolute top-0 left-0 h-1 w-full ${
+							status.color === 'green'
+								? 'bg-emerald-500'
+								: status.color === 'yellow'
+									? 'bg-yellow-400'
+									: status.color === 'orange'
+										? 'bg-orange-500'
+										: status.color === 'red'
+											? 'bg-red-500'
+											: 'bg-slate-400'
+						}`}
+					></div>
+
+					<div class="p-4 pt-5">
+						<div class="mb-4">
+							<div class="flex items-start justify-between gap-3">
+								<div>
+									<h4 class="flex items-center text-[15px] font-extrabold text-slate-800">
+										<Icon icon="mdi:water-check" class="mr-2 text-blue-500" width="16" />
+										{station.obsnm}
+									</h4>
+									<div class="mt-1 flex items-center text-xs font-semibold text-slate-500">
+										<Icon icon="mdi:clock-outline" class="mr-1" width="12" />
+										Updated {station.timestr}
+									</div>
+								</div>
 
 								<!-- Show on Map button -->
 								<button
-									class="flex cursor-pointer items-center gap-1 rounded bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 transition-colors hover:bg-blue-100"
+									class="flex shrink-0 cursor-pointer items-center gap-1.5 rounded-lg bg-blue-50 px-2.5 py-1.5 text-[11px] font-bold text-blue-700 shadow-sm transition-colors hover:bg-blue-100"
 									onclick={() => showStationOnMap(station)}
 								>
-									<Icon icon="mdi:map-marker" width="12" />
-									<span class="hidden leading-0 sm:inline">Show on Map</span>
-									<span class="leading-0 sm:hidden">Map</span>
+									<Icon icon="mdi:map-marker" width="14" />
+									<span class="hidden sm:inline">Map View</span>
+									<span class="sm:hidden">Map</span>
 								</button>
 							</div>
+						</div>
 
-							<!-- Status and Time Row -->
-							<div class="flex items-center justify-between">
+						<!-- Main Water Level Area -->
+						<div
+							class={`mb-4 flex items-center justify-between rounded-xl border p-3.5 ${
+								status.color === 'green'
+									? 'border-emerald-100/50 bg-emerald-50/50'
+									: status.color === 'yellow'
+										? 'border-yellow-100/50 bg-yellow-50/50'
+										: status.color === 'orange'
+											? 'border-orange-100/50 bg-orange-50/50'
+											: status.color === 'red'
+												? 'border-red-100/50 bg-red-50/50'
+												: 'border-slate-100/50 bg-slate-50/50'
+							}`}
+						>
+							<div>
 								<span
-									class={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${
+									class={`mb-2 inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-black tracking-wider uppercase ${
 										status.color === 'green'
-											? 'bg-green-100 text-green-800'
+											? 'bg-emerald-100 text-emerald-800'
 											: status.color === 'yellow'
 												? 'bg-yellow-100 text-yellow-800'
 												: status.color === 'orange'
 													? 'bg-orange-100 text-orange-800'
 													: status.color === 'red'
 														? 'bg-red-100 text-red-800'
-														: 'bg-gray-100 text-gray-800'
+														: 'bg-slate-100 text-slate-800'
 									}`}
 								>
-									<Icon icon={status.icon} class="mr-1" width="12" />
-									{status.text}
+									<Icon icon={status.icon} class="mr-1.5" width="12" />
+									{status.text} Status
 								</span>
-
-								<div class="flex items-center text-xs text-gray-500">
-									<Icon icon="mdi:clock-outline" class="mr-1" width="12" />
-									{station.timestr}
+								<div class="flex items-baseline gap-1">
+									<span class="text-3xl font-black tracking-tight text-slate-800">
+										{station.wl || '--'}
+									</span>
+									<span class="text-sm font-bold text-slate-500">m</span>
+								</div>
+								<div
+									class={`text-[10px] font-bold tracking-wider uppercase ${
+										status.color === 'green'
+											? 'text-emerald-700'
+											: status.color === 'yellow'
+												? 'text-yellow-700'
+												: status.color === 'orange'
+													? 'text-orange-700'
+													: status.color === 'red'
+														? 'text-red-700'
+														: 'text-slate-700'
+									}`}
+								>
+									Current Level
 								</div>
 							</div>
-						</div>
 
-						<!-- Water Level Display -->
-						<div class="rounded border border-gray-200 bg-white/70 p-3">
-							<div class="mb-2 flex items-center justify-between">
-								<div class="flex items-center">
-									<Icon
-										icon="mdi:water"
-										class={`mr-2 ${
-											status.color === 'green'
-												? 'text-green-600'
-												: status.color === 'yellow'
-													? 'text-yellow-600'
-													: status.color === 'orange'
-														? 'text-orange-600'
-														: status.color === 'red'
-															? 'text-red-600'
-															: 'text-gray-600'
-										}`}
-										width="20"
-									/>
-									<div>
-										<div class="flex items-baseline">
-											<span class="text-lg font-bold text-gray-800">{station.wl || 'N/A'}</span>
-											<span class="ml-1 text-xs text-gray-500">meters</span>
-										</div>
-										<div class="text-xs text-gray-600">Current Level</div>
-									</div>
-								</div>
-
-								<div class="text-right">
+							<div class="text-right">
+								<div class="flex flex-col items-end text-right">
 									<div
-										class={`flex items-center text-xs font-medium ${
+										class={`flex items-center text-sm font-black ${
 											change.color === 'red'
 												? 'text-red-600'
 												: change.color === 'orange'
 													? 'text-orange-600'
 													: change.color === 'blue'
 														? 'text-blue-600'
-														: 'text-gray-600'
+														: 'text-slate-500'
 										}`}
 									>
-										<Icon icon={change.icon} class="mr-1" width="12" />
+										{#if change.text !== 'Stable'}
+											<Icon icon={change.icon} class="mr-1" width="14" />
+										{/if}
 										{change.text}
 									</div>
-									<div class="text-xs text-gray-500">vs 10m ago</div>
+									<div class="mt-0.5 text-[10px] font-bold tracking-wider text-slate-400 uppercase">
+										vs 10m ago
+									</div>
 								</div>
 							</div>
+						</div>
 
-							<!-- Historical Readings Row -->
-							<div class="grid grid-cols-3 gap-2 text-xs">
+						<!-- Historical Readings Strip -->
+						<div class="mb-4">
+							<div
+								class="grid grid-cols-3 divide-x divide-slate-200/60 rounded-lg border border-slate-200/60 bg-slate-50 py-2"
+							>
 								<div class="text-center">
-									<div class="font-medium text-gray-700">{station.wl10m || 'N/A'}</div>
-									<div class="text-gray-500">10m ago</div>
+									<div class="mb-0.5 text-[9px] font-bold tracking-widest text-slate-400 uppercase">
+										10m Ago
+									</div>
+									<div class="font-bold text-slate-700">
+										{station.wl10m || '--'}
+										<span class="text-[10px] font-medium text-slate-500">m</span>
+									</div>
 								</div>
 								<div class="text-center">
-									<div class="font-medium text-gray-700">{station.wl30m || 'N/A'}</div>
-									<div class="text-gray-500">30m ago</div>
+									<div class="mb-0.5 text-[9px] font-bold tracking-widest text-slate-400 uppercase">
+										30m Ago
+									</div>
+									<div class="font-bold text-slate-700">
+										{station.wl30m || '--'}
+										<span class="text-[10px] font-medium text-slate-500">m</span>
+									</div>
 								</div>
 								<div class="text-center">
-									<div class="font-medium text-gray-700">{station.wl1h || 'N/A'}</div>
-									<div class="text-gray-500">1h ago</div>
+									<div class="mb-0.5 text-[9px] font-bold tracking-widest text-slate-400 uppercase">
+										1h Ago
+									</div>
+									<div class="font-bold text-slate-700">
+										{station.wl1h || '--'}
+										<span class="text-[10px] font-medium text-slate-500">m</span>
+									</div>
 								</div>
 							</div>
 						</div>
 
 						<!-- Warning Levels (if any are set) -->
 						{#if station.alertwl || station.alarmwl || station.criticalwl}
-							<div class="mt-2 rounded border border-gray-200 bg-gray-50 p-2">
-								<div class="mb-1 text-xs font-semibold text-gray-700">Warning Levels</div>
-								<div class="grid grid-cols-3 gap-2 text-xs">
+							<div class="space-y-2">
+								<div class="text-[10px] font-bold tracking-wider text-slate-500 uppercase">
+									Warning Thresholds
+								</div>
+								<div class="flex gap-2 text-xs">
 									{#if station.alertwl}
-										<div class="text-center">
-											<div class="font-medium text-yellow-700">{station.alertwl}m</div>
-											<div class="text-yellow-600">Alert</div>
+										<div
+											class="flex-1 rounded-lg border border-yellow-200/60 bg-yellow-50/50 p-2 text-center"
+										>
+											<div class="text-[9px] font-bold text-yellow-600 uppercase">Alert</div>
+											<div class="font-bold text-yellow-800">{station.alertwl}m</div>
 										</div>
 									{/if}
 									{#if station.alarmwl}
-										<div class="text-center">
-											<div class="font-medium text-orange-700">{station.alarmwl}m</div>
-											<div class="text-orange-600">Alarm</div>
+										<div
+											class="flex-1 rounded-lg border border-orange-200/60 bg-orange-50/50 p-2 text-center"
+										>
+											<div class="text-[9px] font-bold text-orange-600 uppercase">Alarm</div>
+											<div class="font-bold text-orange-800">{station.alarmwl}m</div>
 										</div>
 									{/if}
 									{#if station.criticalwl}
-										<div class="text-center">
-											<div class="font-medium text-red-700">{station.criticalwl}m</div>
-											<div class="text-red-600">Critical</div>
+										<div
+											class="flex-1 rounded-lg border border-red-200/60 bg-red-50/50 p-2 text-center"
+										>
+											<div class="text-[9px] font-bold text-red-600 uppercase">Critical</div>
+											<div class="font-bold text-red-800">{station.criticalwl}m</div>
 										</div>
 									{/if}
 								</div>
@@ -440,21 +496,21 @@
 					</div>
 
 					<!-- PAGASA Attribution -->
-					<div class="border-t border-gray-200 bg-gradient-to-r from-gray-50 to-white px-3 py-2">
+					<div class="border-t border-slate-100 bg-slate-50/80 px-4 py-2.5">
 						<a
 							href="https://www.pagasa.dost.gov.ph/flood#koica"
 							target="_blank"
 							rel="noopener noreferrer"
-							class="group flex items-center justify-center gap-2 text-xs text-gray-600 transition-all hover:text-gray-900"
+							class="group flex items-center justify-center gap-2 text-xs text-slate-500 transition-all hover:text-slate-800"
 							title="Water level data from PAGASA"
 						>
 							<span class="font-medium">Data from</span>
 							<img
 								src="/logo/pagasa.png"
 								alt="PAGASA"
-								class="h-5 w-auto transition-transform group-hover:scale-105"
+								class="h-4 w-auto transition-transform group-hover:scale-105"
 							/>
-							<span class="font-semibold text-gray-700 group-hover:text-gray-900">PAGASA</span>
+							<span class="font-bold text-slate-700 group-hover:text-slate-900">PAGASA</span>
 						</a>
 					</div>
 				</div>

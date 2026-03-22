@@ -1877,191 +1877,110 @@
 											Click any bar to view detailed data for that hour
 										</p>
 
-										<!-- Interactive Bar Chart (Split AM/PM) -->
-										<div class="mt-3 space-y-4 pb-2">
-											<!-- AM Forecast -->
-											<div>
-												<p
-													class="mb-1 border-b border-slate-100 pb-1 text-[10px] font-bold text-slate-500"
-												>
-													AM Forecast
-												</p>
-												<div class="relative flex h-24 items-end gap-[3px]">
-													{#each day.hourly_forecast.slice(0, 12) as hour, i}
-														{@const hourIndex = i}
-														{@const isSelected = selectedHourIndex === hourIndex}
-														{@const isFlooded = hour.final_prediction.is_flooded === 1}
-														{@const prob = hour.final_prediction.flood_probability * 100}
-														{@const barColor = isSelected
-															? prob <= 50
-																? 'bg-emerald-500 shadow-sm'
-																: prob <= 60
-																	? 'bg-yellow-500 shadow-sm'
-																	: prob <= 80
-																		? 'bg-orange-500 shadow-sm'
-																		: 'bg-red-600 shadow-sm'
-															: prob <= 50
-																? 'bg-emerald-300 hover:bg-emerald-400'
-																: prob <= 60
-																	? 'bg-yellow-400 hover:bg-yellow-500'
-																	: prob <= 80
-																		? 'bg-orange-400 hover:bg-orange-500'
-																		: 'bg-red-400 hover:bg-red-500'}
+										<!-- Interactive Bar Chart (Split into 4 periods for better mobile visibility) -->
+										<div class="mt-3 flex flex-col gap-5 pb-2">
+											{#each [{ label: '12am to 5am', start: 0, end: 6 }, { label: '6am to 11am', start: 6, end: 12 }, { label: '12pm to 5pm', start: 12, end: 18 }, { label: '6pm to 11pm', start: 18, end: 24 }] as period}
+												<div>
+													<p
+														class="mb-1 border-b border-slate-100 pb-1 text-[10px] font-bold text-slate-500"
+													>
+														{period.label}
+													</p>
+													<div class="relative flex h-24 items-end gap-[3px]">
+														{#each day.hourly_forecast.slice(period.start, period.end) as hour, i}
+															{@const hourIndex = i + period.start}
+															{@const isSelected = selectedHourIndex === hourIndex}
+															{@const isFlooded = hour.final_prediction.is_flooded === 1}
+															{@const prob = hour.final_prediction.flood_probability * 100}
+															{@const barColor = isSelected
+																? prob <= 50
+																	? 'bg-emerald-500 shadow-sm'
+																	: prob <= 60
+																		? 'bg-yellow-500 shadow-sm'
+																		: prob <= 80
+																			? 'bg-orange-500 shadow-sm'
+																			: 'bg-red-600 shadow-sm'
+																: prob <= 50
+																	? 'bg-emerald-300 hover:bg-emerald-400'
+																	: prob <= 60
+																		? 'bg-yellow-400 hover:bg-yellow-500'
+																		: prob <= 80
+																			? 'bg-orange-400 hover:bg-orange-500'
+																			: 'bg-red-400 hover:bg-red-500'}
 
-														<button
-															type="button"
-															onclick={() => selectHour(day.date, hourIndex)}
-															class="group relative flex h-full flex-1 cursor-pointer flex-col justify-end transition-all focus:outline-none"
-														>
-															<!-- Bar Fill -->
-															<div
-																class="w-full rounded-t-sm transition-all duration-200 {barColor}"
-																style="height: {Math.max(prob, 6)}%;"
-															></div>
-
-															<!-- Flooded Warning Indicator Dot -->
-															{#if isFlooded}
-																<div
-																	class="absolute -top-3 left-1/2 h-1.5 w-1.5 -translate-x-1/2 rounded-full bg-red-600"
-																></div>
-															{/if}
-
-															<!-- Time Label -->
-															<span
-																class="mt-1 text-center text-[9px] font-semibold transition-colors {isSelected
-																	? 'font-bold text-slate-800'
-																	: 'text-slate-400 group-hover:text-slate-600'}"
+															<button
+																type="button"
+																onclick={() => selectHour(day.date, hourIndex)}
+																class="group relative flex h-full flex-1 cursor-pointer flex-col justify-end transition-all focus:outline-none"
 															>
-																{hour.hour === 0 ? '12a' : `${hour.hour}a`}
-															</span>
-
-															<!-- Active Indicator Overlay -->
-															{#if isSelected}
+																<!-- Bar Fill -->
 																<div
-																	class="absolute right-0 -bottom-1 left-0 h-0.5 rounded-full bg-slate-800"
+																	class="w-full rounded-t-sm transition-all duration-200 {barColor}"
+																	style="height: {Math.max(prob, 6)}%;"
 																></div>
-															{/if}
 
-															<!-- Tooltip Dropdown (Hover) -->
-															<div
-																class="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 hidden -translate-x-1/2 flex-col items-center group-hover:flex"
-															>
-																<div
-																	class="rounded bg-slate-800 px-2 py-1 text-center whitespace-nowrap shadow-lg"
+																<!-- Flooded Warning Indicator Dot -->
+																{#if isFlooded}
+																	<div
+																		class="absolute -top-3 left-1/2 h-1.5 w-1.5 -translate-x-1/2 rounded-full bg-red-600"
+																	></div>
+																{/if}
+
+																<!-- Time Label -->
+																<span
+																	class="mt-1 text-center text-[9px] font-semibold transition-colors {isSelected
+																		? 'font-bold text-slate-800'
+																		: 'text-slate-400 group-hover:text-slate-600'}"
 																>
-																	<p class="mb-0.5 text-[10px] font-bold text-white">
-																		{formatTo12Hour(hour.hour)}
-																	</p>
-																	<p
-																		class="text-[10px] font-medium {prob <= 50
-																			? 'text-emerald-300'
-																			: prob <= 60
-																				? 'text-yellow-300'
-																				: prob <= 80
-																					? 'text-orange-300'
-																					: 'text-red-300'}"
-																	>
-																		{Math.round(prob)}% risk
-																	</p>
-																</div>
-																<div class="h-1 w-1 -translate-y-1/2 rotate-45 bg-slate-800"></div>
-															</div>
-														</button>
-													{/each}
-												</div>
-											</div>
+																	{#if hour.hour === 0}
+																		12am
+																	{:else if hour.hour < 12}
+																		{hour.hour}am
+																	{:else if hour.hour === 12}
+																		12pm
+																	{:else}
+																		{hour.hour - 12}pm
+																	{/if}
+																</span>
 
-											<!-- PM Forecast -->
-											<div>
-												<p
-													class="mb-1 border-b border-slate-100 pb-1 text-[10px] font-bold text-slate-500"
-												>
-													PM Forecast
-												</p>
-												<div class="relative flex h-24 items-end gap-[3px]">
-													{#each day.hourly_forecast.slice(12, 24) as hour, i}
-														{@const hourIndex = i + 12}
-														{@const isSelected = selectedHourIndex === hourIndex}
-														{@const isFlooded = hour.final_prediction.is_flooded === 1}
-														{@const prob = hour.final_prediction.flood_probability * 100}
-														{@const barColor = isSelected
-															? prob <= 50
-																? 'bg-emerald-500 shadow-sm'
-																: prob <= 60
-																	? 'bg-yellow-500 shadow-sm'
-																	: prob <= 80
-																		? 'bg-orange-500 shadow-sm'
-																		: 'bg-red-600 shadow-sm'
-															: prob <= 50
-																? 'bg-emerald-300 hover:bg-emerald-400'
-																: prob <= 60
-																	? 'bg-yellow-400 hover:bg-yellow-500'
-																	: prob <= 80
-																		? 'bg-orange-400 hover:bg-orange-500'
-																		: 'bg-red-400 hover:bg-red-500'}
+																<!-- Active Indicator Overlay -->
+																{#if isSelected}
+																	<div
+																		class="absolute right-0 -bottom-1 left-0 h-0.5 rounded-full bg-slate-800"
+																	></div>
+																{/if}
 
-														<button
-															type="button"
-															onclick={() => selectHour(day.date, hourIndex)}
-															class="group relative flex h-full flex-1 cursor-pointer flex-col justify-end transition-all focus:outline-none"
-														>
-															<!-- Bar Fill -->
-															<div
-																class="w-full rounded-t-sm transition-all duration-200 {barColor}"
-																style="height: {Math.max(prob, 6)}%;"
-															></div>
-
-															<!-- Flooded Warning Indicator Dot -->
-															{#if isFlooded}
+																<!-- Tooltip Dropdown (Hover) -->
 																<div
-																	class="absolute -top-3 left-1/2 h-1.5 w-1.5 -translate-x-1/2 rounded-full bg-red-600"
-																></div>
-															{/if}
-
-															<!-- Time Label -->
-															<span
-																class="mt-1 text-center text-[9px] font-semibold transition-colors {isSelected
-																	? 'font-bold text-slate-800'
-																	: 'text-slate-400 group-hover:text-slate-600'}"
-															>
-																{hour.hour === 12 ? '12p' : `${hour.hour - 12}p`}
-															</span>
-
-															<!-- Active Indicator Overlay -->
-															{#if isSelected}
-																<div
-																	class="absolute right-0 -bottom-1 left-0 h-0.5 rounded-full bg-slate-800"
-																></div>
-															{/if}
-
-															<!-- Tooltip Dropdown (Hover) -->
-															<div
-																class="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 hidden -translate-x-1/2 flex-col items-center group-hover:flex"
-															>
-																<div
-																	class="rounded bg-slate-800 px-2 py-1 text-center whitespace-nowrap shadow-lg"
+																	class="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 hidden -translate-x-1/2 flex-col items-center group-hover:flex"
 																>
-																	<p class="mb-0.5 text-[10px] font-bold text-white">
-																		{formatTo12Hour(hour.hour)}
-																	</p>
-																	<p
-																		class="text-[10px] font-medium {prob <= 50
-																			? 'text-emerald-300'
-																			: prob <= 60
-																				? 'text-yellow-300'
-																				: prob <= 80
-																					? 'text-orange-300'
-																					: 'text-red-300'}"
+																	<div
+																		class="rounded bg-slate-800 px-2 py-1 text-center whitespace-nowrap shadow-lg"
 																	>
-																		{Math.round(prob)}% risk
-																	</p>
+																		<p class="mb-0.5 text-[10px] font-bold text-white">
+																			{formatTo12Hour(hour.hour)}
+																		</p>
+																		<p
+																			class="text-[10px] font-medium {prob <= 50
+																				? 'text-emerald-300'
+																				: prob <= 60
+																					? 'text-yellow-300'
+																					: prob <= 80
+																						? 'text-orange-300'
+																						: 'text-red-300'}"
+																		>
+																			{Math.round(prob)}% risk
+																		</p>
+																	</div>
+																	<div
+																		class="h-1 w-1 -translate-y-1/2 rotate-45 bg-slate-800"
+																	></div>
 																</div>
-																<div class="h-1 w-1 -translate-y-1/2 rotate-45 bg-slate-800"></div>
-															</div>
-														</button>
-													{/each}
+															</button>
+														{/each}
+													</div>
 												</div>
-											</div>
+											{/each}
 										</div>
 									</div>
 
