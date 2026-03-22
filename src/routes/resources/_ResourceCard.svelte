@@ -13,9 +13,9 @@
 		<div class="h-32 w-32 rounded-full bg-blue-50 blur-[30px]"></div>
 	</div>
 
-	<div class="mb-6 flex items-center items-start gap-5">
+	<div class="mb-6 flex items-center gap-5">
 		<div
-			class="text-primary-light group-hover:bg-primary flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-2xl bg-slate-50 shadow-inner transition-colors duration-500 group-hover:text-white"
+			class="text-primary-light flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-2xl bg-slate-50 shadow-inner transition-colors duration-500"
 		>
 			{#if resource.iconType === 'iconify'}
 				<Icon icon={resource.icon} width="32" height="32" />
@@ -55,7 +55,7 @@
 				href={resource.url}
 				target="_blank"
 				rel="noopener noreferrer"
-				class="text-primary hover:text-primary-light inline-flex items-center text-sm font-bold tracking-wide transition-all duration-300"
+				class="text-primary hover:text-primary-light -m-2 inline-flex items-center rounded-md p-2 text-sm font-bold tracking-wide transition-all duration-300"
 			>
 				LEARN MORE
 				<Icon

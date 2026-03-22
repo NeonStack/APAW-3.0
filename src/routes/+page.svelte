@@ -137,9 +137,7 @@
 	/>
 </svelte:head>
 
-<section
-	class="relative bg-[oklch(0.984_0.003_247.858)] flex overflow-hidden pt-12 lg:py-10"
->
+<section class="relative flex overflow-hidden bg-[oklch(0.984_0.003_247.858)] pt-12 lg:py-10">
 	<!-- Rain Effect -->
 	<div class="raindrops-container">
 		{#each raindrops as raindrop}
@@ -178,9 +176,9 @@
 				<h2
 					class="hero-heading mt-2 text-3xl font-extrabold tracking-tight md:text-4xl md:leading-tight lg:mt-4 lg:text-5xl"
 				>
-					<span class="tracking-tight text-primary">
+					<span class="text-primary tracking-tight">
 						Advanced AI-Powered
-						<span class="block text-primary-light">Flood Risk Prediction</span>
+						<span class="text-primary-light block">Flood Risk Prediction</span>
 					</span>
 				</h2>
 
@@ -361,7 +359,9 @@
 					<div class="flex h-16 items-end gap-2">
 						{#each heights as h, i}
 							<div
-								class="{i % 2 === 0 ? 'bg-primary-light' : 'bg-primary'} relative flex w-1/5 justify-center rounded-t-md transition-[height] duration-1000 ease-in-out"
+								class="{i % 2 === 0
+									? 'bg-primary-light'
+									: 'bg-primary'} relative flex w-1/5 justify-center rounded-t-md transition-[height] duration-1000 ease-in-out"
 								style="height: {h}%"
 							>
 								<div class="absolute -top-5 text-[9px] font-bold text-slate-500">
@@ -522,7 +522,7 @@
 		></div>
 	</div>
 
-	<div class="relative z-10 mx-auto max-w-5xl px-6">
+	<div class=" z-10 mx-auto max-w-5xl px-6">
 		<div
 			class="relative overflow-hidden rounded-3xl border border-white/60 bg-white/40 p-10 text-center shadow-[0_20px_60px_-15px_rgba(59,166,208,0.15)] backdrop-blur-xl lg:p-20"
 		>
@@ -530,20 +530,9 @@
 			<div
 				class="bg-primary-light absolute -top-10 -right-10 h-40 w-40 rounded-full blur-[90px]"
 			></div>
-			<div class="bg-primary absolute -bottom-10 -left-10 h-40 w-40 rounded-full blur-[90px]"></div>
+			<div class="bg-primary-light absolute -bottom-10 -left-10 h-40 w-40 rounded-full blur-[90px]"></div>
 
-			<div
-				class="bg-opacity-80 mb-8 inline-flex items-center gap-2 rounded-full border border-blue-200 bg-white px-5 py-2.5 shadow-sm backdrop-blur-md"
-			>
-				<Icon icon="mdi:rocket-launch-outline" class="text-primary h-5 w-5" />
-				<span class="text-primary text-sm font-bold tracking-wide uppercase"
-					>Start Preventing Risks Today</span
-				>
-			</div>
-
-			<h2
-				class="mb-6 text-[clamp(2rem,5vw,3.5rem)] leading-tight font-black tracking-tight text-gray-900 drop-shadow-sm"
-			>
+			<h2 class="mb-6 text-[clamp(2rem,5vw,3.5rem)] leading-tight font-black text-gray-900">
 				Ready to explore <span class="text-primary-light">APAW's</span> forecasting?
 			</h2>
 
@@ -556,20 +545,17 @@
 
 			<ButtonLink
 				href="/predict"
-				className="group relative overflow-hidden inline-flex border-none bg-primary text-white hover:bg-primary shadow-lg shadow-primary/30 hover:shadow-xl hover:shadow-primary/40 transition-all duration-300 text-lg md:text-xl rounded-2xl"
+				className="group block relative border-none bg-primary text-white shadow-md transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg text-base md:text-lg rounded-xl"
 				width="w-full sm:w-auto"
 				nowrap
 			>
-				<div class="relative z-10 flex items-center justify-center gap-3 font-bold">
-					Try APAW Now
+				<div class="relative z-10 flex items-center justify-center gap-2 px-2 font-semibold">
+					Launch Application
 					<Icon
 						icon="mdi:arrow-right"
-						class="transition-transform duration-300 group-hover:translate-x-2"
+						class="text-xl transition-transform group-hover:translate-x-1"
 					/>
 				</div>
-				<div
-					class="absolute inset-0 -translate-x-full animate-[shimmer_2s_infinite] bg-gradient-to-r from-transparent via-white/20 to-transparent"
-				></div>
 			</ButtonLink>
 		</div>
 	</div>

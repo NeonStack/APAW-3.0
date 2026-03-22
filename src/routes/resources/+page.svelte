@@ -13,30 +13,11 @@
 </svelte:head>
 
 <section
-	class="relative flex flex-col overflow-hidden bg-gradient-to-b from-white via-white to-slate-100 pt-20 pb-20"
+	class="relative flex flex-col overflow-hidden bg-gradient-to-b from-primary-light/25 via-white to-slate-100 pt-20 pb-20"
 >
-	<!-- Abstract glowing background -->
-	<div class="pointer-events-none absolute inset-0 z-0 overflow-hidden">
-		<div
-			class="bg-primary-light absolute top-[-10%] left-1/2 h-[400px] w-[400px] -translate-x-1/2 rounded-full opacity-10 blur-[80px] sm:top-0 sm:-left-20 sm:h-[600px] sm:w-[600px] sm:translate-x-0 sm:blur-[120px]"
-		></div>
-		<div
-			class="bg-primary absolute right-1/2 bottom-[-10%] h-[300px] w-[300px] translate-x-1/2 rounded-full opacity-10 blur-[80px] sm:-right-20 sm:-bottom-32 sm:h-[500px] sm:w-[500px] sm:translate-x-0 sm:blur-[100px]"
-		></div>
-	</div>
-
 	<div class="relative z-10 container mx-auto px-6">
 		<div class="mx-auto max-w-5xl text-center">
-			<div
-				class="bg-opacity-80 mb-8 inline-flex items-center gap-2 rounded-full border border-blue-200 bg-white px-5 py-2.5 shadow-sm backdrop-blur-md"
-			>
-				<Icon icon="mdi:server-network" class="text-primary h-5 w-5" />
-				<span class="text-primary text-sm font-bold tracking-wide uppercase"
-					>The Vision Behind APAW</span
-				>
-			</div>
-
-			<h1 class="text-primary mb-8 text-5xl font-black tracking-tight md:text-6xl lg:text-7xl">
+			<h1 class="mb-8 text-primary font-black text-5xl md:text-6xl lg:text-7xl">
 				Project Resources
 			</h1>
 
