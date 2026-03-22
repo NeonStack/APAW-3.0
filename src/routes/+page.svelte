@@ -1,5 +1,6 @@
 <script>
 	import { onMount } from 'svelte';
+	import { fade } from 'svelte/transition';
 	import Icon from '@iconify/svelte';
 	import ButtonLink from '$lib/components/ButtonLink.svelte';
 	import { tweened } from 'svelte/motion';
@@ -80,6 +81,16 @@
 				? 'mdi:alert-circle-outline'
 				: 'mdi:alert-decagram-outline';
 
+	const scanningTexts = [
+		'Estimating AI risk...',
+		'Analyzing weather patterns...',
+		'Fetching geographic data...',
+		'Calculating risk trajectories...',
+		'Forecasting flood levels...',
+		'Updating live datasets...'
+	];
+	let currentScanIndex = 0;
+
 	onMount(() => {
 		const precipInterval = setInterval(() => {
 			precip.set(Math.floor(Math.random() * (55 - 15 + 1)) + 15);
@@ -95,9 +106,14 @@
 			});
 		}, 2000);
 
+		const scanningInterval = setInterval(() => {
+			currentScanIndex = (currentScanIndex + 1) % scanningTexts.length;
+		}, 2500);
+
 		return () => {
 			clearInterval(precipInterval);
 			clearInterval(timelineInterval);
+			clearInterval(scanningInterval);
 		};
 	});
 
@@ -114,7 +130,7 @@
 </script>
 
 <svelte:head>
-	<title>APAW | AI-Powered Flood Prediction</title>
+	<title>APAW | AI-Powered Flood Risk Prediction</title>
 	<meta
 		name="description"
 		content="APAW provides 5-day flood risk forecasts for Metro Manila using machine learning. Explore interactive maps and data-driven predictions for proactive flood preparedness."
@@ -122,7 +138,7 @@
 </svelte:head>
 
 <section
-	class="to-primary/5 relative flex min-h-[60svh] lg:min-h-[85svh] overflow-hidden bg-gradient-to-b from-white via-white"
+	class="to-primary/5 relative flex min-h-[60svh] overflow-hidden bg-gradient-to-b from-white via-white lg:min-h-[85svh]"
 >
 	<!-- Rain Effect -->
 	<div class="raindrops-container">
@@ -141,30 +157,31 @@
 		{/each}
 	</div>
 
-	<div class="relative z-10 container flex justify-center mx-auto px-6 py-12 lg:py-20">
+	<div class="relative z-10 container mx-auto flex justify-center px-6 py-12 lg:py-20">
 		<!-- Content with enhanced layout -->
 		<div
-			class="relative mx-auto grid max-w-7xl grid-cols-1 items-center gap-12 lg:grid-cols-12 lg:gap-8"
+			class="relative mx-auto grid max-w-7xl grid-cols-1 items-center gap-12 lg:grid-cols-12 lg:gap-12"
 		>
 			<!-- Left Column (Text & CTAs) -->
 			<div
 				class="relative z-10 flex flex-col items-center justify-center text-center lg:col-span-6 lg:items-start lg:text-left"
 			>
-				
-
 				<!-- Logo instead of text -->
 				<div class="group relative cursor-default lg:ml-[-10px]">
 					<img
 						src="/APAW_TRANSPARENT.webp"
 						alt="APAW Logo"
-						class="relative z-10 h-24 mb-4 lg:mb-0 object-contain drop-shadow-[0_10px_20px_rgba(59,166,208,0.2)] transition-all duration-500 group-hover:scale-105 md:h-30 lg:h-24"
+						class="relative z-10 mb-4 h-24 object-contain drop-shadow-[0_10px_20px_rgba(59,166,208,0.2)] transition-all duration-500 group-hover:scale-105 md:h-30 lg:mb-0 lg:h-24"
 					/>
 				</div>
 
 				<h2
 					class="hero-heading mt-2 text-3xl font-extrabold tracking-tight md:text-4xl md:leading-tight lg:mt-4 lg:text-5xl"
 				>
-					<span class="tracking-tight text-slate-800">Advanced AI-Powered Flood Prediction</span>
+					<span class="tracking-tight text-primary">
+						Advanced AI-Powered
+						<span class="block text-primary-light">Flood Risk Prediction</span>
+					</span>
 				</h2>
 
 				<!-- Decorative element -->
@@ -172,7 +189,9 @@
 					<div
 						class="to-primary/40 h-[2px] w-full rounded-full bg-gradient-to-r from-transparent lg:hidden lg:w-20"
 					></div>
-					<div class="bg-primary h-2 w-5 lg:w-2 rounded-full shadow-[0_0_10px_rgba(59,166,208,0.8)]"></div>
+					<div
+						class="bg-primary h-2 w-5 rounded-full shadow-[0_0_10px_rgba(59,166,208,0.8)] lg:w-2"
+					></div>
 					<div
 						class="from-primary/40 h-[2px] w-full rounded-full bg-gradient-to-r to-transparent lg:w-32"
 					></div>
@@ -180,7 +199,7 @@
 
 				<!-- Improved subheading -->
 				<p
-					class="mx-auto mt-8 max-w-xl text-lg leading-relaxed font-light text-gray-600 lg:mx-0 lg:text-md xl:text-xl"
+					class="lg:text-md mx-auto mt-8 max-w-xl text-lg leading-relaxed font-light text-gray-600 lg:mx-0 xl:text-xl"
 				>
 					Experience <strong class="font-semibold text-gray-800">up to 5 days</strong> of early warning
 					for flood risks in Metro Manila. Actionable, intuitive, and completely free.
@@ -192,7 +211,7 @@
 				>
 					<ButtonLink
 						href="/predict"
-						className="group relative bg-primary text-white shadow-md transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg text-base md:text-lg rounded-xl"
+						className="group relative border-none bg-primary text-white shadow-md transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg text-base md:text-lg rounded-xl"
 						width="w-full sm:w-auto"
 						nowrap
 					>
@@ -242,7 +261,7 @@
 							<div class="h-4 w-28 rounded-full bg-slate-200"></div>
 						</div>
 						<div
-							class="bg-gray-100 border-primary-light flex h-5 items-center justify-center gap-1.5 rounded-full border px-4"
+							class="border-primary-light flex h-5 items-center justify-center gap-1.5 rounded-full border bg-gray-100 px-4"
 						>
 							<div class="bg-primary-light h-2 w-2 animate-pulse rounded-full"></div>
 							<p class="text-primary text-[10px] font-bold">LIVE</p>
@@ -273,31 +292,39 @@
 						</div>
 					</div>
 					<!-- Stats bottom -->
-					<div class="grid grid-cols-3 gap-3">
+					<div class="flex w-full">
 						<div
-							class="flex h-12 flex-col justify-center rounded-xl border border-white/50 bg-white/60 px-3"
+							class="relative flex h-12 w-full flex-col justify-center overflow-hidden rounded-xl border border-white/50 bg-white/60 px-3"
 						>
-							<div class="mb-1.5 h-1.5 w-8 rounded-full bg-slate-200"></div>
-							<div class="bg-primary/60 h-3 w-12 rounded-full"></div>
-						</div>
-						<div
-							class="flex h-12 flex-col justify-center rounded-xl border border-white/50 bg-white/60 px-3"
-						>
-							<div class="mb-1.5 h-1.5 w-8 rounded-full bg-slate-200"></div>
-							<div class="bg-primary/60 h-3 w-10 rounded-full"></div>
-						</div>
-						<div
-							class="flex h-12 flex-col justify-center rounded-xl border border-white/50 bg-white/60 px-3"
-						>
-							<div class="mb-1.5 h-1.5 w-8 rounded-full bg-slate-200"></div>
-							<div class="bg-primary/60 h-3 w-14 rounded-full"></div>
+							<div
+								class="text-primary-light relative z-10 mb-0.5 flex items-center justify-between text-sm font-black tracking-tight uppercase"
+							>
+								<span>System Status</span>
+								<div
+									class="text-primary flex animate-pulse items-center gap-1.5 text-[9px] font-bold"
+								>
+									<div class="bg-primary h-1.5 w-1.5 rounded-full"></div>
+									LIVE
+								</div>
+							</div>
+							<div class="relative h-[15px] w-full">
+								{#key currentScanIndex}
+									<div
+										in:fade={{ duration: 400, delay: 400 }}
+										out:fade={{ duration: 400 }}
+										class="absolute inset-0 flex items-center text-[9px] font-bold tracking-wider whitespace-nowrap text-slate-500 uppercase"
+									>
+										{scanningTexts[currentScanIndex]}
+									</div>
+								{/key}
+							</div>
 						</div>
 					</div>
 				</div>
 
 				<!-- Floating Asset 1: Weather (Top Rightish) -->
 				<div
-					class="absolute top-8 left-4 z-20 w-64 rotate-[-3deg] animate-[float_6s_ease-in-out_infinite_reverse] rounded-2xl border border-white/80 bg-white/90 p-4 shadow-[0_20px_40px_rgba(12,49,67,0.12)] backdrop-blur-md xl:left-[1rem]"
+					class="absolute top-5 left-4 z-20 w-64 animate-[float_6s_ease-in-out_infinite_reverse] rounded-2xl border border-white/80 bg-white/90 p-4 shadow-[0_20px_40px_rgba(12,49,67,0.12)] backdrop-blur-md xl:left-[1rem]"
 				>
 					<div class="mb-3 flex items-center gap-3">
 						<div
@@ -318,7 +345,7 @@
 
 				<!-- Floating Asset 2: Timeline (Bottom Right) -->
 				<div
-					class="absolute -right-12 bottom-10 z-20 w-72 rotate-[4deg] animate-[float_7s_ease-in-out_infinite] rounded-2xl border border-white/80 bg-white/85 p-5 shadow-[0_25px_50px_rgba(12,49,67,0.15)] backdrop-blur-md xl:-right-5"
+					class="absolute -right-12 bottom-10 z-20 w-72 animate-[float_7s_ease-in-out_infinite] rounded-2xl border border-white/80 bg-white/85 p-5 shadow-[0_25px_50px_rgba(12,49,67,0.15)] backdrop-blur-md xl:-right-5"
 				>
 					<div class="mb-7 flex items-center justify-between">
 						<div class="text-[10px] font-bold tracking-wider text-slate-400 uppercase">
@@ -510,14 +537,12 @@
 		>
 			<!-- Subtle corner decoration -->
 			<div
-				class="from-primary-light to-primary absolute -top-10 -right-10 h-40 w-40 rounded-full bg-gradient-to-br opacity-40 blur-[40px]"
+				class="bg-primary-light absolute -top-10 -right-10 h-40 w-40 rounded-full blur-[90px]"
 			></div>
-			<div
-				class="to-primary absolute -bottom-10 -left-10 h-40 w-40 rounded-full bg-gradient-to-tr from-blue-300 opacity-30 blur-[40px]"
-			></div>
+			<div class="bg-primary absolute -bottom-10 -left-10 h-40 w-40 rounded-full blur-[90px]"></div>
 
 			<div
-				class="bg-primary/10 border-primary/20 mb-6 inline-flex items-center gap-2 rounded-full border px-5 py-2.5 shadow-sm transition-transform hover:scale-105 lg:mb-8"
+				class="bg-opacity-80 mb-8 inline-flex items-center gap-2 rounded-full border border-blue-200 bg-white px-5 py-2.5 shadow-sm backdrop-blur-md"
 			>
 				<Icon icon="mdi:rocket-launch-outline" class="text-primary h-5 w-5" />
 				<span class="text-primary text-sm font-bold tracking-wide uppercase"
@@ -540,12 +565,12 @@
 
 			<ButtonLink
 				href="/predict"
-				className="group relative overflow-hidden inline-flex bg-primary text-white hover:bg-primary shadow-lg shadow-primary/30 hover:shadow-xl hover:shadow-primary/40 transition-all duration-300 text-lg md:text-xl rounded-2xl"
+				className="group relative overflow-hidden inline-flex border-none bg-primary text-white hover:bg-primary shadow-lg shadow-primary/30 hover:shadow-xl hover:shadow-primary/40 transition-all duration-300 text-lg md:text-xl rounded-2xl"
 				width="w-full sm:w-auto"
 				nowrap
 			>
 				<div class="relative z-10 flex items-center justify-center gap-3 font-bold">
-					Access the Predictor Free
+					Try APAW Now
 					<Icon
 						icon="mdi:arrow-right"
 						class="transition-transform duration-300 group-hover:translate-x-2"

@@ -2,8 +2,6 @@
 	import Icon from '@iconify/svelte';
 	import { resources, categories } from './_resources.js';
 	import ResourceCard from './_ResourceCard.svelte';
-
-	// Resources data structure
 </script>
 
 <svelte:head>
@@ -13,35 +11,66 @@
 		content="Discover the data sources, algorithms, libraries, and tools used to build the APAW flood prediction platform."
 	/>
 </svelte:head>
-<div class="min-h-screen bg-gradient-to-b from-gray-50 to-white">
-	<!-- Header section -->
-	<div class="bg-primary relative mb-12 overflow-hidden px-4 py-12 text-white">
-		<div class="absolute top-0 left-0 h-full w-full opacity-10">
+
+<section
+	class="relative flex flex-col overflow-hidden bg-gradient-to-b from-white via-white to-slate-100 pt-20 pb-20"
+>
+	<!-- Abstract glowing background -->
+	<div class="pointer-events-none absolute inset-0 z-0 overflow-hidden">
+		<div
+			class="bg-primary-light absolute top-[-10%] left-1/2 h-[400px] w-[400px] -translate-x-1/2 rounded-full opacity-10 blur-[80px] sm:top-0 sm:-left-20 sm:h-[600px] sm:w-[600px] sm:translate-x-0 sm:blur-[120px]"
+		></div>
+		<div
+			class="bg-primary absolute right-1/2 bottom-[-10%] h-[300px] w-[300px] translate-x-1/2 rounded-full opacity-10 blur-[80px] sm:-right-20 sm:-bottom-32 sm:h-[500px] sm:w-[500px] sm:translate-x-0 sm:blur-[100px]"
+		></div>
+	</div>
+
+	<div class="relative z-10 container mx-auto px-6">
+		<div class="mx-auto max-w-5xl text-center">
 			<div
-				class="bg-primary-light absolute top-0 left-0 h-full w-1/2 translate-x-[-50%] translate-y-[-50%] rotate-45 transform"
-			></div>
-			<div
-				class="bg-primary-light absolute right-0 bottom-0 h-full w-1/2 translate-x-[50%] translate-y-[50%] -rotate-45 transform"
-			></div>
-		</div>
-		<div class="relative z-10 container mx-auto">
-			<h1 class="mb-4 text-center text-4xl font-bold md:text-5xl">Project Resources</h1>
-			<div class="bg-primary-light mx-auto mb-6 h-1 w-24"></div>
-			<p class="mx-auto max-w-2xl text-center text-lg">
-				These are the libraries, data sources, and tools that power our APAW project.
+				class="bg-opacity-80 mb-8 inline-flex items-center gap-2 rounded-full border border-blue-200 bg-white px-5 py-2.5 shadow-sm backdrop-blur-md"
+			>
+				<Icon icon="mdi:server-network" class="text-primary h-5 w-5" />
+				<span class="text-primary text-sm font-bold tracking-wide uppercase"
+					>The Vision Behind APAW</span
+				>
+			</div>
+
+			<h1 class="text-primary mb-8 text-5xl font-black tracking-tight md:text-6xl lg:text-7xl">
+				Project Resources
+			</h1>
+
+			<p
+				class="mx-auto max-w-3xl text-lg leading-relaxed font-light text-gray-600 md:text-xl lg:text-2xl"
+			>
+				Discover the data sources, algorithms, libraries, and tools that power the APAW machine
+				learning platform.
 			</p>
 		</div>
 	</div>
+</section>
 
-	<div class="container mx-auto px-2 pb-16 lg:px-10">
+<!-- Resources Categories Section -->
+<section class="relative z-20 bg-slate-50 py-16 pb-32">
+	<div class="relative z-10 container mx-auto max-w-7xl px-6">
 		{#each categories as category}
-			<div class="mb-16">
-				<div class="mb-8 flex items-center">
-					<h2 class="text-primary text-2xl font-bold md:text-3xl">{category}</h2>
-					<div class="from-primary-light ml-4 h-px flex-grow bg-gradient-to-r to-transparent"></div>
+			<div class="mb-24 last:mb-0">
+				<div class="mb-10 flex items-center md:mb-12">
+					<!-- Category accent line -->
+					<div
+						class="to-primary mr-6 hidden h-px w-10 bg-gradient-to-r from-blue-200 md:block"
+					></div>
+					<h2
+						class="bg-gradient-to-r from-slate-900 to-slate-600 bg-clip-text text-3xl font-extrabold tracking-tight text-transparent md:text-4xl"
+					>
+						{category}
+					</h2>
+					<div
+						class="ml-6 h-px flex-grow bg-gradient-to-r from-blue-200 to-transparent opacity-50"
+					></div>
 				</div>
 
-				<div class="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
+				<div class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 lg:gap-8">
 					{#each resources.filter((r) => r.category === category) as resource}
 						<ResourceCard {resource} />
 					{/each}
@@ -49,18 +78,4 @@
 			</div>
 		{/each}
 	</div>
-</div>
-
-<style>
-	@keyframes float {
-		0% {
-			transform: translateY(0px);
-		}
-		50% {
-			transform: translateY(-10px);
-		}
-		100% {
-			transform: translateY(0px);
-		}
-	}
-</style>
+</section>

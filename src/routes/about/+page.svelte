@@ -128,7 +128,7 @@
 
 <!-- Ultra-Premium Hero Section -->
 <section
-	class="relative flex min-h-[70svh] flex-col justify-center overflow-hidden bg-gradient-to-b from-white via-white to-slate-100 pt-20 pb-20"
+	class="relative flex flex-col overflow-hidden bg-gradient-to-b from-white via-white to-slate-100 pt-20 pb-20"
 >
 	<!-- Abstract glowing background -->
 	<div class="pointer-events-none absolute inset-0 z-0 overflow-hidden">
@@ -146,7 +146,7 @@
 				class="bg-opacity-80 mb-8 inline-flex items-center gap-2 rounded-full border border-blue-200 bg-white px-5 py-2.5 shadow-sm backdrop-blur-md"
 			>
 				<Icon icon="mdi:information-outline" class="text-primary h-5 w-5" />
-				<span class="text-primary text-sm font-bold tracking-wide uppercase"
+				<span class="text-primary text-sm font-bold uppercase tracking-wide"
 					>The Vision Behind APAW</span
 				>
 			</div>
