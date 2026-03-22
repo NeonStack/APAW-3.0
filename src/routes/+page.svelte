@@ -138,7 +138,7 @@
 </svelte:head>
 
 <section
-	class="to-primary/5 relative flex min-h-[60svh] overflow-hidden bg-gradient-to-b from-white via-white lg:min-h-[85svh]"
+	class="relative bg-[oklch(0.984_0.003_247.858)] flex overflow-hidden pt-12 lg:py-10"
 >
 	<!-- Rain Effect -->
 	<div class="raindrops-container">
@@ -322,7 +322,7 @@
 					</div>
 				</div>
 
-				<!-- Floating Asset 1: Weather (Top Rightish) -->
+				<!-- Floating Asset 1: Weather (Top left) -->
 				<div
 					class="absolute top-5 left-4 z-20 w-64 animate-[float_6s_ease-in-out_infinite_reverse] rounded-2xl border border-white/80 bg-white/90 p-4 shadow-[0_20px_40px_rgba(12,49,67,0.12)] backdrop-blur-md xl:left-[1rem]"
 				>
@@ -345,7 +345,7 @@
 
 				<!-- Floating Asset 2: Timeline (Bottom Right) -->
 				<div
-					class="absolute -right-12 bottom-10 z-20 w-72 animate-[float_7s_ease-in-out_infinite] rounded-2xl border border-white/80 bg-white/85 p-5 shadow-[0_25px_50px_rgba(12,49,67,0.15)] backdrop-blur-md xl:-right-5"
+					class="absolute -right-12 bottom-10 z-20 w-72 animate-[float_7s_ease-in-out_infinite] rounded-2xl border border-white bg-white p-5 shadow-[0_25px_50px_rgba(12,49,67,0.15)] backdrop-blur-md xl:-right-5"
 				>
 					<div class="mb-7 flex items-center justify-between">
 						<div class="text-[10px] font-bold tracking-wider text-slate-400 uppercase">
@@ -361,16 +361,7 @@
 					<div class="flex h-16 items-end gap-2">
 						{#each heights as h, i}
 							<div
-								class="{i === 3
-									? 'bg-primary shadow-[0_0_15px_rgba(12,49,67,0.3)]'
-									: i === 2
-										? 'bg-primary-light'
-										: i === 4
-											? 'bg-primary-light hover:bg-primary'
-											: 'bg-primary/' +
-												(i === 0
-													? '20'
-													: '40')} hover:bg-primary-light relative flex w-1/5 justify-center rounded-t-md transition-all duration-1000 ease-in-out"
+								class="{i % 2 === 0 ? 'bg-primary-light' : 'bg-primary'} relative flex w-1/5 justify-center rounded-t-md transition-[height] duration-1000 ease-in-out"
 								style="height: {h}%"
 							>
 								<div class="absolute -top-5 text-[9px] font-bold text-slate-500">
