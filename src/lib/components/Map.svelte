@@ -184,6 +184,49 @@
 		}
 	}
 
+	function getAdaptiveBoundsSettings() {
+		if (!map || !strictNcrBounds || !paddedNcrBounds || !L) {
+			return null;
+		}
+
+		const zoom = map.getZoom();
+
+		// Keep NCR behavior strict at close zoom, then progressively loosen while zooming out.
+		if (zoom >= 10) {
+			return {
+				bounds: paddedNcrBounds,
+				viscosity: 0.9
+			};
+		}
+
+		if (zoom >= 8) {
+			return {
+				bounds: strictNcrBounds.pad(2.8),
+				viscosity: 0.4
+			};
+		}
+
+		if (zoom >= 7) {
+			return {
+				bounds: strictNcrBounds.pad(8),
+				viscosity: 0.18
+			};
+		}
+
+		return {
+			bounds: L.latLngBounds(L.latLng(-85, -180), L.latLng(85, 180)),
+			viscosity: 0.08
+		};
+	}
+
+	function applyAdaptiveBoundsSettings() {
+		const settings = getAdaptiveBoundsSettings();
+		if (!settings || !map) return;
+
+		map.options.maxBoundsViscosity = settings.viscosity;
+		map.setMaxBounds(settings.bounds);
+	}
+
 	// --- NEW: Centralized function for handling location selection and marker updates ---
 	async function handleLocationSelection(lat, lng, name = null) {
 		if (isSelectingLocation) {
@@ -555,6 +598,8 @@
 		map = mapConfig.map;
 		strictNcrBounds = mapConfig.strictNcrBounds;
 		paddedNcrBounds = mapConfig.paddedNcrBounds;
+		applyAdaptiveBoundsSettings();
+		map.on('zoomend', applyAdaptiveBoundsSettings);
 		tropicalCycloneLayerGroup = L.layerGroup();
 		automatedAlertLayerGroup = L.layerGroup().addTo(map);
 
