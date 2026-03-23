@@ -303,10 +303,10 @@
 						</div>
 
 						<!-- Weather Metrics Grid - Mobile Optimized -->
-						<div class="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3">
+						<div class="flex w-full flex-wrap gap-2 items-stretch">
 							<!-- Rain Probability -->
 							<div
-								class="rounded-xl border border-blue-100 bg-blue-50/30 p-2.5 shadow-sm transition-colors hover:bg-blue-50/60"
+								class="metric-card rounded-xl border border-blue-100 bg-blue-50/30 p-2.5 shadow-sm transition-colors hover:bg-blue-50/60"
 							>
 								<div class="mb-1.5 flex items-center justify-between">
 									<Icon icon="mdi:water-percent" class="flex-shrink-0 text-blue-500" width="16" />
@@ -326,7 +326,7 @@
 
 							<!-- Humidity -->
 							<div
-								class="rounded-xl border border-cyan-100 bg-cyan-50/30 p-2.5 shadow-sm transition-colors hover:bg-cyan-50/60"
+								class="metric-card rounded-xl border border-cyan-100 bg-cyan-50/30 p-2.5 shadow-sm transition-colors hover:bg-cyan-50/60"
 							>
 								<div class="mb-1.5 flex items-center justify-between">
 									<Icon icon="mdi:water" class="flex-shrink-0 text-cyan-500" width="16" />
@@ -339,14 +339,14 @@
 									<div
 										class="truncate rounded bg-cyan-100/50 px-1.5 py-0.5 text-[10px] font-bold text-cyan-600/80"
 									>
-										Moisture
+										Moist
 									</div>
 								</div>
 							</div>
 
 							<!-- Wind Speed -->
 							<div
-								class="rounded-xl border border-slate-100 bg-slate-50/50 p-2.5 shadow-sm transition-colors hover:bg-slate-100/50"
+								class="metric-card rounded-xl border border-slate-100 bg-slate-50/50 p-2.5 shadow-sm transition-colors hover:bg-slate-100/50"
 							>
 								<div class="mb-1.5 flex items-center justify-between">
 									<Icon icon="mdi:weather-windy" class="flex-shrink-0 text-slate-400" width="16" />
@@ -366,7 +366,7 @@
 
 							<!-- Wind Gust -->
 							<div
-								class="rounded-xl border border-slate-200 bg-slate-50/80 p-2.5 shadow-sm transition-colors hover:bg-slate-100/80"
+								class="metric-card rounded-xl border border-slate-200 bg-slate-50/80 p-2.5 shadow-sm transition-colors hover:bg-slate-100/80"
 							>
 								<div class="mb-1.5 flex items-center justify-between">
 									<Icon
@@ -390,7 +390,7 @@
 
 							<!-- Cloud Cover -->
 							<div
-								class="rounded-xl border border-gray-200 bg-white p-2.5 shadow-sm transition-colors hover:bg-gray-50/60"
+								class="metric-card rounded-xl border border-gray-200 bg-white p-2.5 shadow-sm transition-colors hover:bg-gray-50/60"
 							>
 								<div class="mb-1.5 flex items-center justify-between">
 									<Icon icon="mdi:weather-cloudy" class="flex-shrink-0 text-gray-400" width="16" />
@@ -465,7 +465,7 @@
 										</h6>
 
 										<!-- Horizontal scrollable container -->
-										<div class="scrollbar-hide -mx-1 overflow-x-auto px-1 pb-3">
+										<div class="forecast-scroll -mx-1 overflow-x-scroll px-1 pb-3">
 											<div class="flex min-w-max gap-3">
 												{#each forecastData as hour, index}
 													{@const isCurrentHour = moment(
@@ -728,26 +728,31 @@
 	}
 
 	/* Improve scrollbar for horizontal scroll */
-	.overflow-x-auto {
+	.forecast-scroll {
 		scrollbar-width: thin;
 		scrollbar-color: #cbd5e1 #f1f5f9;
 	}
 
-	.overflow-x-auto::-webkit-scrollbar {
-		height: 6px;
+	.forecast-scroll::-webkit-scrollbar {
+		height: 10px;
 	}
 
-	.overflow-x-auto::-webkit-scrollbar-track {
+	.forecast-scroll::-webkit-scrollbar-track {
 		background: #f1f5f9;
 		border-radius: 3px;
 	}
 
-	.overflow-x-auto::-webkit-scrollbar-thumb {
+	.forecast-scroll::-webkit-scrollbar-thumb {
 		background: #cbd5e1;
 		border-radius: 3px;
 	}
 
-	.overflow-x-auto::-webkit-scrollbar-thumb:hover {
+	.forecast-scroll::-webkit-scrollbar-thumb:hover {
 		background: #94a3b8;
+	}
+
+	.metric-card {
+		flex: 1 1 7.5rem;
+		min-width: 0;
 	}
 </style>
