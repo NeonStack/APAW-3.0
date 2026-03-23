@@ -165,7 +165,7 @@
 				class="relative z-10 flex flex-col items-center justify-center text-center lg:col-span-6 lg:items-start lg:text-left"
 			>
 				<!-- Logo instead of text -->
-				<div class="group relative cursor-default lg:ml-[-10px]">
+				<div class="group relative cursor-default border-2">
 					<img
 						src="/APAW_TRANSPARENT.webp"
 						alt="APAW Logo"
@@ -174,7 +174,7 @@
 				</div>
 
 				<h2
-					class="hero-heading mt-2 text-3xl font-extrabold tracking-tight md:text-4xl md:leading-tight lg:mt-4 lg:text-5xl"
+					class="hero-heading mt-2 text-3xl font-extrabold tracking-tight md:text-4xl md:leading-tight lg:mt-4 lg:text-5xl border-2"
 				>
 					<span class="text-primary tracking-tight">
 						Advanced AI-Powered
