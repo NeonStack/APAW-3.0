@@ -7,7 +7,7 @@
 		setLocationLoading,
 		nearestFacilities,
 		facilitiesLayerActive,
-		updateSelectedLocation // NEW: Import the store action
+		updateSelectedLocation
 	} from '$lib/stores/locationStore.js';
 	import {
 		waterStations,
@@ -24,7 +24,6 @@
 	import MapSearchBar from './MapSearchBar.svelte';
 	import { toast } from 'svelte-sonner';
 
-	// Import map services
 	import {
 		initMapService,
 		createMarker,
@@ -33,10 +32,10 @@
 		createRecenterControl
 	} from '$lib/services/MapService.js';
 
-	// Import modular map components
 	import { initializeMap } from './map_components/MapInitializer.js';
 	import {
 		createWaterIcon,
+		getWaterIconHtml,
 		getStationAlertInfo,
 		createWaterStationPopup
 	} from './map_components/WaterStationLayer.js';
@@ -50,11 +49,11 @@
 	import { loadAndProcessGeoJson } from './map_components/GeoJsonUtils.js';
 	import {
 		drawCycloneTrack,
-		updateCyclonePosition
+		updateCyclonePosition,
+		getCycloneLegendEntries,
+		createCycloneLegendIconHtml
 	} from './map_components/TropicalCycloneLayer.js';
 
-	// --- MODIFIED IMPORTS ---
-	// Centralized layer definitions from the new registry
 	import {
 		baseLayers,
 		overlayLayers,
@@ -63,7 +62,13 @@
 	} from './map_components/LayerRegistry.js';
 
 	const dispatch = createEventDispatcher();
-	const OPENWEATHER_MAP_API_KEY = import.meta.env.VITE_OPENWEATHER_MAP_API_KEY || '';
+
+	const WATER_STATION_LEGEND_META = {
+		critical: { label: 'Critical', color: '#dc2626' },
+		alarm: { label: 'Alarm', color: '#f97316' },
+		alert: { label: 'Alert', color: '#eab308' },
+		normal: { label: 'Normal', color: '#22c55e' }
+	};
 
 	export let height = '100%';
 
@@ -96,6 +101,42 @@
 	let layerControlObserver = null;
 	let layoutObserver = null;
 	let resizeHandler = null;
+	let isTropicalCycloneLayerActive = false;
+	let activeCycloneLegendEntries = [];
+	let waterStationLegendEntries = [];
+	let isLegendExpanded = false;
+
+	$: hasIconLegend = waterStationLegendEntries.length > 0 || activeCycloneLegendEntries.length > 0;
+	$: if (!hasIconLegend) isLegendExpanded = false;
+
+	function updateCycloneLegend() {
+		if (!isTropicalCycloneLayerActive) {
+			activeCycloneLegendEntries = [];
+			return;
+		}
+
+		const cycloneArray = get(tropicalCycloneTrackerStore).data || [];
+		const activeStorms = cycloneArray.filter(
+			(storm) => storm?.forecast_track && storm.forecast_track.length > 0
+		);
+		activeCycloneLegendEntries = getCycloneLegendEntries(activeStorms);
+	}
+
+	function updateWaterStationLegend(stationList) {
+		const stations = Array.isArray(stationList) ? stationList : [];
+		const presentStatuses = new Set();
+
+		stations.forEach((station) => {
+			const lat = parseFloat(station?.lat);
+			const lon = parseFloat(station?.lon);
+			if (Number.isNaN(lat) || Number.isNaN(lon)) return;
+			presentStatuses.add(getStationAlertInfo(station));
+		});
+
+		waterStationLegendEntries = ['critical', 'alarm', 'alert', 'normal']
+			.filter((status) => presentStatuses.has(status))
+			.map((status) => ({ key: status, ...WATER_STATION_LEGEND_META[status] }));
+	}
 
 	function updateLayerControlOffset() {
 		if (!browser || !mapContainer || !layerControlContainer) return;
@@ -133,10 +174,57 @@
 		event.preventDefault();
 		event.stopPropagation();
 
+		if (isLegendExpanded) {
+			isLegendExpanded = false;
+		}
+
 		if (layerControlContainer) {
 			layerControlContainer.classList.remove('leaflet-control-layers-expanded');
 			syncLayerPanelState();
 		}
+	}
+
+	function getAdaptiveBoundsSettings() {
+		if (!map || !strictNcrBounds || !paddedNcrBounds || !L) {
+			return null;
+		}
+
+		const zoom = map.getZoom();
+
+		// Keep NCR behavior strict at close zoom, then progressively loosen while zooming out.
+		if (zoom >= 10) {
+			return {
+				bounds: paddedNcrBounds,
+				viscosity: 0.9
+			};
+		}
+
+		if (zoom >= 8) {
+			return {
+				bounds: strictNcrBounds.pad(2.8),
+				viscosity: 0.4
+			};
+		}
+
+		if (zoom >= 7) {
+			return {
+				bounds: strictNcrBounds.pad(8),
+				viscosity: 0.18
+			};
+		}
+
+		return {
+			bounds: L.latLngBounds(L.latLng(-85, -180), L.latLng(85, 180)),
+			viscosity: 0.08
+		};
+	}
+
+	function applyAdaptiveBoundsSettings() {
+		const settings = getAdaptiveBoundsSettings();
+		if (!settings || !map) return;
+
+		map.options.maxBoundsViscosity = settings.viscosity;
+		map.setMaxBounds(settings.bounds);
 	}
 
 	// --- NEW: Centralized function for handling location selection and marker updates ---
@@ -191,7 +279,6 @@
 	async function handleLocateUser() {
 		try {
 			const position = await getCurrentPosition();
-			// Use the new centralized function
 			await handleLocationSelection(position.lat, position.lng);
 		} catch (error) {
 			console.error('Error getting current position:', error);
@@ -259,15 +346,14 @@
 
 	function handleSearchLocation(event) {
 		const { lat, lng, name } = event.detail;
-		// Use the new centralized function
 		handleLocationSelection(lat, lng, name);
 	}
 
 	function focusOnWaterStation(station) {
 		if (!map || !waterStationMarkers.length || !station || !station.lat || !station.lon) return;
 
-		const stationMarker = waterStationMarkers.find((marker) => {
-			const markerLatLng = marker.getLatLng();
+		const stationMarker = waterStationMarkers.find((markerItem) => {
+			const markerLatLng = markerItem.getLatLng();
 			const stationLat = parseFloat(station.lat);
 			const stationLon = parseFloat(station.lon);
 
@@ -319,9 +405,9 @@
 	function formatFloodAroundTimes(hourList) {
 		if (!Array.isArray(hourList) || hourList.length === 0) return 'No flooded-hour timing data';
 
-		const normalized = [...new Set(hourList.map((h) => Number(h)).filter((h) => Number.isFinite(h)))].sort(
-			(a, b) => a - b
-		);
+		const normalized = [
+			...new Set(hourList.map((h) => Number(h)).filter((h) => Number.isFinite(h)))
+		].sort((a, b) => a - b);
 
 		if (normalized.length === 0) return 'No flooded-hour timing data';
 
@@ -399,12 +485,11 @@
 				const popupRiskLabel = getAutomatedPopupRiskLabel(row.risk_level, row.flood_probability);
 				const shortSeverity = severity === 'Very High' ? 'V.High' : severity;
 				const probabilityPct = (Number(row.flood_probability) * 100).toFixed(0);
-				const floodHourIndices =
-					Array.isArray(payload?.flood_hour_indices)
-						? payload.flood_hour_indices
-						: Array.isArray(payload?.flooded_hours_list)
-							? payload.flooded_hours_list
-							: [];
+				const floodHourIndices = Array.isArray(payload?.flood_hour_indices)
+					? payload.flood_hour_indices
+					: Array.isArray(payload?.flooded_hours_list)
+						? payload.flooded_hours_list
+						: [];
 				const maxHeight =
 					payload?.max_predicted_height_cm !== undefined &&
 					payload?.max_predicted_height_cm !== null
@@ -447,35 +532,35 @@
 
 				marker.bindPopup(
 					'<div class="automated-alert-popup-card">' +
-					'<div class="automated-alert-popup-head">' +
-					'<p class="automated-alert-popup-title">' +
-					row.location_name +
-					'</p>' +
-					'<span class="automated-alert-popup-badge" style="border-color:' +
-					color +
-					';color:' +
-					color +
-					';">' +
-					popupRiskLabel +
-					'</span>' +
-					'</div>' +
-					'<p class="automated-alert-popup-date"><span>Forecast</span><strong>' +
-					formatForecastDateLabel(row.forecast_date) +
-					'</strong></p>' +
-					'<div class="automated-alert-popup-grid">' +
-					'<div><span class="k">Flood chance</span><span class="v">' +
-					probabilityPct +
-					'%</span></div>' +
-					'<div><span class="k">Peak depth</span><span class="v">' +
-					maxHeightLabel +
-					'</span></div>' +
-					'</div>' +
-					'<div class="automated-alert-popup-times">' +
-					'<span class="k">Flood around</span><span class="v">' +
-					floodAroundLabel +
-					'</span>' +
-					'</div>' +
-					'</div>',
+						'<div class="automated-alert-popup-head">' +
+						'<p class="automated-alert-popup-title">' +
+						row.location_name +
+						'</p>' +
+						'<span class="automated-alert-popup-badge" style="border-color:' +
+						color +
+						';color:' +
+						color +
+						';">' +
+						popupRiskLabel +
+						'</span>' +
+						'</div>' +
+						'<p class="automated-alert-popup-date"><span>Forecast</span><strong>' +
+						formatForecastDateLabel(row.forecast_date) +
+						'</strong></p>' +
+						'<div class="automated-alert-popup-grid">' +
+						'<div><span class="k">Flood chance</span><span class="v">' +
+						probabilityPct +
+						'%</span></div>' +
+						'<div><span class="k">Peak depth</span><span class="v">' +
+						maxHeightLabel +
+						'</span></div>' +
+						'</div>' +
+						'<div class="automated-alert-popup-times">' +
+						'<span class="k">Flood around</span><span class="v">' +
+						floodAroundLabel +
+						'</span>' +
+						'</div>' +
+						'</div>',
 					{ className: 'automated-alert-popup' }
 				);
 				layerGroup.addLayer(marker);
@@ -513,6 +598,8 @@
 		map = mapConfig.map;
 		strictNcrBounds = mapConfig.strictNcrBounds;
 		paddedNcrBounds = mapConfig.paddedNcrBounds;
+		applyAdaptiveBoundsSettings();
+		map.on('zoomend', applyAdaptiveBoundsSettings);
 		tropicalCycloneLayerGroup = L.layerGroup();
 		automatedAlertLayerGroup = L.layerGroup().addTo(map);
 
@@ -532,7 +619,7 @@
 		});
 
 		const weatherLayerPromises = weatherLayers.map(async (layer) => {
-			instantiatedLayers[layer.id] = await layer.createLayer(L, OPENWEATHER_MAP_API_KEY);
+			instantiatedLayers[layer.id] = await layer.createLayer(L);
 		});
 
 		await Promise.all([...baseLayerPromises, ...weatherLayerPromises]);
@@ -581,6 +668,10 @@
 		// Add zoom control
 		L.control.zoom({ position: 'bottomleft' }).addTo(map);
 
+		if (window.innerWidth > 768) {
+			isLegendExpanded = true;
+		}
+
 		// Add recenter control
 		createRecenterControl().addTo(map);
 
@@ -625,6 +716,7 @@
 
 			/// Handle Tropical Cyclone layer
 			if (layerConfig.id === 'tropical_cyclone') {
+				isTropicalCycloneLayerActive = true;
 				const cycloneArray = get(tropicalCycloneTrackerStore).data;
 				console.log('Activating Tropical Cyclone Tracker. Data available:', cycloneArray);
 
@@ -635,6 +727,7 @@
 					) || [];
 
 				if (activeStorms.length > 0) {
+					updateCycloneLegend();
 					// Draw all active storms
 					activeStorms.forEach((stormData) => {
 						drawCycloneTrack(L, tropicalCycloneLayerGroup, stormData);
@@ -657,6 +750,7 @@
 
 					toast.success(`${activeStorms.length} active tropical cyclone(s) tracked`);
 				} else {
+					updateCycloneLegend();
 					toast.info('No active tropical cyclone data available.');
 				}
 			}
@@ -709,6 +803,8 @@
 
 			// Handle Tropical Cyclone layer
 			if (layerConfig.id === 'tropical_cyclone') {
+				isTropicalCycloneLayerActive = false;
+				updateCycloneLegend();
 				if (cycloneUpdateInterval) {
 					clearInterval(cycloneUpdateInterval);
 					cycloneUpdateInterval = null;
@@ -752,6 +848,8 @@
 				store.data?.filter((storm) => storm?.forecast_track && storm.forecast_track.length > 0) ||
 				[];
 
+			updateCycloneLegend();
+
 			if (activeStorms.length > 0) {
 				tropicalCycloneData = activeStorms; // Store array of active storms
 
@@ -773,6 +871,7 @@
 			// Clear existing markers
 			waterStationMarkers.forEach((m) => map.removeLayer(m));
 			waterStationMarkers = [];
+			updateWaterStationLegend(value?.data);
 
 			if (!value.loading && value.data && value.data.length > 0) {
 				value.data.forEach((station) => {
@@ -897,12 +996,67 @@
 	</div>
 	<div
 		class="map-interaction-blocker"
-		class:active={isLayerPanelExpanded}
+		class:active={isLayerPanelExpanded || isLegendExpanded}
+		class:legend-active={isLegendExpanded}
 		on:click={handleInteractionBlockerClick}
 		on:touchstart={handleInteractionBlockerClick}
 		on:pointerdown={handleInteractionBlockerClick}
 		aria-hidden="true"
 	></div>
+	{#if hasIconLegend}
+		<div class="legend-shell" class:expanded={isLegendExpanded}>
+			<button
+				type="button"
+				class="legend-toggle"
+				on:click|stopPropagation={() => (isLegendExpanded = !isLegendExpanded)}
+				on:pointerdown|stopPropagation
+				aria-expanded={isLegendExpanded}
+				aria-controls="map-icon-legend"
+				aria-label={isLegendExpanded ? 'Close map legend' : 'Open map legend'}
+			>
+				<Icon icon={isLegendExpanded ? 'mdi:close' : 'mdi:map-legend'} width="18" height="18" />
+			</button>
+
+			<div
+				id="map-icon-legend"
+				class="map-legend"
+				class:open={isLegendExpanded}
+				aria-label="Map icon legend"
+			>
+				{#if waterStationLegendEntries.length > 0}
+					<div class="legend-section">
+						<p class="legend-title">Water Stations</p>
+						<div class="legend-items">
+							{#each waterStationLegendEntries as entry}
+								<div class="legend-item">
+									<span class="legend-water-icon" aria-hidden="true">
+										{@html getWaterIconHtml(entry.key, 18)}
+									</span>
+									<span>{entry.label}</span>
+								</div>
+							{/each}
+						</div>
+					</div>
+				{/if}
+
+				{#if activeCycloneLegendEntries.length > 0}
+					<div class="legend-section">
+						<p class="legend-title">Tropical Cyclone</p>
+						<div class="legend-items">
+							{#each activeCycloneLegendEntries as entry}
+								<div class="legend-item">
+									<span class="legend-cyclone-preview" aria-hidden="true">
+										{@html createCycloneLegendIconHtml(entry.code)}
+									</span>
+									<span>{entry.label}</span>
+								</div>
+							{/each}
+						</div>
+					</div>
+				{/if}
+			</div>
+		</div>
+	{/if}
 </div>
 
 <style>
@@ -966,7 +1120,9 @@
 		color: #1f2937;
 		width: 36px;
 		overflow: hidden;
-		transition: width 0.2s ease, box-shadow 0.2s ease;
+		transition:
+			width 0.2s ease,
+			box-shadow 0.2s ease;
 	}
 
 	:global(.automated-alert-icon:hover .automated-alert-chip) {
@@ -993,7 +1149,9 @@
 		gap: 6px;
 		opacity: 0;
 		transform: translateX(4px);
-		transition: opacity 0.2s ease, transform 0.2s ease;
+		transition:
+			opacity 0.2s ease,
+			transform 0.2s ease;
 		padding-right: 8px;
 		white-space: nowrap;
 	}
@@ -1336,10 +1494,16 @@
 	.map-interaction-blocker {
 		position: absolute;
 		inset: 0;
-		z-index: 999;
+		z-index: 950;
 		display: none;
 		background: rgba(0, 0, 0, 0);
 		pointer-events: none;
+	}
+
+	.map-interaction-blocker.legend-active {
+		display: block;
+		background: rgba(0, 0, 0, 0);
+		pointer-events: auto;
 	}
 
 	@media (max-width: 1024px) {
@@ -1384,5 +1548,342 @@
 
 	:global(.leaflet-control-layers-selector) {
 		margin-right: 2px;
+	}
+
+	.legend-shell {
+		position: absolute;
+		left: 8px;
+		top: 50%;
+		transform: translateY(-50%);
+		z-index: 960;
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		pointer-events: auto;
+	}
+
+	.legend-toggle {
+		border: 0;
+		width: 36px;
+		height: 36px;
+		border-radius: 999px;
+		background: rgba(15, 23, 42, 0.92);
+		color: #fff;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		padding: 0;
+		cursor: pointer;
+		box-shadow: 0 6px 16px rgba(2, 6, 23, 0.35);
+		transition:
+			transform 0.16s ease,
+			background 0.2s ease;
+	}
+
+	.legend-toggle:hover {
+		transform: scale(1.04);
+	}
+
+	.legend-shell.expanded .legend-toggle {
+		background: rgba(15, 23, 42, 0.98);
+	}
+
+	.map-legend {
+		pointer-events: auto;
+		opacity: 0;
+		transform: translateX(-14px) scale(0.98);
+		transform-origin: left center;
+		transition:
+			opacity 0.22s ease,
+			transform 0.22s ease;
+		width: 0;
+		overflow: hidden;
+	}
+
+	.map-legend.open {
+		opacity: 1;
+		transform: translateX(0) scale(1);
+		width: auto;
+		overflow: visible;
+		margin-left: 8px;
+	}
+
+	.map-legend {
+		position: relative;
+		z-index: 960;
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+		max-width: min(260px, calc(100vw - 80px));
+		padding: 10px;
+		border-radius: 12px;
+		background: rgba(255, 255, 255, 0.95);
+		box-shadow: 0 8px 20px rgba(15, 23, 42, 0.2);
+		backdrop-filter: blur(4px);
+	}
+
+	.legend-section {
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+	}
+
+	.legend-title {
+		margin: 0;
+		font-size: 12px;
+		font-weight: 700;
+		color: #0f172a;
+	}
+
+	.legend-items {
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+	}
+
+	.legend-item {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		font-size: 11px;
+		color: #1f2937;
+	}
+
+	.legend-water-icon {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 18px;
+		height: 18px;
+		flex-shrink: 0;
+	}
+
+	.legend-cyclone-preview {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 22px;
+		height: 22px;
+		flex-shrink: 0;
+	}
+
+	:global(.cyclone-icon-badge) {
+		position: relative;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: var(--cyclone-size, 40px);
+		height: var(--cyclone-size, 40px);
+		border-radius: 50%;
+		overflow: visible;
+		filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.4));
+	}
+
+	:global(.cyclone-icon-mini) {
+		--cyclone-size: 20px;
+		filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.35));
+	}
+
+	:global(.cyclone-ring),
+	:global(.cyclone-glyph),
+	:global(.cyclone-lpa-core) {
+		position: absolute;
+		inset: 0;
+	}
+
+	:global(.cyclone-ring) {
+		border-radius: 50%;
+		border: calc(var(--cyclone-size, 40px) * 0.055) solid
+			color-mix(in srgb, var(--cyclone-color) 70%, white 30%);
+		border-right-color: transparent;
+		border-bottom-color: transparent;
+	}
+
+	:global(.cyclone-ring-thin) {
+		inset: calc(var(--cyclone-size, 40px) * 0.09);
+		border-width: calc(var(--cyclone-size, 40px) * 0.04);
+		opacity: 0.85;
+		animation: cyclone-spin var(--cyclone-spin-seconds, 2.2s) linear infinite;
+	}
+
+	:global(.cyclone-ring-strong) {
+		inset: calc(var(--cyclone-size, 40px) * 0.05);
+		border-width: calc(var(--cyclone-size, 40px) * 0.06);
+		opacity: 0.95;
+		animation: cyclone-spin var(--cyclone-spin-seconds, 2.2s) linear infinite;
+	}
+
+	:global(.cyclone-ring-blade) {
+		inset: calc(var(--cyclone-size, 40px) * 0.05);
+		border: none;
+		border-radius: 50%;
+		background: repeating-conic-gradient(
+			from 0deg,
+			color-mix(in srgb, var(--cyclone-color) 88%, white 12%) 0deg 12deg,
+			transparent 12deg 20deg,
+			color-mix(in srgb, var(--cyclone-color) 62%, black 38%) 20deg 34deg,
+			transparent 34deg 42deg
+		);
+		mask: radial-gradient(circle, transparent 56%, black 57%);
+		animation: cyclone-spin calc(var(--cyclone-spin-seconds, 2.2s) * 0.88) linear infinite;
+	}
+
+	:global(.cyclone-ring-lpa) {
+		inset: calc(var(--cyclone-size, 40px) * 0.12);
+		border-style: dashed;
+		border-width: calc(var(--cyclone-size, 40px) * 0.032);
+		opacity: 0.65;
+		border-color: color-mix(in srgb, var(--cyclone-color) 74%, white 26%);
+		border-right-color: color-mix(in srgb, var(--cyclone-color) 74%, white 26%);
+		border-bottom-color: color-mix(in srgb, var(--cyclone-color) 74%, white 26%);
+	}
+
+	:global(.cyclone-glyph) {
+		display: grid;
+		place-items: center;
+		color: color-mix(in srgb, var(--cyclone-color) 82%, white 18%);
+		animation: cyclone-spin var(--cyclone-spin-seconds, 2.2s) linear infinite;
+	}
+
+	:global(.cyclone-glyph-td) {
+		inset: calc(var(--cyclone-size, 40px) * 0.2);
+		opacity: 0.76;
+		color: color-mix(in srgb, var(--cyclone-color) 70%, white 30%);
+	}
+
+	:global(.cyclone-glyph-ts) {
+		inset: calc(var(--cyclone-size, 40px) * 0.17);
+		opacity: 0.88;
+	}
+
+	:global(.cyclone-glyph-sts) {
+		inset: calc(var(--cyclone-size, 40px) * 0.145);
+		opacity: 0.96;
+		color: color-mix(in srgb, var(--cyclone-color) 88%, white 12%);
+	}
+
+	:global(.cyclone-glyph-ty) {
+		inset: calc(var(--cyclone-size, 40px) * 0.13);
+	}
+
+	:global(.cyclone-glyph-sty) {
+		inset: calc(var(--cyclone-size, 40px) * 0.11);
+		filter: saturate(1.2) contrast(1.14)
+			drop-shadow(0 0 4px color-mix(in srgb, var(--cyclone-color) 74%, white 26%));
+	}
+
+	:global(.cyclone-glyph-svg) {
+		width: 100%;
+		height: 100%;
+	}
+
+	:global(.cyclone-glyph-svg-no-eye path) {
+		fill: none;
+		stroke: currentColor;
+		stroke-width: var(--arm-width, 9);
+		stroke-linecap: round;
+		stroke-linejoin: round;
+	}
+
+	:global(.cyclone-glyph-svg-eye .arm) {
+		fill: currentColor;
+	}
+
+	:global(.cyclone-glyph-svg-eye .eye) {
+		fill: #fff;
+		stroke: color-mix(in srgb, var(--cyclone-color) 86%, black 14%);
+		animation: cyclone-eye-pulse 1.3s ease-in-out infinite;
+	}
+
+	:global(.cyclone-glyph-sty .cyclone-glyph-svg-eye .eye) {
+		stroke: color-mix(in srgb, var(--cyclone-color) 92%, black 8%);
+		filter: drop-shadow(0 0 2px color-mix(in srgb, var(--cyclone-color) 86%, white 14%));
+	}
+
+	:global(.cyclone-lpa-core) {
+		display: grid;
+		place-items: center;
+		font-family: 'Inter Tight', sans-serif;
+		font-size: calc(var(--cyclone-size, 40px) * 0.23);
+		font-weight: 800;
+		letter-spacing: 0.05em;
+		color: color-mix(in srgb, var(--cyclone-color) 82%, white 18%);
+	}
+
+	:global(.cyclone-icon-label) {
+		position: absolute;
+		top: 50%;
+		left: 50%;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		padding: 0;
+		font-family: 'Inter Tight', sans-serif;
+		font-size: 10px;
+		font-weight: 900;
+		letter-spacing: 0.02em;
+		color: #fff;
+		text-shadow:
+			0 1px 2px rgba(0, 0, 0, 0.75),
+			0 0 4px rgba(0, 0, 0, 0.65);
+		transform: translate(-50%, -50%);
+		pointer-events: none;
+	}
+
+	:global(.cyclone-icon-badge[data-style='TY'] .cyclone-icon-label),
+	:global(.cyclone-icon-badge[data-style='STY'] .cyclone-icon-label) {
+		top: -2px;
+		left: 50%;
+		transform: translate(-50%, -100%);
+	}
+
+	:global(.cyclone-icon-mini .cyclone-icon-label) {
+		display: none;
+	}
+
+	@keyframes cyclone-spin {
+		from {
+			transform: rotate(0deg);
+		}
+		to {
+			transform: rotate(-360deg);
+		}
+	}
+
+	@keyframes cyclone-spin-reverse {
+		from {
+			transform: rotate(0deg);
+		}
+		to {
+			transform: rotate(-360deg);
+		}
+	}
+
+	@keyframes cyclone-eye-pulse {
+		0% {
+			transform: scale(1);
+		}
+		50% {
+			transform: scale(1.08);
+		}
+		100% {
+			transform: scale(1);
+		}
+	}
+
+	@media (max-width: 640px) {
+		.legend-shell {
+			left: 6px;
+		}
+
+		.legend-toggle {
+			width: 32px;
+			height: 32px;
+		}
+
+		.map-legend {
+			padding: 8px;
+			max-width: min(220px, calc(100vw - 56px));
+		}
 	}
 </style>

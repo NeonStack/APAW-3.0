@@ -155,7 +155,7 @@
 		{/each}
 	</div>
 
-	<div class="relative z-10 container mx-auto flex justify-center px-6 py-12 lg:py-20">
+	<div class="relative z-10 container mx-auto flex justify-center px-6 pt-2 pb-12 lg:py-20">
 		<!-- Content with enhanced layout -->
 		<div
 			class="relative mx-auto grid max-w-7xl grid-cols-1 items-center gap-12 lg:grid-cols-12 lg:gap-12"
@@ -165,7 +165,7 @@
 				class="relative z-10 flex flex-col items-center justify-center text-center lg:col-span-6 lg:items-start lg:text-left"
 			>
 				<!-- Logo instead of text -->
-				<div class="group relative cursor-default lg:ml-[-10px]">
+				<div class="group relative cursor-default">
 					<img
 						src="/APAW_TRANSPARENT.webp"
 						alt="APAW Logo"
@@ -174,7 +174,7 @@
 				</div>
 
 				<h2
-					class="hero-heading mt-2 text-3xl font-extrabold tracking-tight md:text-4xl md:leading-tight lg:mt-4 lg:text-5xl"
+					class="text-[clamp(1.8em,5vw,3.5rem)] line-clamp-4 mt-2 font-extrabold tracking-tight md:leading-tight"
 				>
 					<span class="text-primary tracking-tight">
 						Advanced AI-Powered
@@ -199,8 +199,7 @@
 				<p
 					class="lg:text-md mx-auto mt-8 max-w-xl text-lg leading-relaxed font-light text-gray-600 lg:mx-0 xl:text-xl"
 				>
-					Experience <strong class="font-semibold text-gray-800">up to 5 days</strong> of early warning
-					for flood risks in Metro Manila. Actionable, intuitive, and completely free.
+					Experience <strong class="font-semibold text-gray-800">up to 5 days</strong> of early warning for flood risks in Metro Manila. <span class="hidden md:inline lg:inline">Actionable, intuitive, and completely free.</span>
 				</p>
 
 				<!-- CTA Buttons -->
@@ -415,7 +414,7 @@
 				class="mb-4 inline-block rounded-full border border-white/30 bg-white/20 px-4 py-2 text-sm font-semibold text-white backdrop-blur-sm"
 				>OUR PLATFORM</span
 			>
-			<h2 class="mb-4 text-4xl font-extrabold tracking-tight text-white drop-shadow-md lg:text-5xl">
+			<h2 class="mb-4 text-3xl font-extrabold tracking-tight text-white drop-shadow-md lg:text-5xl">
 				Proactive Preparedness Tools
 			</h2>
 			<p class="mx-auto max-w-3xl px-4 text-lg font-light text-blue-50 lg:text-xl">
@@ -556,10 +555,6 @@
 </section>
 
 <style>
-	.hero-heading {
-		font-size: clamp(2.1em, 5vw, 3.5rem);
-	}
-
 	.waves-container {
 		position: absolute;
 		bottom: 0;
