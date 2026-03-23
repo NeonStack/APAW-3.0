@@ -7,7 +7,7 @@
 		setLocationLoading,
 		nearestFacilities,
 		facilitiesLayerActive,
-		updateSelectedLocation // NEW: Import the store action
+		updateSelectedLocation
 	} from '$lib/stores/locationStore.js';
 	import {
 		waterStations,
@@ -24,7 +24,6 @@
 	import MapSearchBar from './MapSearchBar.svelte';
 	import { toast } from 'svelte-sonner';
 
-	// Import map services
 	import {
 		initMapService,
 		createMarker,
@@ -33,7 +32,6 @@
 		createRecenterControl
 	} from '$lib/services/MapService.js';
 
-	// Import modular map components
 	import { initializeMap } from './map_components/MapInitializer.js';
 	import {
 		createWaterIcon,
@@ -52,11 +50,10 @@
 	import {
 		drawCycloneTrack,
 		updateCyclonePosition,
-		getCycloneLegendEntries
+		getCycloneLegendEntries,
+		createCycloneLegendIconHtml
 	} from './map_components/TropicalCycloneLayer.js';
 
-	// --- MODIFIED IMPORTS ---
-	// Centralized layer definitions from the new registry
 	import {
 		baseLayers,
 		overlayLayers,
@@ -239,7 +236,6 @@
 	async function handleLocateUser() {
 		try {
 			const position = await getCurrentPosition();
-			// Use the new centralized function
 			await handleLocationSelection(position.lat, position.lng);
 		} catch (error) {
 			console.error('Error getting current position:', error);
@@ -307,15 +303,14 @@
 
 	function handleSearchLocation(event) {
 		const { lat, lng, name } = event.detail;
-		// Use the new centralized function
 		handleLocationSelection(lat, lng, name);
 	}
 
 	function focusOnWaterStation(station) {
 		if (!map || !waterStationMarkers.length || !station || !station.lat || !station.lon) return;
 
-		const stationMarker = waterStationMarkers.find((marker) => {
-			const markerLatLng = marker.getLatLng();
+		const stationMarker = waterStationMarkers.find((markerItem) => {
+			const markerLatLng = markerItem.getLatLng();
 			const stationLat = parseFloat(station.lat);
 			const stationLon = parseFloat(station.lon);
 
@@ -1006,9 +1001,7 @@
 							{#each activeCycloneLegendEntries as entry}
 								<div class="legend-item">
 									<span class="legend-cyclone-preview" aria-hidden="true">
-										<span class="legend-cyclone-chip" style={`background:${entry.color};`}>
-											{entry.short}
-										</span>
+										{@html createCycloneLegendIconHtml(entry.code)}
 									</span>
 									<span>{entry.label}</span>
 								</div>
@@ -1624,62 +1617,204 @@
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
-		width: 20px;
-		height: 20px;
-		flex-shrink: 0;
-	}
-
-	.legend-cyclone-chip {
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		width: 20px;
-		height: 20px;
-		padding: 0;
-		border-radius: 50%;
-		font-size: 8px;
-		font-weight: 800;
-		color: #fff;
-		border: 1px solid rgba(255, 255, 255, 0.5);
-		box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.15);
+		width: 22px;
+		height: 22px;
 		flex-shrink: 0;
 	}
 
 	:global(.cyclone-icon-badge) {
-		width: 40px;
-		height: 40px;
-		display: grid;
-		place-items: center;
-		filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.4));
-	}
-
-	:global(.cyclone-icon-core) {
-		width: 36px;
-		height: 36px;
-		border-radius: 50%;
-		background: radial-gradient(
-			circle at 35% 30%,
-			#ffffff 8%,
-			var(--cyclone-color) 62%,
-			#111827 155%
-		);
-		border: 2px solid rgba(255, 255, 255, 0.95);
-		display: flex;
+		position: relative;
+		display: inline-flex;
 		align-items: center;
 		justify-content: center;
-		animation: cyclone-marker-pulse 1.8s ease-in-out infinite;
+		width: var(--cyclone-size, 40px);
+		height: var(--cyclone-size, 40px);
+		border-radius: 50%;
+		overflow: visible;
+		filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.4));
+	}
+
+	:global(.cyclone-icon-mini) {
+		--cyclone-size: 20px;
+		filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.35));
+	}
+
+	:global(.cyclone-ring),
+	:global(.cyclone-glyph),
+	:global(.cyclone-lpa-core) {
+		position: absolute;
+		inset: 0;
+	}
+
+	:global(.cyclone-ring) {
+		border-radius: 50%;
+		border: calc(var(--cyclone-size, 40px) * 0.055) solid
+			color-mix(in srgb, var(--cyclone-color) 70%, white 30%);
+		border-right-color: transparent;
+		border-bottom-color: transparent;
+	}
+
+	:global(.cyclone-ring-thin) {
+		inset: calc(var(--cyclone-size, 40px) * 0.09);
+		border-width: calc(var(--cyclone-size, 40px) * 0.04);
+		opacity: 0.85;
+		animation: cyclone-spin var(--cyclone-spin-seconds, 2.2s) linear infinite;
+	}
+
+	:global(.cyclone-ring-strong) {
+		inset: calc(var(--cyclone-size, 40px) * 0.05);
+		border-width: calc(var(--cyclone-size, 40px) * 0.06);
+		opacity: 0.95;
+		animation: cyclone-spin var(--cyclone-spin-seconds, 2.2s) linear infinite;
+	}
+
+	:global(.cyclone-ring-blade) {
+		inset: calc(var(--cyclone-size, 40px) * 0.05);
+		border: none;
+		border-radius: 50%;
+		background: repeating-conic-gradient(
+			from 0deg,
+			color-mix(in srgb, var(--cyclone-color) 88%, white 12%) 0deg 12deg,
+			transparent 12deg 20deg,
+			color-mix(in srgb, var(--cyclone-color) 62%, black 38%) 20deg 34deg,
+			transparent 34deg 42deg
+		);
+		mask: radial-gradient(circle, transparent 56%, black 57%);
+		animation: cyclone-spin calc(var(--cyclone-spin-seconds, 2.2s) * 0.88) linear infinite;
+	}
+
+	:global(.cyclone-ring-lpa) {
+		inset: calc(var(--cyclone-size, 40px) * 0.12);
+		border-style: dashed;
+		border-width: calc(var(--cyclone-size, 40px) * 0.032);
+		opacity: 0.65;
+		border-color: color-mix(in srgb, var(--cyclone-color) 74%, white 26%);
+		border-right-color: color-mix(in srgb, var(--cyclone-color) 74%, white 26%);
+		border-bottom-color: color-mix(in srgb, var(--cyclone-color) 74%, white 26%);
+	}
+
+	:global(.cyclone-glyph) {
+		display: grid;
+		place-items: center;
+		color: color-mix(in srgb, var(--cyclone-color) 82%, white 18%);
+		animation: cyclone-spin var(--cyclone-spin-seconds, 2.2s) linear infinite;
+	}
+
+	:global(.cyclone-glyph-td) {
+		inset: calc(var(--cyclone-size, 40px) * 0.2);
+		opacity: 0.76;
+		color: color-mix(in srgb, var(--cyclone-color) 70%, white 30%);
+	}
+
+	:global(.cyclone-glyph-ts) {
+		inset: calc(var(--cyclone-size, 40px) * 0.17);
+		opacity: 0.88;
+	}
+
+	:global(.cyclone-glyph-sts) {
+		inset: calc(var(--cyclone-size, 40px) * 0.145);
+		opacity: 0.96;
+		color: color-mix(in srgb, var(--cyclone-color) 88%, white 12%);
+	}
+
+	:global(.cyclone-glyph-ty) {
+		inset: calc(var(--cyclone-size, 40px) * 0.13);
+	}
+
+	:global(.cyclone-glyph-sty) {
+		inset: calc(var(--cyclone-size, 40px) * 0.11);
+		filter: saturate(1.2) contrast(1.14)
+			drop-shadow(0 0 4px color-mix(in srgb, var(--cyclone-color) 74%, white 26%));
+	}
+
+	:global(.cyclone-glyph-svg) {
+		width: 100%;
+		height: 100%;
+	}
+
+	:global(.cyclone-glyph-svg-no-eye path) {
+		fill: none;
+		stroke: currentColor;
+		stroke-width: var(--arm-width, 9);
+		stroke-linecap: round;
+		stroke-linejoin: round;
+	}
+
+	:global(.cyclone-glyph-svg-eye .arm) {
+		fill: currentColor;
+	}
+
+	:global(.cyclone-glyph-svg-eye .eye) {
+		fill: #fff;
+		stroke: color-mix(in srgb, var(--cyclone-color) 86%, black 14%);
+		animation: cyclone-eye-pulse 1.3s ease-in-out infinite;
+	}
+
+	:global(.cyclone-glyph-sty .cyclone-glyph-svg-eye .eye) {
+		stroke: color-mix(in srgb, var(--cyclone-color) 92%, black 8%);
+		filter: drop-shadow(0 0 2px color-mix(in srgb, var(--cyclone-color) 86%, white 14%));
+	}
+
+	:global(.cyclone-lpa-core) {
+		display: grid;
+		place-items: center;
+		font-family: 'Inter Tight', sans-serif;
+		font-size: calc(var(--cyclone-size, 40px) * 0.23);
+		font-weight: 800;
+		letter-spacing: 0.05em;
+		color: color-mix(in srgb, var(--cyclone-color) 82%, white 18%);
 	}
 
 	:global(.cyclone-icon-label) {
+		position: absolute;
+		top: 50%;
+		left: 50%;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		padding: 0;
 		font-family: 'Inter Tight', sans-serif;
 		font-size: 10px;
-		font-weight: 800;
+		font-weight: 900;
 		letter-spacing: 0.02em;
 		color: #fff;
-		text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
+		text-shadow:
+			0 1px 2px rgba(0, 0, 0, 0.75),
+			0 0 4px rgba(0, 0, 0, 0.65);
+		transform: translate(-50%, -50%);
+		pointer-events: none;
 	}
 
-	@keyframes cyclone-marker-pulse {
+	:global(.cyclone-icon-badge[data-style='TY'] .cyclone-icon-label),
+	:global(.cyclone-icon-badge[data-style='STY'] .cyclone-icon-label) {
+		top: -2px;
+		left: 50%;
+		transform: translate(-50%, -100%);
+	}
+
+	:global(.cyclone-icon-mini .cyclone-icon-label) {
+		display: none;
+	}
+
+	@keyframes cyclone-spin {
+		from {
+			transform: rotate(0deg);
+		}
+		to {
+			transform: rotate(-360deg);
+		}
+	}
+
+	@keyframes cyclone-spin-reverse {
+		from {
+			transform: rotate(0deg);
+		}
+		to {
+			transform: rotate(-360deg);
+		}
+	}
+
+	@keyframes cyclone-eye-pulse {
 		0% {
 			transform: scale(1);
 		}

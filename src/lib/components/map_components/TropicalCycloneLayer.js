@@ -1,13 +1,43 @@
 import moment from 'moment';
 
 const CYCLONE_CATEGORY_META = {
-	LPA: { label: 'Low Pressure Area', color: '#0891b2', short: 'LPA' },
-	TD: { label: 'Tropical Depression', color: '#16a34a', short: 'TD' },
-	TS: { label: 'Tropical Storm', color: '#eab308', short: 'TS' },
-	STS: { label: 'Severe Tropical Storm', color: '#f97316', short: 'STS' },
-	TY: { label: 'Typhoon', color: '#dc2626', short: 'TY' },
-	STY: { label: 'Super Typhoon', color: '#7c3aed', short: 'STY' },
-	UNKNOWN: { label: 'Tropical Cyclone', color: '#6b7280', short: 'TC' }
+	LPA: {
+		label: 'Low Pressure Area',
+		color: '#9ca3af',
+		short: 'LPA',
+		defaultWind: 30,
+		spinFactor: 1.2
+	},
+	TD: {
+		label: 'Tropical Depression',
+		color: '#16a34a',
+		short: 'TD',
+		defaultWind: 50,
+		spinFactor: 1.08
+	},
+	TS: { label: 'Tropical Storm', color: '#eab308', short: 'TS', defaultWind: 75, spinFactor: 1.0 },
+	STS: {
+		label: 'Severe Tropical Storm',
+		color: '#f97316',
+		short: 'STS',
+		defaultWind: 95,
+		spinFactor: 0.92
+	},
+	TY: { label: 'Typhoon', color: '#dc2626', short: 'TY', defaultWind: 135, spinFactor: 0.84 },
+	STY: {
+		label: 'Super Typhoon',
+		color: '#7c3aed',
+		short: 'STY',
+		defaultWind: 190,
+		spinFactor: 0.76
+	},
+	UNKNOWN: {
+		label: 'Tropical Cyclone',
+		color: '#6b7280',
+		short: 'TC',
+		defaultWind: 70,
+		spinFactor: 1.0
+	}
 };
 
 const CATEGORY_ORDER = ['LPA', 'TD', 'TS', 'STS', 'TY', 'STY', 'UNKNOWN'];
@@ -52,6 +82,99 @@ function getCycloneCategoryMeta(category) {
 	return CYCLONE_CATEGORY_META[normalizeCycloneCategory(category)] || CYCLONE_CATEGORY_META.UNKNOWN;
 }
 
+function clamp(value, min, max) {
+	return Math.max(min, Math.min(max, value));
+}
+
+function getSpinSeconds(mswKmh, categoryMeta) {
+	const wind = clamp(Number(mswKmh) || categoryMeta.defaultWind || 70, 20, 220);
+	const normalized = (wind - 20) / 200;
+	const baseSpin = 4.2 - normalized * 3.2;
+	const factored = baseSpin * (categoryMeta.spinFactor || 1);
+	return clamp(Number(factored.toFixed(2)), 0.72, 4.8);
+}
+
+function getNoEyeGlyphSvg(code) {
+	const armWidth = code === 'STS' ? 11 : code === 'TS' ? 9 : 7;
+	const upperPath =
+		code === 'STS'
+			? 'M56 14 C78 15 90 35 82 51 C75 63 63 69 50 67'
+			: code === 'TS'
+				? 'M58 14 C82 17 92 40 80 56 C70 68 56 72 44 67'
+				: 'M60 16 C80 19 88 36 80 51 C73 62 61 67 50 65';
+	const lowerPath =
+		code === 'STS'
+			? 'M44 86 C22 85 10 65 18 49 C25 37 37 31 50 33'
+			: code === 'TS'
+				? 'M42 86 C18 83 8 60 20 44 C30 32 44 28 56 33'
+				: 'M40 84 C20 81 12 64 20 49 C27 38 39 33 50 35';
+
+	return `
+		<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" class="cyclone-glyph-svg cyclone-glyph-svg-no-eye" style="--arm-width:${armWidth};" aria-hidden="true">
+			<path d="${upperPath}" />
+			<path d="${lowerPath}" />
+		</svg>
+	`;
+}
+
+function getEyeGlyphSvg(code) {
+	const eyeRadius = code === 'STY' ? 4.2 : 5.6;
+	const eyeStroke = code === 'STY' ? 2.8 : 2.2;
+
+	return `
+		<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" class="cyclone-glyph-svg cyclone-glyph-svg-eye" aria-hidden="true">
+			<path class="arm" d="M54 10 C78 10 92 31 92 50 C92 67 80 81 63 84 C75 72 77 57 73 47 C69 37 60 31 50 31 C51 24 53 17 54 10" />
+			<path class="arm" d="M46 90 C22 90 8 69 8 50 C8 33 20 19 37 16 C25 28 23 43 27 53 C31 63 40 69 50 69 C49 76 47 83 46 90" />
+			<circle class="eye" cx="50" cy="50" r="${eyeRadius}" style="stroke-width:${eyeStroke};" />
+		</svg>
+	`;
+}
+
+function buildCycloneInnerByCategory(code) {
+	if (code === 'LPA') {
+		return `
+			<div class="cyclone-ring cyclone-ring-lpa"></div>
+			<div class="cyclone-lpa-core">LPA</div>
+		`;
+	}
+
+	if (code === 'TD') {
+		return `
+			<div class="cyclone-glyph cyclone-glyph-td">${getNoEyeGlyphSvg('TD')}</div>
+		`;
+	}
+
+	if (code === 'TS') {
+		return `
+			<div class="cyclone-glyph cyclone-glyph-ts">${getNoEyeGlyphSvg('TS')}</div>
+		`;
+	}
+
+	if (code === 'STS') {
+		return `
+			<div class="cyclone-glyph cyclone-glyph-sts">${getNoEyeGlyphSvg('STS')}</div>
+		`;
+	}
+
+	if (code === 'TY') {
+		return `
+			<div class="cyclone-ring cyclone-ring-strong"></div>
+			<div class="cyclone-glyph cyclone-glyph-ty">${getEyeGlyphSvg('TY')}</div>
+		`;
+	}
+
+	if (code === 'STY') {
+		return `
+			<div class="cyclone-glyph cyclone-glyph-sty">${getEyeGlyphSvg('STY')}</div>
+		`;
+	}
+
+	return `
+		<div class="cyclone-ring cyclone-ring-thin"></div>
+		<div class="cyclone-glyph cyclone-glyph-ts">${getNoEyeGlyphSvg('TS')}</div>
+	`;
+}
+
 // Helper to create the popup content for a forecast point
 function createCyclonePopupContent(point) {
 	const formattedDate = moment(point.date_time).format('MMM D, YYYY h:mm A');
@@ -68,16 +191,41 @@ function getCategoryColor(category) {
 	return getCycloneCategoryMeta(category).color;
 }
 
-function createCurrentCycloneIconHtml(category) {
-	const meta = getCycloneCategoryMeta(category);
+function createCurrentCycloneIconHtml(category, mswKmh) {
+	const normalizedCode = normalizeCycloneCategory(category);
+	const meta = getCycloneCategoryMeta(normalizedCode);
+	const spinSeconds = getSpinSeconds(mswKmh, meta);
+	const iconInner = buildCycloneInnerByCategory(normalizedCode);
 
 	return `
-        <div class="cyclone-icon-badge" style="--cyclone-color:${meta.color};" data-category="${meta.short}">
-            <div class="cyclone-icon-core">
-                <span class="cyclone-icon-label">${meta.short}</span>
-            </div>
+		<div
+			class="cyclone-icon-badge"
+			style="--cyclone-color:${meta.color};--cyclone-spin-seconds:${spinSeconds}s;"
+			data-category="${meta.short}"
+			data-style="${normalizedCode}"
+		>
+			${iconInner}
+			<span class="cyclone-icon-label">${meta.short}</span>
         </div>
     `;
+}
+
+export function createCycloneLegendIconHtml(category) {
+	const normalizedCode = normalizeCycloneCategory(category);
+	const meta = getCycloneCategoryMeta(normalizedCode);
+	const spinSeconds = getSpinSeconds(meta.defaultWind, meta);
+	const iconInner = buildCycloneInnerByCategory(normalizedCode);
+
+	return `
+		<span
+			class="legend-cyclone-icon cyclone-icon-badge cyclone-icon-mini"
+			style="--cyclone-color:${meta.color};--cyclone-spin-seconds:${spinSeconds}s;"
+			data-style="${normalizedCode}"
+			data-category="${meta.short}"
+		>
+			${iconInner}
+		</span>
+	`;
 }
 
 // Calculates the cyclone's current position by interpolating between two forecast points
@@ -165,7 +313,7 @@ export function drawCycloneTrack(L, layerGroup, cycloneData) {
 
 	if (currentPosition) {
 		const cycloneIcon = L.divIcon({
-			html: createCurrentCycloneIconHtml(currentPosition.category),
+			html: createCurrentCycloneIconHtml(currentPosition.category, currentPosition.msw_kmh),
 			className: 'cyclone-icon',
 			iconSize: [40, 40],
 			iconAnchor: [20, 20]
