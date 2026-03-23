@@ -516,12 +516,6 @@
 
 <!-- Call to Action Section with Glassmorphism -->
 <section class="relative overflow-hidden bg-slate-50 py-24 lg:py-32">
-	<div class="absolute inset-0">
-		<div
-			class="bg-primary/10 absolute top-1/2 left-1/2 h-[600px] w-[800px] -translate-x-1/2 -translate-y-1/2 rounded-full opacity-70 blur-[120px]"
-		></div>
-	</div>
-
 	<div class=" z-10 mx-auto max-w-5xl px-6">
 		<div
 			class="relative overflow-hidden rounded-3xl border border-white/60 bg-white/40 p-10 text-center shadow-[0_20px_60px_-15px_rgba(59,166,208,0.15)] backdrop-blur-xl lg:p-20"
