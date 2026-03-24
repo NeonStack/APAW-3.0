@@ -2280,7 +2280,7 @@
 					</div>
 					<div>
 						<p class="text-xs font-bold text-gray-800">Get Prediction</p>
-						<p class="text-xs text-gray-600">Click "Predict Flooding"</p>
+						<p class="text-xs text-gray-600">Click "Generate Prediction"</p>
 					</div>
 				</div>
 				<div class="flex items-start rounded border border-blue-200 bg-blue-50 p-2">
