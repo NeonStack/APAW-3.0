@@ -56,14 +56,16 @@
 </script>
 
 <svelte:head>
-	<title>APAW | Flood Predictions</title>
+	<title>APAW | Flood Risk Predictions</title>
 	<meta
 		name="description"
-		content="View interactive 5-day flood risk predictions for specific locations within Metro Manila using APAW's advanced prediction model."
+		content="View interactive 5-day flood risk predictions for locations across Metro Manila using APAW's machine learning model."
 	/>
 </svelte:head>
 
 <div class="predict-page">
+	<h1 class="sr-only">Metro Manila Flood Risk Predictions</h1>
+
 	<div class="m-0 flex h-full w-full p-0">
 		<!-- Map Container -->
 		<div class="m-0 h-full flex-1 p-0 md:w-2/3">

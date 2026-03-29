@@ -5,10 +5,10 @@
 </script>
 
 <svelte:head>
-	<title>APAW | Resources</title>
+	<title>APAW | Flood Risk Prediction Resources</title>
 	<meta
 		name="description"
-		content="Discover the data sources, algorithms, libraries, and tools used to build the APAW flood prediction platform."
+		content="Discover the data sources, algorithms, libraries, and tools behind the APAW flood risk prediction platform."
 	/>
 </svelte:head>
 
@@ -18,7 +18,7 @@
 	<div class="relative z-10 container mx-auto px-6">
 		<div class="mx-auto max-w-5xl text-center">
 			<h1 class="mb-8 text-primary font-black text-5xl md:text-6xl lg:text-7xl">
-				Project Resources
+				Flood Risk Prediction Resources
 			</h1>
 
 			<p

@@ -22,7 +22,7 @@
 
 <div class="flex h-full flex-col bg-white shadow-md">
 	<div class="bg-primary flex items-center justify-between border-b border-gray-200 p-3 text-white">
-		<h2 class="text-sm font-semibold tracking-wide">FLOOD PREDICTION PANEL</h2>
+		<h2 class="text-sm font-semibold tracking-wide">FLOOD RISK PREDICTION PANEL</h2>
 
 		<!-- Mobile close button with proper event dispatch -->
 		<button

@@ -139,6 +139,10 @@
 				class="mx-auto mb-8 h-auto w-full max-w-[220px] object-contain drop-shadow-md sm:max-w-[280px]"
 			/>
 
+			<h1 class="mb-6 text-4xl leading-tight font-extrabold text-slate-800 md:text-5xl lg:text-6xl">
+				About APAW Flood Prediction Platform
+			</h1>
+
 			<p
 				class="mx-auto max-w-3xl text-lg leading-relaxed font-light text-gray-600 md:text-xl lg:text-2xl"
 			>
@@ -200,7 +204,7 @@
 						<Icon icon="mdi:calendar-clock" width="120" height="120" />
 					</div>
 					<div class="text-opacity-80 mb-2 text-sm font-bold tracking-widest text-white uppercase">
-						Advance Forecast
+						Advance Prediction
 					</div>
 					<div class="mb-1 text-5xl font-black">5 Days</div>
 					<div class="text-opacity-90 text-white">Detailed predictive window</div>
