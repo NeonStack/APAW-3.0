@@ -8,7 +8,7 @@
 
 	const features = [
 		{
-			title: 'AI Flood Forecasts',
+			title: 'AI Flood Predictions',
 			description: 'Machine learning-based predictions of flood risks up to five days ahead.',
 			icon: 'material-symbols:online-prediction'
 		},
@@ -86,7 +86,7 @@
 		'Analyzing weather patterns...',
 		'Fetching geographic data...',
 		'Calculating risk trajectories...',
-		'Forecasting flood levels...',
+		'Predicting flood levels...',
 		'Updating live datasets...'
 	];
 	let currentScanIndex = 0;
@@ -133,7 +133,7 @@
 	<title>APAW | AI-Powered Flood Risk Prediction</title>
 	<meta
 		name="description"
-		content="APAW provides 5-day flood risk forecasts for Metro Manila using machine learning. Explore interactive maps and data-driven predictions for proactive flood preparedness."
+		content="APAW delivers 5-day Metro Manila flood risk predictions using machine learning, with interactive maps and data-driven insights for early preparedness."
 	/>
 </svelte:head>
 
@@ -173,14 +173,14 @@
 					/>
 				</div>
 
-				<h2
+				<h1
 					class="text-[clamp(1.8em,5vw,3.5rem)] line-clamp-4 mt-2 font-extrabold tracking-tight md:leading-tight"
 				>
 					<span class="text-primary tracking-tight">
 						Advanced AI-Powered
 						<span class="text-primary-light block">Flood Risk Prediction</span>
 					</span>
-				</h2>
+				</h1>
 
 				<!-- Decorative element -->
 				<div class="mt-6 flex w-full items-center justify-center gap-3 lg:justify-start">
@@ -437,7 +437,7 @@
 					<div class="text-xs font-bold tracking-widest text-blue-200 uppercase lg:text-sm">
 						Days Ahead
 					</div>
-					<div class="text-lg font-medium text-white lg:text-xl">Early Forecast</div>
+					<div class="text-lg font-medium text-white lg:text-xl">Early Prediction</div>
 				</div>
 			</div>
 
@@ -526,7 +526,7 @@
 			<div class="bg-primary-light absolute -bottom-10 -left-10 h-40 w-40 rounded-full blur-[90px]"></div>
 
 			<h2 class="mb-6 text-[clamp(2rem,5vw,3.5rem)] leading-tight font-black text-gray-900">
-				Ready to explore <span class="text-primary-light">APAW's</span> forecasting?
+				Ready to explore <span class="text-primary-light">APAW's</span> flood risk predictions?
 			</h2>
 
 			<p
