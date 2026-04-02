@@ -474,6 +474,44 @@
 			</div>
 		</div>
 
+		<div
+			class="pawi-feature-callout group relative mx-auto mb-12 w-full max-w-5xl overflow-hidden rounded-[2rem] border border-white/25 bg-gradient-to-r from-white/15 via-white/10 to-transparent p-5 shadow-xl backdrop-blur-md transition-all duration-300 hover:-translate-y-1 hover:border-white/45 hover:shadow-[0_20px_40px_-10px_rgba(15,76,107,0.4)] md:p-6"
+		>
+			<div class="absolute -top-20 -right-16 h-56 w-56 rounded-full bg-white/10 blur-3xl"></div>
+
+			<div
+				class="relative z-10 flex flex-col items-center gap-4 text-center sm:flex-row sm:items-center sm:text-left"
+			>
+				<div class="relative h-24 w-24 shrink-0 sm:h-28 sm:w-28" aria-hidden="true">
+					<img
+						src="/pawi/pawi-idle.svg"
+						alt=""
+						class="pawi-home-idle absolute inset-0 h-full w-full"
+					/>
+					<img
+						src="/pawi/pawi-teach.svg"
+						alt=""
+						class="pawi-home-teach absolute inset-0 h-full w-full"
+					/>
+				</div>
+
+				<div class="min-w-0">
+					<p
+						class="inline-flex items-center rounded-full border border-white/30 bg-white/20 px-3 py-1 text-[11px] font-bold tracking-[0.12em] text-white uppercase"
+					>
+						Meet PAWI
+					</p>
+					<h3 class="mt-2 text-xl font-black tracking-tight text-white sm:text-2xl">
+						Your Playful Flood Guide
+					</h3>
+					<p class="mt-1 max-w-3xl text-sm leading-relaxed text-blue-100 sm:text-base">
+						PAWI helps explain flood predictions and key risk signals in a clear, friendly way so
+						you can act earlier.
+					</p>
+				</div>
+			</div>
+		</div>
+
 		<div class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
 			{#each features as feature}
 				<div
@@ -693,5 +731,72 @@
 
 	.feature-card-overlay {
 		background: linear-gradient(135deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.1) 100%);
+	}
+
+	.pawi-home-idle,
+	.pawi-home-teach {
+		transform-origin: center bottom;
+		will-change: transform, opacity;
+	}
+
+	.pawi-home-idle {
+		opacity: 1;
+		animation: pawi-home-hop 2.2s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+		transition: opacity 0.25s ease;
+	}
+
+	.pawi-home-teach {
+		opacity: 0;
+		animation:
+			pawi-home-hop 2s cubic-bezier(0.22, 1, 0.36, 1) infinite,
+			pawi-home-teach-wiggle 1.1s ease-in-out infinite;
+		transition: opacity 0.25s ease;
+	}
+
+	.pawi-feature-callout:hover .pawi-home-idle {
+		opacity: 0;
+	}
+
+	.pawi-feature-callout:hover .pawi-home-teach {
+		opacity: 1;
+	}
+
+	@keyframes pawi-home-hop {
+		0%,
+		100% {
+			transform: translateY(0) rotate(0deg);
+		}
+		25% {
+			transform: translateY(-8px) rotate(-1deg);
+		}
+		50% {
+			transform: translateY(0) rotate(0deg);
+		}
+		75% {
+			transform: translateY(-5px) rotate(1deg);
+		}
+	}
+
+	@keyframes pawi-home-teach-wiggle {
+		0%,
+		100% {
+			transform: translateY(0) rotate(0deg);
+		}
+		25% {
+			transform: translateY(-3px) rotate(-5deg);
+		}
+		50% {
+			transform: translateY(0) rotate(0deg);
+		}
+		75% {
+			transform: translateY(-2px) rotate(4deg);
+		}
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.pawi-home-idle,
+		.pawi-home-teach {
+			animation: none !important;
+		}
 	}
 </style>

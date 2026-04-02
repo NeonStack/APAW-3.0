@@ -273,58 +273,61 @@
 					</div>
 
 					<div class="p-3 pt-1 sm:p-4">
-						<!-- Rainfall Overview Title -->
-						<div class="mb-2 flex items-center gap-2">
-							<div class="h-1 w-1 rounded-full bg-blue-500"></div>
-							<p class="text-xs font-bold text-slate-600">RAINFALL OVERVIEW</p>
+						<!-- Weather Condition -->
+
+						<div class="mb-4 flex items-center gap-3 rounded-xl border border-gray-200 bg-white p-3 shadow-sm transition-colors hover:bg-gray-50/60 sm:p-4">
+							<Icon
+								icon={iconMap[currentData.icon] || 'mdi:weather-partly-cloudy'}
+								class="flex-shrink-0 text-slate-500"
+								width="44"
+							/>
+							<div class="flex-1 min-w-0">
+								<div class="text-[10px] font-bold text-slate-500 sm:text-xs">Condition</div>
+								<div class="mt-1 truncate text-base font-extrabold text-slate-800 line-clamp-2 sm:text-lg">
+									{currentData.conditions}
+								</div>
+							</div>
 						</div>
 
-						<!-- Main Rain & Condition -->
-						<div
-							class="mb-4 grid grid-cols-3 gap-2 rounded-xl border border-blue-100 bg-gradient-to-br from-blue-50/60 to-blue-100/40 p-3 shadow-sm sm:gap-3 sm:p-4"
-						>
-							<!-- Rainfall Percentage -->
-							<div class="flex flex-col items-center justify-center rounded-lg border border-blue-200/50 bg-white/40 p-2 sm:p-3">
-								<Icon
-									icon="mdi:water-percent"
-									class="mb-1.5 text-blue-500 sm:mb-2"
-									width="36"
-								/>
-								<div class="text-center">
-									<div class="text-2xl font-extrabold text-slate-800 sm:text-3xl">
+						<!-- Rainfall Cards Row -->
+						<div class="mb-3 flex w-full flex-wrap gap-2 items-stretch">
+							<!-- Rainfall Chance -->
+							<div
+								class="metric-card rounded-xl border border-blue-100 bg-blue-50/30 p-2.5 shadow-sm transition-colors hover:bg-blue-50/60"
+							>
+								<div class="mb-1.5 flex items-center justify-between">
+									<Icon icon="mdi:water-percent" class="flex-shrink-0 text-blue-500" width="16" />
+									<span class="ml-1 truncate text-xs font-semibold text-slate-500">Rain %</span>
+								</div>
+								<div class="mt-1 flex items-baseline justify-between">
+									<div class="text-[15px] font-extrabold text-slate-800">
 										{currentData.precipprob}
 									</div>
-									<div class="text-[10px] font-bold text-blue-600 sm:text-xs">Rain %</div>
+									<div
+										class="truncate rounded bg-blue-100/50 px-1.5 py-0.5 text-[10px] font-bold text-blue-600/80"
+									>
+										%
+									</div>
 								</div>
 							</div>
 
 							<!-- Precipitation Amount -->
-							<div class="flex flex-col items-center justify-center rounded-lg border border-blue-200/50 bg-white/40 p-2 sm:p-3">
-								<Icon
-									icon="mdi:water"
-									class="mb-1.5 text-cyan-500 sm:mb-2"
-									width="36"
-								/>
-								<div class="text-center">
-									<div class="text-2xl font-extrabold text-slate-800 sm:text-3xl">
+							<div
+								class="metric-card rounded-xl border border-cyan-100 bg-cyan-50/30 p-2.5 shadow-sm transition-colors hover:bg-cyan-50/60"
+							>
+								<div class="mb-1.5 flex items-center justify-between">
+									<Icon icon="mdi:water" class="flex-shrink-0 text-cyan-500" width="16" />
+									<span class="ml-1 truncate text-xs font-semibold text-slate-500">Precip</span>
+								</div>
+								<div class="mt-1 flex items-baseline justify-between">
+									<div class="text-[15px] font-extrabold text-slate-800">
 										{currentData.precip_mm}
 									</div>
-									<div class="text-[10px] font-bold text-cyan-600 sm:text-xs">mm</div>
-								</div>
-							</div>
-
-							<!-- Condition Badge -->
-							<div class="flex flex-col items-center justify-center rounded-lg border border-blue-300 bg-gradient-to-b from-blue-100 to-blue-50 p-2 sm:p-3">
-								<Icon
-									icon="mdi:cloud"
-									class="mb-1.5 text-blue-600 sm:mb-2"
-									width="36"
-								/>
-								<div class="text-center">
-									<div class="truncate text-[10px] font-extrabold text-blue-800 line-clamp-2 sm:text-xs">
-										{currentData.conditions}
+									<div
+										class="truncate rounded bg-cyan-100/50 px-1.5 py-0.5 text-[10px] font-bold text-cyan-600/80"
+									>
+										mm
 									</div>
-									<div class="text-[9px] font-semibold text-blue-600/70 sm:text-[10px]">Status</div>
 								</div>
 							</div>
 						</div>
