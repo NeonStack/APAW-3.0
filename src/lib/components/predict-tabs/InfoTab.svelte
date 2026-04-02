@@ -142,6 +142,10 @@
 	let isPredicting = false;
 	let predictionError = null;
 	let predictionErrorDetails = null; // New: store error details
+	let pawiSummary = null;
+	let pawiSummaryError = null;
+	let pawiSummaryLoading = false;
+	let pawiLastGeneratedAt = null;
 	let locationLoadingState = false;
 	let locationLoadingMessage = '';
 	let expandedFacilities = {}; // Track expanded state of facilities
@@ -274,6 +278,55 @@
 		floodPrediction = null;
 		predictionError = null;
 		predictionErrorDetails = null;
+		pawiSummary = null;
+		pawiSummaryError = null;
+		pawiSummaryLoading = false;
+		pawiLastGeneratedAt = null;
+	}
+
+	async function fetchPawiSummary(predictionData) {
+		if (!predictionData?.forecast_by_day?.length) {
+			pawiSummaryError = 'No prediction data available for Pawi summary';
+			return;
+		}
+
+		const uiRiskLabels = buildPawiUiRiskLabels(predictionData);
+
+		pawiSummaryLoading = true;
+		pawiSummaryError = null;
+
+		try {
+			const response = await fetch('/api/pawi-summary', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({
+					prediction: predictionData,
+					locationName: $selectedLocation.locationName || null,
+					uiRiskLabels
+				})
+			});
+
+			const data = await response.json();
+			if (!response.ok || data.status === 'error' || data.status === 'invalid') {
+				throw new Error(data.message || 'Failed to generate Pawi summary');
+			}
+
+			const summaryText = data?.summary || data?.overall_summary;
+			if (typeof summaryText !== 'string' || summaryText.trim().length === 0) {
+				throw new Error('Pawi summary returned an invalid format');
+			}
+
+			pawiSummary = data;
+			pawiLastGeneratedAt = data.generated_at || new Date().toISOString();
+		} catch (error) {
+			console.error('Pawi summary error:', error);
+			pawiSummary = null;
+			pawiSummaryError = error.message || 'Pawi summary is unavailable right now';
+		} finally {
+			pawiSummaryLoading = false;
+		}
 	}
 
 	// Request flood prediction from API
@@ -288,6 +341,10 @@
 		predictionError = null;
 		predictionErrorDetails = null;
 		floodPrediction = null;
+		pawiSummary = null;
+		pawiSummaryError = null;
+		pawiSummaryLoading = false;
+		pawiLastGeneratedAt = null;
 
 		startFakeProgress();
 
@@ -479,6 +536,23 @@
 		});
 	}
 
+	function formatDateTime(dateString) {
+		if (!dateString) return 'Not available';
+		const date = new Date(dateString);
+		if (Number.isNaN(date.getTime())) return 'Not available';
+		return date.toLocaleString('en-US', {
+			month: 'short',
+			day: 'numeric',
+			year: 'numeric',
+			hour: 'numeric',
+			minute: '2-digit'
+		});
+	}
+
+	function getPawiSourceLabel(source) {
+		return source === 'fallback' ? 'Local' : 'Pawi';
+	}
+
 	function formatHeaderDate(dateString) {
 		const date = new Date(dateString);
 		return date.toLocaleDateString('en-US', {
@@ -578,6 +652,27 @@
 			riskInfo,
 			floodedHoursList: floodedHours.map((h) => h.hour) // Add list of flooded hours
 		};
+	}
+
+	function buildPawiUiRiskLabels(predictionData) {
+		const days = Array.isArray(predictionData?.forecast_by_day)
+			? predictionData.forecast_by_day
+			: [];
+
+		return days
+			.map((day) => {
+				const summary = getDailySummary(day?.hourly_forecast);
+				if (!summary?.riskInfo?.level) return null;
+
+				return {
+					date: day?.date || null,
+					risk_label: summary.riskInfo.level,
+					peak_chance_pct: Math.round(summary.maxProbability * 100),
+					flooded_hours: summary.floodedHours
+				};
+			})
+			.filter(Boolean)
+			.slice(0, 5);
 	}
 
 	// Helper function to get key weather features from hourly data (rain only)
@@ -1730,7 +1825,76 @@
 				</div>
 			{/if}
 
-			<!-- Daily Prediction Cards -->
+			<!-- Pawi Quick Action -->
+			<div class="rounded-xl border border-emerald-200 bg-white p-2.5 shadow-sm">
+				<div class="flex items-center justify-between gap-2">
+					<div class="flex min-w-0 items-center gap-2">
+						<img
+							src={pawiSummaryLoading ? '/pawi/pawi-teach.svg' : '/pawi/pawi-idle.svg'}
+							alt="Pawi"
+							class="h-9 w-9 shrink-0"
+						/>
+						<div class="min-w-0">
+							<p class="truncate text-xs font-bold text-emerald-800">Pawi Summary</p>
+							<p class="truncate text-[10px] text-emerald-700">
+								{#if pawiSummaryLoading}
+									Pawi is reading your forecast...
+								{:else if pawiSummary?.summary || pawiSummary?.overall_summary}
+									Summary ready. You can generate a fresh one anytime.
+								{:else}
+									Generate an AI explanation when you need it.
+								{/if}
+							</p>
+						</div>
+					</div>
+
+					<button
+						type="button"
+						onclick={() => fetchPawiSummary(floodPrediction)}
+						class="shrink-0 rounded-md border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-[11px] font-semibold text-emerald-700 transition-colors hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-60"
+						disabled={!floodPrediction || pawiSummaryLoading}
+					>
+						{#if pawiSummaryLoading}
+							Generating...
+						{:else if pawiSummary?.summary || pawiSummary?.overall_summary}
+							Refresh Summary
+						{:else}
+							Summarize with Pawi
+						{/if}
+					</button>
+				</div>
+			</div>
+
+			{#if pawiSummaryLoading || pawiSummaryError || pawiSummary?.summary || pawiSummary?.overall_summary}
+				<div class="rounded-lg border border-emerald-200 bg-gradient-to-b from-emerald-50 to-white p-3 shadow-sm">
+					{#if pawiSummaryLoading}
+						<div class="flex items-start gap-2">
+							<img src="/pawi/pawi-teach.svg" alt="Pawi is thinking" class="mt-0.5 h-8 w-8 shrink-0" />
+							<p class="text-xs text-emerald-700">
+								Pawi is reading your prediction data and preparing a clear summary.
+							</p>
+						</div>
+					{:else if pawiSummaryError}
+						<div class="rounded-md border border-amber-300 bg-amber-50 p-3 text-xs text-amber-800">
+							{pawiSummaryError}
+						</div>
+					{:else}
+						<div class="flex items-start gap-2">
+							<img src="/pawi/pawi-teach.svg" alt="Pawi summary" class="mt-0.5 h-8 w-8 shrink-0" />
+							<div class="min-w-0">
+								<p class="text-xs leading-relaxed text-slate-700">
+									{pawiSummary.summary || pawiSummary.overall_summary}
+								</p>
+								<div class="mt-2 flex items-center justify-between text-[10px] text-slate-500">
+									<span>Source: {getPawiSourceLabel(pawiSummary.source)}</span>
+									<span>Updated: {formatDateTime(pawiLastGeneratedAt)}</span>
+								</div>
+							</div>
+						</div>
+					{/if}
+				</div>
+			{/if}
+
 			<div class="space-y-2">
 				{#each floodPrediction.forecast_by_day as day, index}
 					{@const summary = getDailySummary(day.hourly_forecast)}

@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="100%" height="100%">
+  <g id="shell">
+    <circle cx="200" cy="220" r="85" fill="#2E8B57" stroke="#1D3557" stroke-width="6"/>
+    <path d="M 125,200 Q 200,260 275,200" fill="none" stroke="#1D3557" stroke-width="6" stroke-linecap="round"/>
+    <path d="M 155,150 L 165,220 M 245,150 L 235,220 M 200,135 L 200,235" stroke="#1D3557" stroke-width="6" stroke-linecap="round"/>
+  </g>
+
+  <g id="legs">
+    <rect x="150" y="290" width="30" height="40" rx="15" fill="#A0E8AF" stroke="#1D3557" stroke-width="6"/>
+    <rect x="220" y="290" width="30" height="40" rx="15" fill="#A0E8AF" stroke="#1D3557" stroke-width="6"/>
+  </g>
+
+  <g id="body">
+    <rect x="135" y="190" width="130" height="110" rx="35" fill="#A8DADC" stroke="#1D3557" stroke-width="6"/>
+    <path d="M 165,190 L 165,260 Q 200,285 235,260 L 235,190" fill="none" stroke="#457B9D" stroke-width="5"/>
+    <line x1="200" y1="190" x2="200" y2="265" stroke="#457B9D" stroke-width="5"/>
+    <circle cx="200" cy="215" r="3" fill="#1D3557"/>
+    <circle cx="200" cy="235" r="3" fill="#1D3557"/>
+    <circle cx="200" cy="255" r="3" fill="#1D3557"/>
+    <path d="M 160,190 L 200,215 L 240,190" fill="none" stroke="#1D3557" stroke-width="6" stroke-linejoin="round"/>
+  </g>
+
+  <g id="arms">
+    <path d="M 140,215 Q 110,260 135,295" fill="none" stroke="#1D3557" stroke-width="32" stroke-linecap="round"/>
+    <path d="M 140,215 Q 110,260 135,295" fill="none" stroke="#A0E8AF" stroke-width="20" stroke-linecap="round"/>
+    <path d="M 260,215 Q 290,260 265,295" fill="none" stroke="#1D3557" stroke-width="32" stroke-linecap="round"/>
+    <path d="M 260,215 Q 290,260 265,295" fill="none" stroke="#A0E8AF" stroke-width="20" stroke-linecap="round"/>
+  </g>
+
+  <g id="head">
+    <ellipse cx="200" cy="140" rx="95" ry="75" fill="#A0E8AF" stroke="#1D3557" stroke-width="6"/>
+    
+    <ellipse cx="135" cy="155" rx="16" ry="8" fill="#4CAF50" opacity="0.5"/>
+    <ellipse cx="265" cy="155" rx="16" ry="8" fill="#4CAF50" opacity="0.5"/>
+    
+    <circle cx="155" cy="135" r="15" fill="#1D3557"/>
+    <circle cx="159" cy="129" r="5" fill="#FFFFFF"/>
+    <circle cx="149" cy="139" r="2" fill="#FFFFFF"/>
+
+    <circle cx="245" cy="135" r="15" fill="#1D3557"/>
+    <circle cx="249" cy="129" r="5" fill="#FFFFFF"/>
+    <circle cx="239" cy="139" r="2" fill="#FFFFFF"/>
+    
+    <path d="M 185,160 Q 200,175 215,160" fill="none" stroke="#1D3557" stroke-width="5" stroke-linecap="round"/>
+  </g>
+
+  <g id="hat">
+    <path d="M 80,95 Q 200,-30 320,95 Q 200,125 80,95 Z" fill="#457B9D" stroke="#1D3557" stroke-width="6" stroke-linejoin="round"/>
+    <path d="M 190,25 L 210,25 L 205,10 L 195,10 Z" fill="#2E8B57" stroke="#1D3557" stroke-width="6" stroke-linejoin="round"/>
+    <path d="M 120,75 Q 200,30 280,75" fill="none" stroke="#1D3557" stroke-width="3" opacity="0.6"/>
+    <path d="M 100,85 Q 200,50 300,85" fill="none" stroke="#1D3557" stroke-width="3" opacity="0.6"/>
+    <path d="M 160,105 Q 200,50 240,105" fill="none" stroke="#1D3557" stroke-width="3" opacity="0.6"/>
+    <line x1="200" y1="25" x2="200" y2="110" stroke="#1D3557" stroke-width="3" opacity="0.6"/>
+  </g>
+</svg>
