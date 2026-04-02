@@ -20,6 +20,11 @@
 	import { onMount, createEventDispatcher } from 'svelte';
 	import Icon from '@iconify/svelte';
 	import moment from 'moment';
+	import PawiSummarySection from './InfoTab_components/PawiSummarySection.svelte';
+	import PredictionControlsSection from './InfoTab_components/PredictionControlsSection.svelte';
+	import PredictionLoadingSection from './InfoTab_components/PredictionLoadingSection.svelte';
+	import LocationInfoSection from './InfoTab_components/LocationInfoSection.svelte';
+	import HowToUseSection from './InfoTab_components/HowToUseSection.svelte';
 
 	const dispatch = createEventDispatcher();
 
@@ -146,6 +151,7 @@
 	let pawiSummaryError = null;
 	let pawiSummaryLoading = false;
 	let pawiLastGeneratedAt = null;
+	let pawiSummaryRequested = false;
 	let locationLoadingState = false;
 	let locationLoadingMessage = '';
 	let expandedFacilities = {}; // Track expanded state of facilities
@@ -282,9 +288,14 @@
 		pawiSummaryError = null;
 		pawiSummaryLoading = false;
 		pawiLastGeneratedAt = null;
+		pawiSummaryRequested = false;
 	}
 
 	async function fetchPawiSummary(predictionData) {
+		if (pawiSummaryRequested || pawiSummaryLoading) {
+			return;
+		}
+
 		if (!predictionData?.forecast_by_day?.length) {
 			pawiSummaryError = 'No prediction data available for Pawi summary';
 			return;
@@ -292,6 +303,7 @@
 
 		const uiRiskLabels = buildPawiUiRiskLabels(predictionData);
 
+		pawiSummaryRequested = true;
 		pawiSummaryLoading = true;
 		pawiSummaryError = null;
 
@@ -345,6 +357,7 @@
 		pawiSummaryError = null;
 		pawiSummaryLoading = false;
 		pawiLastGeneratedAt = null;
+		pawiSummaryRequested = false;
 
 		startFakeProgress();
 
@@ -432,98 +445,9 @@
 		expandedFacilities[facilityId] = !expandedFacilities[facilityId];
 	}
 
-	// Helper function to extract formatted address from facility properties
-	function getFormattedAddress(properties) {
-		if (!properties) return null;
-
-		const addressParts = [];
-
-		if (properties['addr:housenumber'] && properties['addr:street']) {
-			addressParts.push(`${properties['addr:housenumber']} ${properties['addr:street']}`);
-		} else if (properties['addr:street']) {
-			addressParts.push(properties['addr:street']);
-		}
-
-		if (properties['addr:city']) {
-			addressParts.push(properties['addr:city']);
-		} else if (properties['addr:district']) {
-			addressParts.push(properties['addr:district']);
-		}
-
-		if (properties['addr:province']) {
-			addressParts.push(properties['addr:province']);
-		}
-
-		if (properties['addr:postcode']) {
-			addressParts.push(properties['addr:postcode']);
-		}
-
-		return addressParts.length > 0 ? addressParts.join(', ') : null;
-	}
-
-	function formatPropertyValue(value) {
-		if (typeof value !== 'string') return value;
-		return value
-			.split('_')
-			.map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-			.join(' ');
-	}
-
-	// Helper function to get additional properties for display
-	function getAdditionalProperties(properties) {
-		if (!properties) return [];
-
-		const additionalProps = [];
-		const usedKeys = new Set();
-
-		// Define a curated list of properties with priorities and clean labels.
-		// The `keys` array is checked in order. The first one found is used.
-		const propertyMappings = [
-			{ label: 'Type', keys: ['amenity', 'leisure', 'emergency', 'healthcare'] },
-			{ label: 'Capacity (Persons)', keys: ['capacity:persons', 'capacity'] },
-			{ label: 'Operator', keys: ['operator'] },
-			{ label: 'Operator Type', keys: ['operator:type'] },
-			{ label: 'Building Levels', keys: ['building:levels'] },
-			{ label: 'Height (m)', keys: ['height'] },
-			// This will only show "Evacuation Center: Yes" if the tag exists and is 'yes'
-			{ label: 'Evacuation Center', keys: ['evacuation_center'], filterValue: 'yes' },
-			{ label: 'DOH Reference', keys: ['ref:doh'] }
-		];
-
-		propertyMappings.forEach((mapping) => {
-			for (const key of mapping.keys) {
-				if (properties[key] && !usedKeys.has(key)) {
-					// If a filterValue is set, only add the property if the value matches
-					if (mapping.filterValue && properties[key] !== mapping.filterValue) {
-						continue;
-					}
-
-					additionalProps.push({
-						label: mapping.label,
-						value: formatPropertyValue(properties[key])
-					});
-
-					// Mark all potential keys for this mapping as used to avoid duplicates
-					mapping.keys.forEach((k) => usedKeys.add(k));
-					return; // Move to the next mapping once a match is found
-				}
-			}
-		});
-
-		return additionalProps;
-	}
-
 	// Select hour for viewing details
 	function selectHour(date, hourIndex) {
 		selectedHourByDay[date] = hourIndex;
-	}
-
-	// Simple helper functions
-	function formatDistance(distance) {
-		if (distance === null || distance === undefined) return 'Unknown';
-
-		// Always display in meters, round to whole number
-		return `${Math.round(distance)}m`;
 	}
 
 	function formatDate(dateString) {
@@ -536,23 +460,6 @@
 		});
 	}
 
-	function formatDateTime(dateString) {
-		if (!dateString) return 'Not available';
-		const date = new Date(dateString);
-		if (Number.isNaN(date.getTime())) return 'Not available';
-		return date.toLocaleString('en-US', {
-			month: 'short',
-			day: 'numeric',
-			year: 'numeric',
-			hour: 'numeric',
-			minute: '2-digit'
-		});
-	}
-
-	function getPawiSourceLabel(source) {
-		return source === 'fallback' ? 'Local' : 'Pawi';
-	}
-
 	function formatHeaderDate(dateString) {
 		const date = new Date(dateString);
 		return date.toLocaleDateString('en-US', {
@@ -560,17 +467,6 @@
 			day: 'numeric',
 			year: 'numeric'
 		});
-	}
-
-	function formatProgress(progress) {
-		return Math.round(progress) + '%';
-	}
-
-	function getProgressBarColor(progress) {
-		if (progress < 30) return 'bg-blue-400';
-		if (progress < 60) return 'bg-blue-500';
-		if (progress < 90) return 'bg-blue-600';
-		return 'bg-green-500';
 	}
 
 	// Helper function to get risk level and colors based on probability
@@ -695,43 +591,6 @@
 		if (hour === 12) return '12:00 PM';
 		if (hour < 12) return `${hour}:00 AM`;
 		return `${hour - 12}:00 PM`;
-	}
-
-	// Helper function to format error type for display
-	function getErrorTypeDisplay(errorType) {
-		const typeMap = {
-			outside_service_area: {
-				icon: 'mdi:map-marker-off',
-				color: 'orange',
-				label: 'Outside Service Area'
-			},
-			invalid_location: { icon: 'mdi:water-alert', color: 'blue', label: 'Invalid Location' },
-			default: { icon: 'mdi:alert-circle', color: 'red', label: 'Error' }
-		};
-		return typeMap[errorType] || typeMap['default'];
-	}
-
-	// Helper function to format water body name
-	function formatWaterBodyName(name) {
-		if (!name || name === 'Unnamed Stream' || name === 'Unnamed River') {
-			return 'an unnamed water body';
-		}
-		return name;
-	}
-
-	// Helper function to get direction arrow icon
-	function getDirectionIcon(direction) {
-		const directionMap = {
-			north: 'mdi:arrow-up',
-			south: 'mdi:arrow-down',
-			east: 'mdi:arrow-right',
-			west: 'mdi:arrow-left',
-			'north-east': 'mdi:arrow-top-right',
-			'north-west': 'mdi:arrow-top-left',
-			'south-east': 'mdi:arrow-bottom-right',
-			'south-west': 'mdi:arrow-bottom-left'
-		};
-		return directionMap[direction] || 'mdi:arrow-right';
 	}
 
 	// Helper to format height display
@@ -1573,215 +1432,20 @@
 		{/if}
 	</div>
 
-	<!-- Compact Prediction Controls - MOVED TO TOP -->
-	<div
-		class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm ring-1 ring-black/5"
-	>
-		<div
-			class="flex items-center justify-between border-b border-gray-100 bg-slate-50 px-3.5 py-2.5"
-		>
-			<div class="flex items-center gap-2">
-				<div
-					class="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-100 text-blue-600 ring-1 ring-blue-200"
-				>
-					<Icon icon="mdi:chart-box-outline" width="16" />
-				</div>
-				<h3 class="text-sm font-bold text-gray-800">Flood Prediction</h3>
-			</div>
-			<div
-				class="flex items-center rounded bg-gray-200/60 px-2 py-0.5 text-[10px] font-medium text-gray-600"
-			>
-				<Icon icon="mdi:cpu-64-bit" class="mr-1" width="12" />
-				RF + LSTM
-			</div>
-		</div>
+	<PredictionControlsSection
+		onPredict={predictFlood}
+		isPredicting={isPredicting}
+		hasLocation={!!$selectedLocation.lat}
+		locationLoadingState={locationLoadingState}
+		predictionError={predictionError}
+		predictionErrorDetails={predictionErrorDetails}
+	/>
 
-		<div class="p-3.5 pt-4">
-			<button
-				onclick={predictFlood}
-				disabled={isPredicting || !$selectedLocation.lat || locationLoadingState}
-				class="group flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg bg-slate-800 px-4 py-2.5 text-sm font-semibold text-white shadow-md transition-all hover:bg-slate-700 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
-			>
-				{#if isPredicting}
-					<Icon icon="eos-icons:loading" class="animate-spin text-blue-300" width="18" />
-					<span class="tracking-wide">Analyzing Models...</span>
-				{:else}
-					<span class="tracking-wide">Generate Prediction</span>
-				{/if}
-			</button>
-
-			<!-- Enhanced Error Display -->
-			{#if predictionError}
-				{@const errorDisplay = predictionErrorDetails
-					? getErrorTypeDisplay(predictionErrorDetails.error_type)
-					: getErrorTypeDisplay('default')}
-				<div
-					class="rounded-lg border-2 shadow-sm"
-					class:border-orange-300={errorDisplay.color === 'orange'}
-					class:bg-orange-50={errorDisplay.color === 'orange'}
-					class:border-blue-300={errorDisplay.color === 'blue'}
-					class:bg-blue-50={errorDisplay.color === 'blue'}
-					class:border-red-300={errorDisplay.color === 'red'}
-					class:bg-red-50={errorDisplay.color === 'red'}
-				>
-					<div class="p-3">
-						<div class="flex items-start">
-							<div class="flex-1">
-								<p
-									class="text-sm font-bold"
-									class:text-orange-800={errorDisplay.color === 'orange'}
-									class:text-blue-800={errorDisplay.color === 'blue'}
-									class:text-red-800={errorDisplay.color === 'red'}
-								>
-									{errorDisplay.label}
-								</p>
-								<p
-									class="mt-1 text-xs"
-									class:text-orange-700={errorDisplay.color === 'orange'}
-									class:text-blue-700={errorDisplay.color === 'blue'}
-									class:text-red-700={errorDisplay.color === 'red'}
-								>
-									{predictionError}
-								</p>
-
-								<!-- Additional error details -->
-								{#if predictionErrorDetails}
-									<div class="mt-2 space-y-1">
-										<!-- Water Body Details -->
-										{#if predictionErrorDetails.reason === 'water_body'}
-											<div class="rounded border border-blue-200 bg-blue-100 p-2">
-												<p class="text-xs font-semibold text-blue-800">Location Details:</p>
-												<div class="mt-1 ml-4 space-y-0.5 text-xs text-blue-700">
-													<p>
-														<span class="font-medium">Type:</span>
-														{predictionErrorDetails.water_type
-															?.replace('water_', '')
-															.replace('_', ' ') || 'Water body'}
-													</p>
-													{#if predictionErrorDetails.water_name && predictionErrorDetails.water_name !== 'Unnamed Stream' && predictionErrorDetails.water_name !== 'Unnamed River'}
-														<p>
-															<span class="font-medium">Name:</span>
-															{predictionErrorDetails.water_name}
-														</p>
-													{/if}
-												</div>
-											</div>
-										{/if}
-
-										<!-- Outside NCR Details -->
-										{#if predictionErrorDetails.reason === 'outside_metro_manila'}
-											<div class="rounded border border-orange-200 bg-orange-100 p-2">
-												<p class="text-xs font-semibold text-orange-800">
-													Distance from Service Area:
-												</p>
-												<div class="mt-1 ml-4 space-y-0.5 text-xs text-orange-700">
-													<p class="flex items-center">
-														<Icon
-															icon={getDirectionIcon(predictionErrorDetails.direction)}
-															class="mr-1"
-															width="12"
-														/>
-														<span class="font-bold"
-															>{Math.round(predictionErrorDetails.distance_to_boundary_m)}m</span
-														>
-														<span class="ml-1">{predictionErrorDetails.direction}</span>
-													</p>
-												</div>
-											</div>
-										{/if}
-
-										<!-- Suggestion -->
-										{#if predictionErrorDetails.suggestion}
-											<div
-												class="rounded border p-2"
-												class:border-orange-200={errorDisplay.color === 'orange'}
-												class:bg-orange-100={errorDisplay.color === 'orange'}
-												class:border-blue-200={errorDisplay.color === 'blue'}
-												class:bg-blue-100={errorDisplay.color === 'blue'}
-											>
-												<p
-													class="flex items-start text-xs"
-													class:text-orange-700={errorDisplay.color === 'orange'}
-													class:text-blue-700={errorDisplay.color === 'blue'}
-												>
-													<Icon
-														icon="mdi:lightbulb-on-outline"
-														class="mt-0.5 mr-1 flex-shrink-0"
-														width="12"
-													/>
-													<span class="font-medium">{predictionErrorDetails.suggestion}</span>
-												</p>
-											</div>
-										{/if}
-									</div>
-								{/if}
-							</div>
-						</div>
-					</div>
-				</div>
-			{/if}
-		</div>
-	</div>
-
-	<!-- Compact Loading Indicator -->
-	{#if isPredicting}
-		<div
-			class="overflow-hidden rounded-xl border border-blue-200 bg-white shadow-sm ring-1 ring-blue-50"
-		>
-			<div class="bg-blue-50/50 p-3.5">
-				<div class="mb-3 flex items-center justify-between">
-					<div class="flex items-center gap-2.5">
-						<div
-							class="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 ring-2 ring-blue-50"
-						>
-							<Icon icon="line-md:loading-twotone-loop" class="text-blue-600" width="18" />
-						</div>
-						<div>
-							<p class="text-sm font-bold tracking-tight text-blue-900">Running Models</p>
-							<p class="text-[11px] font-medium text-blue-600">
-								{locationLoadingMessage || 'Fetching location data...'}
-							</p>
-						</div>
-					</div>
-					<div class="text-right">
-						<div class="text-lg font-black tracking-tighter text-blue-600 tabular-nums">
-							{formatProgress(fakeProgress)}
-						</div>
-					</div>
-				</div>
-
-				<!-- Compact Progress Bar -->
-				<div class="relative mb-3 h-1.5 w-full overflow-hidden rounded-full bg-blue-100">
-					<div
-						class={`absolute top-0 left-0 h-full rounded-full transition-all duration-300 ease-out ${getProgressBarColor(fakeProgress)}`}
-						style={`width: ${fakeProgress}%;`}
-					>
-						<div
-							class="absolute inset-0 animate-pulse bg-gradient-to-r from-transparent via-white/30 to-transparent"
-						></div>
-					</div>
-				</div>
-
-				<!-- Status Messages -->
-				<div class="rounded-lg border border-white bg-white/80 px-2.5 py-1.5 shadow-sm">
-					<p
-						class="flex items-center text-[10px] font-semibold tracking-wider text-slate-500 uppercase"
-					>
-						<Icon icon="mdi:cogs" class="mr-1.5 text-blue-500" width="14" />
-						{#if fakeProgress < phases[0].endProgress}
-							Gathering environmental data...
-						{:else if fakeProgress < phases[1].endProgress}
-							Processing terrain analysis...
-						{:else if fakeProgress < phases[2].endProgress}
-							Executing RF + LSTM Inference...
-						{:else}
-							Finalizing predictive outputs...
-						{/if}
-					</p>
-				</div>
-			</div>
-		</div>
-	{/if}
+	<PredictionLoadingSection
+		isPredicting={isPredicting}
+		locationLoadingMessage={locationLoadingMessage}
+		fakeProgress={fakeProgress}
+	/>
 
 	<!-- Enhanced Prediction Results -->
 	{#if !isPredicting && floodPrediction && floodPrediction.forecast_by_day && floodPrediction.forecast_by_day.length > 0}
@@ -1825,75 +1489,17 @@
 				</div>
 			{/if}
 
-			<!-- Pawi Quick Action -->
-			<div class="rounded-xl border border-emerald-200 bg-white p-2.5 shadow-sm">
-				<div class="flex items-center justify-between gap-2">
-					<div class="flex min-w-0 items-center gap-2">
-						<img
-							src={pawiSummaryLoading ? '/pawi/pawi-teach.svg' : '/pawi/pawi-idle.svg'}
-							alt="Pawi"
-							class="h-9 w-9 shrink-0"
-						/>
-						<div class="min-w-0">
-							<p class="truncate text-xs font-bold text-emerald-800">Pawi Summary</p>
-							<p class="truncate text-[10px] text-emerald-700">
-								{#if pawiSummaryLoading}
-									Pawi is reading your forecast...
-								{:else if pawiSummary?.summary || pawiSummary?.overall_summary}
-									Summary ready. You can generate a fresh one anytime.
-								{:else}
-									Generate an AI explanation when you need it.
-								{/if}
-							</p>
-						</div>
-					</div>
-
-					<button
-						type="button"
-						onclick={() => fetchPawiSummary(floodPrediction)}
-						class="shrink-0 rounded-md border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-[11px] font-semibold text-emerald-700 transition-colors hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-60"
-						disabled={!floodPrediction || pawiSummaryLoading}
-					>
-						{#if pawiSummaryLoading}
-							Generating...
-						{:else if pawiSummary?.summary || pawiSummary?.overall_summary}
-							Refresh Summary
-						{:else}
-							Summarize with Pawi
-						{/if}
-					</button>
-				</div>
-			</div>
-
-			{#if pawiSummaryLoading || pawiSummaryError || pawiSummary?.summary || pawiSummary?.overall_summary}
-				<div class="rounded-lg border border-emerald-200 bg-gradient-to-b from-emerald-50 to-white p-3 shadow-sm">
-					{#if pawiSummaryLoading}
-						<div class="flex items-start gap-2">
-							<img src="/pawi/pawi-teach.svg" alt="Pawi is thinking" class="mt-0.5 h-8 w-8 shrink-0" />
-							<p class="text-xs text-emerald-700">
-								Pawi is reading your prediction data and preparing a clear summary.
-							</p>
-						</div>
-					{:else if pawiSummaryError}
-						<div class="rounded-md border border-amber-300 bg-amber-50 p-3 text-xs text-amber-800">
-							{pawiSummaryError}
-						</div>
-					{:else}
-						<div class="flex items-start gap-2">
-							<img src="/pawi/pawi-teach.svg" alt="Pawi summary" class="mt-0.5 h-8 w-8 shrink-0" />
-							<div class="min-w-0">
-								<p class="text-xs leading-relaxed text-slate-700">
-									{pawiSummary.summary || pawiSummary.overall_summary}
-								</p>
-								<div class="mt-2 flex items-center justify-between text-[10px] text-slate-500">
-									<span>Source: {getPawiSourceLabel(pawiSummary.source)}</span>
-									<span>Updated: {formatDateTime(pawiLastGeneratedAt)}</span>
-								</div>
-							</div>
-						</div>
-					{/if}
-				</div>
-			{/if}
+			<PawiSummarySection
+				hasPrediction={!!floodPrediction}
+				loading={pawiSummaryLoading}
+				error={pawiSummaryError}
+				summary={pawiSummary?.summary || pawiSummary?.overall_summary || null}
+				source={pawiSummary?.source || null}
+				updatedAt={pawiLastGeneratedAt}
+				hasRequested={pawiSummaryRequested}
+				canSummarize={!pawiSummaryRequested && !pawiSummaryLoading}
+				onSummarize={() => fetchPawiSummary(floodPrediction)}
+			/>
 
 			<div class="space-y-2">
 				{#each floodPrediction.forecast_by_day as day, index}
@@ -2235,243 +1841,18 @@
 		</div>
 	{/if}
 
-	<!-- Compact Location Information Card -->
-	<div class="rounded-lg border border-gray-200 bg-white shadow-sm">
-		<div class="border-b border-gray-200 bg-gray-50 p-3">
-			<h3 class="text-primary flex items-center text-sm font-bold">
-				<Icon icon="mdi:map-marker" class="mr-2" width="16" />
-				Location Information
-			</h3>
-		</div>
+	<LocationInfoSection
+		locationLoadingState={locationLoadingState}
+		locationLoadingMessage={locationLoadingMessage}
+		selectedLocation={$selectedLocation}
+		nearestWaterStation={$nearestWaterStation}
+		facilitiesLayerActive={$facilitiesLayerActive}
+		nearestFacilities={$nearestFacilities}
+		expandedFacilities={expandedFacilities}
+		onToggleFacility={toggleFacilityDetails}
+	/>
 
-		<div class="p-3">
-			{#if locationLoadingState}
-				<!-- Compact loading state -->
-				<div class="flex items-center py-3">
-					<Icon icon="eos-icons:loading" class="mr-2 animate-spin text-blue-500" width="16" />
-					<div>
-						<p class="text-sm font-semibold text-blue-700">Loading...</p>
-						<p class="text-xs text-blue-600">{locationLoadingMessage || 'Fetching data...'}</p>
-					</div>
-				</div>
-			{:else if !$selectedLocation.lat}
-				<!-- Compact no location state -->
-				<div
-					class="flex items-center rounded border-2 border-dashed border-yellow-300 bg-yellow-50 p-3"
-				>
-					<Icon icon="mdi:gesture-tap" class="mr-2 flex-shrink-0 text-yellow-600" width="20" />
-					<div>
-						<p class="text-sm font-semibold text-gray-800">No Location Selected</p>
-						<p class="text-xs text-gray-600">Click on map or use search</p>
-					</div>
-				</div>
-			{:else}
-				<!-- Compact location details -->
-				<div class="space-y-3">
-					<!-- Location name -->
-					{#if $selectedLocation.locationName}
-						<div class="rounded bg-gray-50 p-2">
-							<p class="text-xs font-semibold tracking-wide text-gray-500 uppercase">
-								Selected Location
-							</p>
-							<p class="text-sm font-bold text-gray-800">{$selectedLocation.locationName}</p>
-						</div>
-					{/if}
-
-					<!-- Compact coordinates -->
-					<div class="space-y-1">
-						<div class="flex justify-between text-xs">
-							<span class="font-medium text-gray-600">Coordinates:</span>
-							<span class="font-mono text-gray-800"
-								>{$selectedLocation.lat}, {$selectedLocation.lng}</span
-							>
-						</div>
-					</div>
-
-					{#if $nearestWaterStation}
-						<div class="rounded border border-blue-200 bg-blue-50 p-2">
-							<div class="flex items-center justify-between">
-								<div class="flex items-center">
-									<Icon icon="mdi:water" class="mr-2 text-blue-600" width="14" />
-									<div>
-										<p class="text-xs font-semibold text-blue-500">Water Station</p>
-										<p class="text-sm font-bold text-blue-800">{$nearestWaterStation.obsnm}</p>
-										{#if $nearestWaterStation.wl}
-											<p class="text-xs text-blue-700">Level: {$nearestWaterStation.wl} m</p>
-										{/if}
-									</div>
-								</div>
-								<span class="rounded-full bg-blue-200 px-2 py-0.5 text-xs font-bold text-blue-800">
-									{formatDistance($nearestWaterStation.distance)}
-								</span>
-							</div>
-						</div>
-					{/if}
-				</div>
-			{/if}
-		</div>
-
-		<!-- Facilities Section -->
-		<div class="border-t border-gray-200 bg-gray-50 p-3">
-			<h4 class="text-primary mb-2 flex items-center text-sm font-bold">
-				<Icon icon="mdi:near-me" class="mr-2" width="14" />
-				Nearby Facilities
-			</h4>
-			{#if !$facilitiesLayerActive}
-				<div
-					class="flex items-center rounded border-2 border-dashed border-yellow-300 bg-yellow-50 p-3"
-				>
-					<Icon icon="mdi:layers-off" class="mr-2 flex-shrink-0 text-yellow-600" width="20" />
-					<div>
-						<p class="text-sm font-semibold text-gray-800">"Nearby Facilities" Is Disabled</p>
-						<p class="text-xs text-gray-600">Enable "Nearby Facilities" Layer</p>
-					</div>
-				</div>
-			{:else if $nearestFacilities.length > 0}
-				<div class="space-y-2">
-					{#each $nearestFacilities as facility}
-						<div class="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
-							<button
-								onclick={() => toggleFacilityDetails(facility.id)}
-								class="flex w-full cursor-pointer items-center p-2.5 text-left transition-colors duration-150 hover:bg-gray-50"
-							>
-								<!-- Coloured Icon Accent -->
-								<div
-									class="mr-3 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md"
-									style="background-color: {facility.color || '#777'};"
-								>
-									<Icon icon={facility.icon || 'mdi:map-marker'} class="text-white" width="20" />
-								</div>
-
-								<!-- Name, Type, and Distance -->
-								<div class="min-w-0 flex-1">
-									<p class="truncate text-sm font-bold text-gray-800">{facility.name}</p>
-									<p class="truncate text-xs text-gray-500">{facility.type}</p>
-								</div>
-
-								<!-- Distance & Expander Icon -->
-								<div class="ml-2 flex flex-shrink-0 items-center">
-									<span
-										class="mr-2 rounded-full bg-gray-100 px-2 py-0.5 text-xs font-semibold text-gray-700"
-									>
-										{formatDistance(facility.distance)}
-									</span>
-									<Icon
-										icon={expandedFacilities[facility.id] ? 'mdi:chevron-up' : 'mdi:chevron-down'}
-										width="18"
-										class="text-gray-500 transition-transform"
-										style={expandedFacilities[facility.id] ? 'transform: rotate(0deg);' : ''}
-									/>
-								</div>
-							</button>
-
-							<!-- Collapsible Details Section -->
-							{#if expandedFacilities[facility.id] && facility.properties}
-								{@const address = getFormattedAddress(facility.properties)}
-								{@const details = getAdditionalProperties(facility.properties)}
-								<div class="border-t border-gray-200 bg-gray-50 p-3 text-xs">
-									{#if address}
-										<div class="mb-2">
-											<h5 class="mb-1 flex items-center font-semibold text-gray-600">
-												<Icon icon="mdi:map-marker-outline" class="mr-1.5" width="14" />
-												Address
-											</h5>
-											<p class="pl-5 break-words text-gray-800">{address}</p>
-										</div>
-									{/if}
-
-									{#if details.length > 0}
-										<div class="mb-2">
-											<h5 class="mb-1 flex items-center font-semibold text-gray-600">
-												<Icon icon="mdi:information-outline" class="mr-1.5" width="14" />
-												Details
-											</h5>
-											<div class="space-y-1 pl-5">
-												{#each details as prop}
-													<div class="flex gap-1">
-														<span class="text-gray-500">{prop.label}:</span>
-														<span class="font-medium text-gray-800">{prop.value}</span>
-													</div>
-												{/each}
-											</div>
-										</div>
-									{/if}
-
-									{#if !address && details.length === 0}
-										<p class="text-center text-gray-500">No additional info available</p>
-									{/if}
-								</div>
-							{/if}
-						</div>
-					{/each}
-				</div>
-			{:else}
-				<div class="rounded border border-gray-200 bg-gray-100 p-3 text-center">
-					<Icon icon="mdi:map-search" class="mx-auto mb-1 text-gray-400" width="20" />
-					<p class="text-sm text-gray-600">No facilities found nearby</p>
-				</div>
-			{/if}
-		</div>
-	</div>
-
-	<!-- Compact Instructions Card -->
-	<div class="rounded-lg border border-gray-200 bg-white shadow-sm">
-		<div class="from-primary to-primary/90 bg-gradient-to-r p-3">
-			<h3 class="flex items-center text-sm font-bold text-white">
-				<Icon icon="mdi:help-circle-outline" class="mr-2" width="16" />
-				How to Use
-			</h3>
-		</div>
-
-		<div class="p-3">
-			<div class="space-y-2">
-				<div class="flex items-start rounded border border-blue-200 bg-blue-50 p-2">
-					<div
-						class="bg-primary mr-2 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full text-xs font-bold text-white"
-					>
-						1
-					</div>
-					<div>
-						<p class="text-xs font-bold text-gray-800">Select Location</p>
-						<p class="text-xs text-gray-600">Click on Map or Search</p>
-					</div>
-				</div>
-				<div class="flex items-start rounded border border-blue-200 bg-blue-50 p-2">
-					<div
-						class="bg-primary mr-2 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full text-xs font-bold text-white"
-					>
-						2
-					</div>
-					<div>
-						<p class="text-xs font-bold text-gray-800">Get Prediction</p>
-						<p class="text-xs text-gray-600">Click "Generate Prediction"</p>
-					</div>
-				</div>
-				<div class="flex items-start rounded border border-blue-200 bg-blue-50 p-2">
-					<div
-						class="bg-primary mr-2 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full text-xs font-bold text-white"
-					>
-						3
-					</div>
-					<div>
-						<p class="text-xs font-bold text-gray-800">Review Results</p>
-						<p class="text-xs text-gray-600">See 5-day Predictions</p>
-					</div>
-				</div>
-				<div class="flex items-start rounded border border-blue-200 bg-blue-50 p-2">
-					<div
-						class="bg-primary mr-2 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full text-xs font-bold text-white"
-					>
-						4
-					</div>
-					<div>
-						<p class="text-xs font-bold text-gray-800">Explore Data</p>
-						<p class="text-xs text-gray-600">Click "Show Details"</p>
-					</div>
-				</div>
-			</div>
-		</div>
-	</div>
+	<HowToUseSection />
 </div>
 
 <style>
