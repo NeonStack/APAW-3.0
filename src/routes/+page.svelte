@@ -505,7 +505,7 @@
 						Your Playful Flood Guide
 					</h3>
 					<p class="mt-1 max-w-3xl text-sm leading-relaxed text-blue-100 sm:text-base">
-						PAWI summarizes flood predictions in a clear and friendly way, so you can easily understand them,
+						PAWI summarizes flood predictions in a clear and friendly way, so you can easily understand them.
 					</p>
 				</div>
 			</div>
