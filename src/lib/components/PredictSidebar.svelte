@@ -1,5 +1,5 @@
 <script>
-	import { createEventDispatcher, onMount } from 'svelte';
+	import { createEventDispatcher } from 'svelte';
 	import InfoTab from './predict-tabs/InfoTab.svelte';
 	import WaterStationsTab from './predict-tabs/WaterStationsTab.svelte';
 	import WeatherTab from './predict-tabs/WeatherTab.svelte';
@@ -52,13 +52,15 @@
 	</div>
 
 	<div class="flex-grow overflow-y-auto border-t border-gray-100 p-3">
-		{#if activeTab === 'info'}
+		<div class:hidden={activeTab !== 'info'} aria-hidden={activeTab !== 'info'}>
 			<InfoTab />
-		{:else if activeTab === 'water'}
+		</div>
+		<div class:hidden={activeTab !== 'water'} aria-hidden={activeTab !== 'water'}>
 			<WaterStationsTab />
-		{:else if activeTab === 'weather'}
+		</div>
+		<div class:hidden={activeTab !== 'weather'} aria-hidden={activeTab !== 'weather'}>
 			<WeatherTab />
-		{/if}
+		</div>
 	</div>
 </div>
 

@@ -529,13 +529,13 @@
 			transform: translateY(0) rotate(0deg) scale(1);
 		}
 		25% {
-			transform: translateY(-6px) rotate(-1deg) scale(1.01);
+			transform: translateY(-3px) rotate(-1deg) scale(1.01);
 		}
 		50% {
 			transform: translateY(0) rotate(0.5deg) scale(0.99);
 		}
 		75% {
-			transform: translateY(-4px) rotate(0deg) scale(1.005);
+			transform: translateY(-2px) rotate(0deg) scale(1.005);
 		}
 	}
 
