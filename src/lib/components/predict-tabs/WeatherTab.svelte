@@ -273,35 +273,59 @@
 					</div>
 
 					<div class="p-3 pt-1 sm:p-4">
+						<!-- Rainfall Overview Title -->
+						<div class="mb-2 flex items-center gap-2">
+							<div class="h-1 w-1 rounded-full bg-blue-500"></div>
+							<p class="text-xs font-bold text-slate-600">RAINFALL OVERVIEW</p>
+						</div>
+
 						<!-- Main Rain & Condition -->
 						<div
-							class="mb-3 flex items-center justify-between rounded-xl border border-blue-100 bg-gradient-to-r from-blue-50/50 to-blue-100/30 p-3 shadow-sm sm:p-4"
+							class="mb-4 grid grid-cols-3 gap-2 rounded-xl border border-blue-100 bg-gradient-to-br from-blue-50/60 to-blue-100/40 p-3 shadow-sm sm:gap-3 sm:p-4"
 						>
-							<div class="flex min-w-0 flex-1 items-center">
+							<!-- Rainfall Percentage -->
+							<div class="flex flex-col items-center justify-center rounded-lg border border-blue-200/50 bg-white/40 p-2 sm:p-3">
 								<Icon
 									icon="mdi:water-percent"
-									class="mr-3 flex-shrink-0 text-blue-500 sm:mr-4"
-									width="48"
+									class="mb-1.5 text-blue-500 sm:mb-2"
+									width="36"
 								/>
-								<div class="min-w-0">
-									<div class="flex items-baseline">
-										<span class="text-3xl font-extrabold text-slate-800 sm:text-4xl"
-											>{currentData.precipprob}</span
-										>
-										<span class="ml-1 text-lg font-bold text-slate-500 sm:text-xl">%</span>
+								<div class="text-center">
+									<div class="text-2xl font-extrabold text-slate-800 sm:text-3xl">
+										{currentData.precipprob}
 									</div>
-									<div class="mt-0.5 text-[11px] font-semibold text-blue-700">
-										Rain chance • {currentData.precip_mm} mm
-									</div>
+									<div class="text-[10px] font-bold text-blue-600 sm:text-xs">Rain %</div>
 								</div>
 							</div>
 
-							<div class="ml-2 flex-shrink-0 text-right">
-								<span
-									class="inline-flex items-center rounded-lg border border-blue-200 bg-blue-100/80 px-2.5 py-1 text-xs font-bold text-blue-800 shadow-sm"
-								>
-									{currentData.conditions}
-								</span>
+							<!-- Precipitation Amount -->
+							<div class="flex flex-col items-center justify-center rounded-lg border border-blue-200/50 bg-white/40 p-2 sm:p-3">
+								<Icon
+									icon="mdi:water"
+									class="mb-1.5 text-cyan-500 sm:mb-2"
+									width="36"
+								/>
+								<div class="text-center">
+									<div class="text-2xl font-extrabold text-slate-800 sm:text-3xl">
+										{currentData.precip_mm}
+									</div>
+									<div class="text-[10px] font-bold text-cyan-600 sm:text-xs">mm</div>
+								</div>
+							</div>
+
+							<!-- Condition Badge -->
+							<div class="flex flex-col items-center justify-center rounded-lg border border-blue-300 bg-gradient-to-b from-blue-100 to-blue-50 p-2 sm:p-3">
+								<Icon
+									icon="mdi:cloud"
+									class="mb-1.5 text-blue-600 sm:mb-2"
+									width="36"
+								/>
+								<div class="text-center">
+									<div class="truncate text-[10px] font-extrabold text-blue-800 line-clamp-2 sm:text-xs">
+										{currentData.conditions}
+									</div>
+									<div class="text-[9px] font-semibold text-blue-600/70 sm:text-[10px]">Status</div>
+								</div>
 							</div>
 						</div>
 
@@ -317,12 +341,12 @@
 								</div>
 								<div class="mt-1 flex items-baseline justify-between">
 									<div class="text-[15px] font-extrabold text-slate-800">
-										{currentData.temp_c}°C
+										{currentData.temp_c}
 									</div>
 									<div
 										class="truncate rounded bg-orange-100/50 px-1.5 py-0.5 text-[10px] font-bold text-orange-600/80"
 									>
-										Feels {currentData.feelslike_c}°
+										°C
 									</div>
 								</div>
 							</div>
