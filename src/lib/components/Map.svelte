@@ -349,6 +349,23 @@
 		handleLocationSelection(lat, lng, name);
 	}
 
+	function restoreMarkerFromSelectedLocation() {
+		const location = get(selectedLocation);
+		const lat = Number.parseFloat(location?.lat);
+		const lng = Number.parseFloat(location?.lng);
+
+		if (!map || !Number.isFinite(lat) || !Number.isFinite(lng)) {
+			return;
+		}
+
+		if (marker) {
+			removeMarker(marker);
+		}
+
+		marker = createMarker(lat, lng);
+		map._selectedMarker = marker;
+	}
+
 	function focusOnWaterStation(station) {
 		if (!map || !waterStationMarkers.length || !station || !station.lat || !station.lon) return;
 
@@ -674,6 +691,9 @@
 
 		// Add recenter control
 		createRecenterControl().addTo(map);
+
+		// Keep marker in sync with persisted location store after route navigation.
+		restoreMarkerFromSelectedLocation();
 
 		// Handle map click for location selection
 		map.on('click', async (e) => {
