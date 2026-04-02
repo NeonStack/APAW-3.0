@@ -273,22 +273,25 @@
 					</div>
 
 					<div class="p-3 pt-1 sm:p-4">
-						<!-- Main Temperature & Condition -->
+						<!-- Main Rain & Condition -->
 						<div
 							class="mb-3 flex items-center justify-between rounded-xl border border-blue-100 bg-gradient-to-r from-blue-50/50 to-blue-100/30 p-3 shadow-sm sm:p-4"
 						>
 							<div class="flex min-w-0 flex-1 items-center">
 								<Icon
-									icon={iconMap[currentData.icon] || 'mdi:weather-partly-cloudy'}
+									icon="mdi:water-percent"
 									class="mr-3 flex-shrink-0 text-blue-500 sm:mr-4"
 									width="48"
 								/>
 								<div class="min-w-0">
 									<div class="flex items-baseline">
 										<span class="text-3xl font-extrabold text-slate-800 sm:text-4xl"
-											>{currentData.temp_c}</span
+											>{currentData.precipprob}</span
 										>
-										<span class="ml-1 text-lg font-bold text-slate-500 sm:text-xl">°C</span>
+										<span class="ml-1 text-lg font-bold text-slate-500 sm:text-xl">%</span>
+									</div>
+									<div class="mt-0.5 text-[11px] font-semibold text-blue-700">
+										Rain chance • {currentData.precip_mm} mm
 									</div>
 								</div>
 							</div>
@@ -304,22 +307,22 @@
 
 						<!-- Weather Metrics Grid - Mobile Optimized -->
 						<div class="flex w-full flex-wrap gap-2 items-stretch">
-							<!-- Rain Probability -->
+							<!-- Temperature -->
 							<div
-								class="metric-card rounded-xl border border-blue-100 bg-blue-50/30 p-2.5 shadow-sm transition-colors hover:bg-blue-50/60"
+								class="metric-card rounded-xl border border-orange-100 bg-orange-50/30 p-2.5 shadow-sm transition-colors hover:bg-orange-50/60"
 							>
 								<div class="mb-1.5 flex items-center justify-between">
-									<Icon icon="mdi:water-percent" class="flex-shrink-0 text-blue-500" width="16" />
-									<span class="ml-1 truncate text-xs font-semibold text-slate-500">Rain</span>
+									<Icon icon="mdi:thermometer" class="flex-shrink-0 text-orange-500" width="16" />
+									<span class="ml-1 truncate text-xs font-semibold text-slate-500">Temp</span>
 								</div>
 								<div class="mt-1 flex items-baseline justify-between">
 									<div class="text-[15px] font-extrabold text-slate-800">
-										{currentData.precipprob}%
+										{currentData.temp_c}°C
 									</div>
 									<div
-										class="truncate rounded bg-blue-100/50 px-1.5 py-0.5 text-[10px] font-bold text-blue-600/80"
+										class="truncate rounded bg-orange-100/50 px-1.5 py-0.5 text-[10px] font-bold text-orange-600/80"
 									>
-										{currentData.precip_mm} mm
+										Feels {currentData.feelslike_c}°
 									</div>
 								</div>
 							</div>
@@ -520,19 +523,19 @@
 																/>
 															</div>
 
-															<!-- Temperature -->
+															<!-- Rain -->
 															<div class="mb-3 text-center">
 																<div
 																	class="text-2xl font-extrabold {isCurrentHour
 																		? 'text-blue-900'
 																		: 'text-slate-800'}"
 																>
-																	{hour.temp_c}°
+																	{hour.precipprob}%
 																</div>
 																<div
 																	class="inline-block truncate rounded border border-slate-100 bg-white px-1.5 py-0.5 text-[10px] font-bold text-slate-500"
 																>
-																	Feels {hour.feelslike_c}°
+																	Precip {hour.precip_mm} mm
 																</div>
 															</div>
 
@@ -543,13 +546,13 @@
 																<div class="flex items-center justify-between">
 																	<div class="flex items-center text-slate-500">
 																		<Icon
-																			icon="mdi:water-percent"
-																			class="mr-1 text-blue-500"
+																			icon="mdi:thermometer"
+																			class="mr-1 text-orange-500"
 																			width="14"
 																		/>
-																		Rain
+																		Temp
 																	</div>
-																	<span class="font-bold text-blue-700">{hour.precipprob}%</span>
+																	<span class="font-bold text-orange-700">{hour.temp_c}°</span>
 																</div>
 																<div class="flex items-center justify-between">
 																	<div class="flex items-center text-slate-500">

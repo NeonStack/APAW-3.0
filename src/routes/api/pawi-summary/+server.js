@@ -66,6 +66,16 @@ function stylizePawiSummary(text = '', digest = null) {
 	// Normalize malformed double-percent strings.
 	cleaned = cleaned.replace(/%{2,}/g, '%');
 
+	// Prefer plain risk language over ambiguous "signal" phrasing.
+	cleaned = cleaned
+		.replace(/flood signals?/gi, 'flood risk')
+		.replace(/strongest flood signal/gi, 'highest flood risk chance')
+		.replace(/strong flood signal hours?/gi, 'flood-risk hours')
+		.replace(/\bno flooding is expected\b/gi, 'no flooded hours are currently flagged by the model')
+		.replace(/\bflooding is expected\b/gi, 'the model flags flooded hours')
+		.replace(/\s+/g, ' ')
+		.trim();
+
 	// Convert raw decimal probabilities in chance/probability phrases into user-friendly percentages,
 	// but only if the decimal is NOT already followed by a percent sign.
 	cleaned = cleaned.replace(
@@ -145,7 +155,7 @@ function buildStrictPrompt(digest, uiRiskLabels = []) {
 
 	return {
 		system:
-			'You are Pawi, a baby turtle flood buddy for everyday users. Summarize ONLY the provided prediction context and never invent data. Use simple English, warm and clear tone, and 2 to 3 short sentences (around 55 to 95 words total). Avoid rigid templates and vary phrasing naturally across requests. Do NOT use robotic openings like "Here is a summary". Do NOT show raw decimals for flood chance (like 0.0032); always express chance as a rounded percentage (like 0.32% or 6.2%). Do NOT create your own risk-level thresholds. If you mention risk labels, use ONLY the exact label text from ui_risk_labels. Include these facts naturally in your own wording: location, strongest flood signal from the provided data, whether flooding is expected, and one practical reminder.',
+			'You are Pawi, a baby turtle flood buddy for everyday users. Summarize ONLY the provided prediction context and never invent data. Use simple English, warm and clear tone, and 2 to 3 short sentences (around 55 to 95 words total). Avoid rigid templates and vary phrasing naturally across requests. Do NOT use robotic openings like "Here is a summary". Do NOT show raw decimals for flood chance (like 0.0032); always express chance as a rounded percentage (like 0.32% or 6.2%). Do NOT create your own risk-level thresholds. If you mention risk labels, use ONLY the exact label text from ui_risk_labels. Use "flood risk" wording (not "flood signal"). Include these facts naturally in your own wording: Short friendly greet that you are Pawi, location, floodrisks, whether the model flags any flooded hours, and one practical reminder.',
 		user: `Prediction context JSON:\n${JSON.stringify(promptPayload)}`
 	};
 }

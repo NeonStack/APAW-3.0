@@ -98,8 +98,8 @@ export function buildDeterministicPawiSummary(digest) {
 
 		const summary =
 			floodHours > 0
-				? `Hi, for ${day.date}, there is up to a ${maxChancePct}% flood chance. Around ${floodHours} hour(s) show flood signals, with peak times around ${peakText}, total rain near ${rain}mm${height > 0 ? `, and max estimated level ${height.toFixed(2)}cm` : ''}.`
-				: `Hi bestie, for ${day.date}: mostly calm day with ${maxChancePct}% max flood chance. Walang strong flood signal hours, and estimated total rain is ${rain}mm.`;
+				? `Hi, for ${day.date}, there is up to a ${maxChancePct}% flood chance. Around ${floodHours} hour(s) are flagged as flood-risk hours, with peak times around ${peakText}, total rain near ${rain}mm${height > 0 ? `, and max estimated level ${height.toFixed(2)}cm` : ''}.`
+				: `Hi bestie, for ${day.date}: mostly calm day with ${maxChancePct}% peak flood chance. No flooded hours are flagged by the model, and estimated total rain is ${rain}mm.`;
 
 		return {
 			date: day.date,
@@ -118,8 +118,8 @@ export function buildDeterministicPawiSummary(digest) {
 	);
 	const overall =
 		overallFloodHours > 0
-			? `Pawi recap: may flood-risk windows across the 5-day forecast, with peak chance around ${Math.round(overallMax * 100)}%. Please monitor peak hours and stay ready.`
-			: `Pawi recap: generally low flood signals in this 5-day forecast, with peak chance around ${Math.round(overallMax * 100)}%. Keep monitoring weather updates.`;
+			? `Pawi recap: there are flood-risk windows across the 5-day forecast, with peak chance around ${Math.round(overallMax * 100)}%. Please monitor peak hours and stay ready.`
+			: `Pawi recap: generally low flood risk in this 5-day forecast, with peak chance around ${Math.round(overallMax * 100)}%. Keep monitoring weather updates.`;
 
 	return {
 		summary: overall,

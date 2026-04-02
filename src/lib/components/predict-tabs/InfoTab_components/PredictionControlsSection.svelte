@@ -42,13 +42,13 @@
 
 <div class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm ring-1 ring-black/5">
 	<div class="flex items-center justify-between border-b border-gray-100 bg-slate-50 px-3.5 py-2.5">
-		<div class="flex items-center gap-2">
+		<div class="flex items-center gap-4">
 			<div
 				class="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-100 text-blue-600 ring-1 ring-blue-200"
 			>
 				<Icon icon="mdi:chart-box-outline" width="16" />
 			</div>
-			<h3 class="text-sm font-bold text-gray-800">Flood Prediction</h3>
+			<h3 class="text-sm font-bold text-gray-800">APAW Flood Prediction</h3>
 		</div>
 		<div class="flex items-center rounded bg-gray-200/60 px-2 py-0.5 text-[10px] font-medium text-gray-600">
 			<Icon icon="mdi:cpu-64-bit" class="mr-1" width="12" />

@@ -59,9 +59,9 @@
 			url: 'https://www.visualcrossing.com/'
 		},
 		{
-			name: 'APAW - Automated Flood Prediction (AI Model)',
-			logo: 'mdi:brain',
-			type: 'icon',
+			name: 'APAW AI Watch - Automated Prediction',
+			logo: 'APAW_SHORT_TRANSPARENT.webp',
+			type: 'img',
 			status: 'pending',
 			url: '/predict'
 		},
@@ -701,7 +701,10 @@
 	}
 
 	function getAutomatedChanceText(probability) {
-		return `${(Number(probability) * 100).toFixed(1)}% chance`;
+		const p = Number(probability);
+		if (!Number.isFinite(p)) return 'No probability data';
+		const pct = Math.max(0, Math.min(100, p * 100));
+		return `${pct.toFixed(1)}% chance`;
 	}
 
 	function getAutomatedForecastPayload(item) {
@@ -767,31 +770,28 @@
 	<div class="overflow-hidden rounded-xl border border-gray-200/90 bg-white shadow-sm">
 		<button
 			onclick={() => (alertsExpanded = !alertsExpanded)}
-			class="flex w-full cursor-pointer items-center justify-between p-3.5 text-left transition-colors hover:bg-slate-50"
+			class="flex w-full cursor-pointer items-center justify-between p-3.5 py-2 text-left transition-colors hover:bg-slate-50"
 		>
 			<div class="flex items-center gap-4">
 				{#if activeAlertsCount === 0}
 					<div
-						class="flex h-9 w-9 items-center justify-center rounded-xl bg-green-100 ring-1 ring-green-200"
+						class="flex h-7 w-7 items-center justify-center rounded-xl bg-green-100 ring-1 ring-green-200"
 					>
-						<Icon icon="mdi:check-circle" class="text-green-600" width="20" />
+						<Icon icon="mdi:check-circle" class="text-green-600" width="16" />
 					</div>
 				{:else}
 					<div
-						class="flex h-9 w-9 items-center justify-center rounded-xl bg-orange-100 ring-1 ring-orange-200"
+						class="flex h-7 w-7 items-center justify-center rounded-xl bg-orange-100 ring-1 ring-orange-200"
 					>
-						<Icon icon="mdi:alert-circle" class="text-orange-600" width="20" />
+						<Icon icon="mdi:alert-circle" class="text-orange-600" width="16" />
 					</div>
 				{/if}
 				<div>
-					<h3 class="text-sm font-bold tracking-tight text-gray-800">Alerts & Data Status</h3>
-					<p class="text-xs text-gray-500">
-						{#if activeAlertsCount === 0}
-							All systems normal
-						{:else}
-							{activeAlertsCount} active {activeAlertsCount === 1 ? 'alert' : 'alerts'}
+					<h3 class="text-sm font-bold tracking-tight text-gray-800">Alerts & Data Status 
+						{#if activeAlertsCount >= 1}
+							({activeAlertsCount} {activeAlertsCount === 1 ? 'alert' : 'alerts'})
 						{/if}
-					</p>
+					</h3>
 				</div>
 			</div>
 			<Icon
@@ -995,12 +995,11 @@
 										<Icon icon="mdi:brain" width="16" />
 									</span>
 									<p class="text-base font-bold tracking-tight text-[#0c3143]">
-										APAW AI Automated Prediction
+										APAW AI Watch - Automated Prediction
 									</p>
 								</div>
 								<p class="mt-1 text-xs leading-relaxed text-gray-600">
-									Model-generated flood prediction summary. This is not an official government flood
-									advisory.
+									APAW automatically predicts flood risk in predefined flood-prone areas using real-time data.
 								</p>
 							</div>
 
@@ -1033,11 +1032,11 @@
 							<div class="rounded-lg border border-gray-200 bg-white p-2.5">
 								<label
 									for="automated-forecast-date"
-									class="mb-1 block text-[11px] font-semibold text-gray-600">Forecast date</label
+									class="mb-1 block text-[11px] font-semibold text-gray-600">Prediction date</label
 								>
 								<select
 									id="automated-forecast-date"
-									class="w-full rounded-md border border-gray-300 bg-white px-2 py-2 text-xs text-gray-700"
+									class="w-full rounded-md border border-gray-300 bg-white px-2 py-2 text-xs text-gray-700 cursor-pointer"
 									value={selectedAutomatedIndex}
 									onchange={(event) =>
 										setAutomatedAlertsForecastIndex(Number(event.currentTarget.value))}
@@ -1060,8 +1059,8 @@
 								</div>
 							{:else if automatedVisibleAlerts.length === 0}
 								<div class="rounded-lg border border-gray-200 bg-white p-5 text-center">
-									<p class="text-xs font-semibold text-gray-800">
-										No locations reached 50% or higher flood probability for this day
+									<p class="text-sm font-semibold text-gray-800">
+										No flood-prone areas were predicted to be flooded by the automated prediction for this day.
 									</p>
 									<p class="mt-1 text-xs text-gray-500">
 										Try another forecast date or click on the map to explore flood probabilities for
@@ -1400,8 +1399,8 @@
 									>
 										<Icon icon="mdi:check-circle" class="text-green-600" width="24" />
 									</div>
-									<p class="text-sm font-semibold text-gray-800">No Active Flood Advisory</p>
-									<p class="mt-1 text-xs text-gray-500">No warnings at this time</p>
+									<p class="text-sm font-semibold text-gray-800">No Active PAGASA Flood Advisory</p>
+									<p class="mt-1 text-xs text-gray-500">No official advisory right now.</p>
 								</div>
 							{/if}
 							<div class="flex justify-center">
@@ -1545,7 +1544,7 @@
 										/>
 										<div class="flex-1">
 											<span class="text-xs font-medium {summary.riskInfo.textColor}">
-												Peak Flood Times:
+												Time of Peak Flood Risks:
 											</span>
 											<span class="ml-1 text-xs font-bold {summary.riskInfo.boldTextColor}">
 												{summary.peakHours}
