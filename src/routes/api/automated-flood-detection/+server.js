@@ -152,53 +152,6 @@ async function runWithConcurrency(items, concurrency, worker) {
 	return results;
 }
 
-async function fetchElevation(lat, lng) {
-	try {
-		const response = await fetch(
-			`https://api.open-meteo.com/v1/elevation?latitude=${lat}&longitude=${lng}`
-		);
-		if (!response.ok) {
-			throw new Error(`Open-Meteo API failed with status: ${response.status}`);
-		}
-		const data = await response.json();
-		if (data.elevation && Array.isArray(data.elevation) && data.elevation[0] !== null) {
-			return { elevation: data.elevation[0] };
-		}
-		throw new Error('Invalid data format from Open-Meteo.');
-	} catch (error) {
-		console.warn(`Could not fetch elevation from Open-Meteo: ${error.message}. Falling back...`);
-		try {
-			const fallbackResponse = await fetch(
-				`https://api.opentopodata.org/v1/srtm30m?locations=${lat},${lng}`
-			);
-			if (!fallbackResponse.ok) {
-				return {
-					error: 'Failed to fetch elevation data from fallback API.',
-					status: fallbackResponse.status
-				};
-			}
-			const fallbackData = await fallbackResponse.json();
-			if (
-				fallbackData.results &&
-				fallbackData.results.length > 0 &&
-				fallbackData.results[0].elevation !== null
-			) {
-				return { elevation: fallbackData.results[0].elevation };
-			}
-			return {
-				error: fallbackData.error || 'Elevation data not found for the selected coordinates.',
-				status: 404
-			};
-		} catch (fallbackError) {
-			console.error('Internal error fetching elevation from fallback:', fallbackError);
-			return {
-				error: 'Internal server error while fetching elevation from all sources.',
-				status: 500
-			};
-		}
-	}
-}
-
 async function fetchWaterStations() {
 	const response = await fetch(WATER_STATIONS_API_URL);
 	if (!response.ok) {
@@ -548,41 +501,12 @@ export async function POST({ request, url }) {
 		MAX_CONCURRENCY,
 		async (coordinate) => {
 			const precomputedStaticParams = normalizeStaticParams(coordinate.static_params);
-			let elevation = toNumberOrNull(precomputedStaticParams?.elevation_m);
-			if (elevation === null) {
-				const elevationResult = await fetchElevation(coordinate.lat, coordinate.lon);
-				if (elevationResult.error) {
-					return {
-						coordinate_id: coordinate.coordinate_id,
-						location_name: coordinate.location_name,
-						lat: coordinate.lat,
-						lon: coordinate.lon,
-						status: 'failed',
-						error: elevationResult.error,
-						error_payload: null
-					};
-				}
-				elevation = toNumberOrNull(elevationResult.elevation);
-			}
-
-			if (elevation === null) {
-				return {
-					coordinate_id: coordinate.coordinate_id,
-					location_name: coordinate.location_name,
-					lat: coordinate.lat,
-					lon: coordinate.lon,
-					status: 'failed',
-					error: 'Could not resolve elevation for coordinate.',
-					error_payload: null
-				};
-			}
 
 			return {
 				coordinate_id: coordinate.coordinate_id,
 				location_name: coordinate.location_name,
 				lat: coordinate.lat,
 				lon: coordinate.lon,
-				elevation,
 				precomputed_static_params: precomputedStaticParams,
 				status: 'ready'
 			};
@@ -590,7 +514,6 @@ export async function POST({ request, url }) {
 	);
 
 	const coordinatePrepMs = msSince(coordinatePrepStartedAt);
-	const elevationFailures = preparedCoordinates.filter((item) => item.status === 'failed');
 	const readyCoordinates = preparedCoordinates.filter((item) => item.status === 'ready');
 
 	const batchPayload = {
@@ -604,7 +527,6 @@ export async function POST({ request, url }) {
 			location_name: coordinate.location_name,
 			latitude: coordinate.lat,
 			longitude: coordinate.lon,
-			elevation_m: coordinate.elevation,
 			precomputed_static_params: coordinate.precomputed_static_params
 		}))
 	};
@@ -619,8 +541,7 @@ export async function POST({ request, url }) {
 				run_id: runId,
 				status: 'error',
 				message: 'Batch prediction request failed.',
-				details: batchPredictionResponse.error?.message || 'Unknown batch prediction error.',
-				elevation_failures: elevationFailures
+				details: batchPredictionResponse.error?.message || 'Unknown batch prediction error.'
 			},
 			{ status: 502 }
 		);
@@ -630,7 +551,7 @@ export async function POST({ request, url }) {
 	const hfFailures = Array.isArray(batchPredictionResponse.result?.failures)
 		? batchPredictionResponse.result.failures
 		: [];
-	const allFailures = [...elevationFailures, ...hfFailures];
+	const allFailures = [...hfFailures];
 	const totalMs = msSince(requestStartedAt);
 
 	const summary = {

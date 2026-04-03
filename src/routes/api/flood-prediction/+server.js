@@ -12,72 +12,6 @@ function timingLog(stage, start, extra = '') {
     console.log(`⏱️ [timing] ${stage}_ms=${elapsedMs(start)}${suffix}`);
 }
 
-async function fetchElevation(lat, lng) {
-	const fnStart = performance.now();
-    // 1. Try Open-Meteo first
-    try {
-		const openMeteoStart = performance.now();
-        const response = await fetch(
-            `https://api.open-meteo.com/v1/elevation?latitude=${lat}&longitude=${lng}`
-        );
-		timingLog('proxy_fetchElevation_open_meteo_fetch', openMeteoStart, `status=${response.status}`);
-        if (!response.ok) {
-            throw new Error(`Open-Meteo API failed with status: ${response.status}`);
-        }
-		const openMeteoJsonStart = performance.now();
-        const data = await response.json();
-		timingLog('proxy_fetchElevation_open_meteo_json_parse', openMeteoJsonStart);
-        if (data.elevation && Array.isArray(data.elevation) && data.elevation[0] !== null) {
-			timingLog('proxy_fetchElevation_total', fnStart, 'source=open-meteo');
-            return { elevation: data.elevation[0] };
-        } else {
-            throw new Error('Invalid data format from Open-Meteo.');
-        }
-    } catch (error) {
-        console.warn(`Could not fetch elevation from Open-Meteo: ${error.message}. Falling back...`);
-
-        // 2. Fallback to Open Topo Data
-        try {
-			const fallbackFetchStart = performance.now();
-            const fallbackResponse = await fetch(
-                `https://api.opentopodata.org/v1/srtm30m?locations=${lat},${lng}`
-            );
-			timingLog(
-				'proxy_fetchElevation_opentopodata_fetch',
-				fallbackFetchStart,
-				`status=${fallbackResponse.status}`
-			);
-            if (!fallbackResponse.ok) {
-				timingLog('proxy_fetchElevation_total', fnStart, 'source=opentopodata_error_response');
-                return {
-                    error: 'Failed to fetch elevation data from fallback API.',
-                    status: fallbackResponse.status
-                };
-            }
-			const fallbackJsonStart = performance.now();
-            const fallbackData = await fallbackResponse.json();
-			timingLog('proxy_fetchElevation_opentopodata_json_parse', fallbackJsonStart);
-            if (
-                fallbackData.results &&
-                fallbackData.results.length > 0 &&
-                fallbackData.results[0].elevation !== null
-            ) {
-				timingLog('proxy_fetchElevation_total', fnStart, 'source=opentopodata');
-                return { elevation: fallbackData.results[0].elevation };
-            } else {
-                const errorMessage =
-                    fallbackData.error || 'Elevation data not found for the selected coordinates.';
-				timingLog('proxy_fetchElevation_total', fnStart, 'source=opentopodata_no_elevation');
-                return { error: errorMessage, status: 404 };
-            }
-        } catch (fallbackError) {
-            console.error('Internal error fetching elevation from fallback:', fallbackError);
-			timingLog('proxy_fetchElevation_total', fnStart, 'source=error_all_sources');
-            return { error: 'Internal server error while fetching elevation from all sources.', status: 500 };
-        }
-    }
-}
-
 export async function POST({ request }) {
 	const endpointStart = performance.now();
 	const parseStart = performance.now();
@@ -95,24 +29,6 @@ export async function POST({ request }) {
     }
 
     try {
-        // --- NEW: Fetch elevation on the server before prediction ---
-		const elevationStart = performance.now();
-        const elevationResult = await fetchElevation(parseFloat(lat), parseFloat(lng));
-		timingLog('proxy_post_fetchElevation', elevationStart);
-        if (elevationResult.error) {
-            // If elevation fetch fails, return that error to the client.
-            return json(
-                {
-                    status: 'error',
-                    message: elevationResult.error,
-                    error_type: 'invalid_location'
-                },
-                { status: elevationResult.status }
-            );
-        }
-        const elevation = elevationResult.elevation;
-        // --- END NEW ---
-
         console.log(`Calling FastAPI endpoint: ${API_URL}`);
 
 		const payloadBuildStart = performance.now();
@@ -120,14 +36,13 @@ export async function POST({ request }) {
 			latitude: parseFloat(lat),
 			longitude: parseFloat(lng),
 			date_str: date,
-			elevation_m: elevation,
 			water_station_data,
 			api_key: APAW_HF_API_KEY
 		};
 		timingLog(
 			'proxy_post_payload_build',
 			payloadBuildStart,
-			`station_count=${Array.isArray(water_station_data) ? water_station_data.length : 0}`
+            `station_count=${Array.isArray(water_station_data) ? water_station_data.length : 0}`
 		);
 
         // Use the standard fetch API for a direct, fast HTTP request
