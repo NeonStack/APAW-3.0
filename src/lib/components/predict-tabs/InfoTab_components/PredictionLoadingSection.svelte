@@ -1,5 +1,8 @@
 <script>
 	import Icon from '@iconify/svelte';
+	import { createEventDispatcher } from 'svelte';
+
+	const dispatch = createEventDispatcher();
 
 	export let isPredicting = false;
 	export let locationLoadingMessage = '';
@@ -14,6 +17,13 @@
 		if (progress < 60) return 'bg-blue-500';
 		if (progress < 90) return 'bg-blue-600';
 		return 'bg-green-500';
+	}
+
+	function handleProgressTransitionEnd(event) {
+		if (event.propertyName !== 'width') return;
+		if (fakeProgress >= 100) {
+			dispatch('completionVisible');
+		}
 	}
 </script>
 
@@ -45,6 +55,7 @@
 				<div
 					class={`absolute top-0 left-0 h-full rounded-full transition-all duration-300 ease-out ${getProgressBarColor(fakeProgress)}`}
 					style={`width: ${fakeProgress}%;`}
+					on:transitionend={handleProgressTransitionEnd}
 				>
 					<div
 						class="absolute inset-0 animate-pulse bg-gradient-to-r from-transparent via-white/30 to-transparent"
