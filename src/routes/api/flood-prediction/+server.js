@@ -60,24 +60,30 @@ export async function POST({ request }) {
 
         console.log(`Received response with status: ${response.status}`);
 
-        // Parse the JSON response from the API
-		const hfJsonParseStart = performance.now();
-        const result = await response.json();
-		timingLog('proxy_post_hf_json_parse', hfJsonParseStart);
+        // Read response body once and stream it back to the browser unchanged.
+        const hfBodyReadStart = performance.now();
+        const responseText = await response.text();
+        timingLog('proxy_post_hf_body_read', hfBodyReadStart, `bytes=${responseText.length}`);
 
-        if (!response.ok || result.status === 'error' || result.status === 'invalid') {
-            console.error('API returned an error:', result);
-            // Forward the detailed error from FastAPI.
-            // The client-side code is already set up to handle this structure.
-            const statusCode = response.status >= 500 ? 500 : 400;
-			timingLog('proxy_post_total', endpointStart, 'status=error_forwarded');
-            return json(result, { status: statusCode });
+        const contentType = response.headers.get('content-type') || 'application/json';
+        const statusCode = response.ok ? response.status : response.status >= 500 ? 500 : 400;
+
+        if (!response.ok) {
+            console.error('API returned an error payload from HF service');
+            timingLog('proxy_post_total', endpointStart, 'status=error_forwarded');
+            return new Response(responseText, {
+                status: statusCode,
+                headers: { 'Content-Type': contentType }
+            });
         }
 
         console.log('Prediction successful, returning data');
 		timingLog('proxy_post_total', endpointStart, 'status=success');
 
-        return json(result);
+        return new Response(responseText, {
+            status: statusCode,
+            headers: { 'Content-Type': contentType }
+        });
     } catch (error) {
         //  handles network failures or JSON parsing errors.
         console.error('Fatal error in flood-prediction proxy:', error);

@@ -160,6 +160,8 @@
 	let fakeProgress = 0;
 	let progressInterval = null;
 	let predictingStartTime = null;
+	let awaitingProgressCompletion = false;
+	let completionFallbackTimer = null;
 
 	const phases = [
 		{ endTime: 1000, endProgress: 30 },
@@ -173,6 +175,11 @@
 		// Reset progress
 		fakeProgress = 0;
 		predictingStartTime = Date.now();
+		awaitingProgressCompletion = false;
+		if (completionFallbackTimer) {
+			clearTimeout(completionFallbackTimer);
+			completionFallbackTimer = null;
+		}
 
 		// Clear any existing interval
 		if (progressInterval) clearInterval(progressInterval);
@@ -225,13 +232,33 @@
 			progressInterval = null;
 		}
 
-		// Set to 100%
+		// Set to 100% and wait for the bar transition event before hiding loading state.
 		fakeProgress = 100;
+		awaitingProgressCompletion = true;
 
-		// After showing 100% for a moment, reset it
+		if (completionFallbackTimer) {
+			clearTimeout(completionFallbackTimer);
+		}
+		completionFallbackTimer = setTimeout(() => {
+			handleProgressCompletionVisible();
+		}, 700);
+	}
+
+	function handleProgressCompletionVisible() {
+		if (!awaitingProgressCompletion) return;
+		awaitingProgressCompletion = false;
+
+		if (completionFallbackTimer) {
+			clearTimeout(completionFallbackTimer);
+			completionFallbackTimer = null;
+		}
+
+		isPredicting = false;
+
+		// Reset progress after the section unmounts.
 		setTimeout(() => {
 			fakeProgress = 0;
-		}, 500);
+		}, 120);
 	}
 
 	// Add this helper function to get the nearest forecast track hour
@@ -415,9 +442,6 @@
 			predictionError = error.message || 'Failed to fetch flood prediction';
 		} finally {
 			completeProgress();
-			setTimeout(() => {
-				isPredicting = false;
-			}, 300);
 		}
 	}
 
@@ -425,6 +449,7 @@
 	onMount(() => {
 		return () => {
 			if (progressInterval) clearInterval(progressInterval);
+			if (completionFallbackTimer) clearTimeout(completionFallbackTimer);
 		};
 	});
 
@@ -1444,6 +1469,7 @@
 		isPredicting={isPredicting}
 		locationLoadingMessage={locationLoadingMessage}
 		fakeProgress={fakeProgress}
+		on:completionVisible={handleProgressCompletionVisible}
 	/>
 
 	<!-- Enhanced Prediction Results -->
