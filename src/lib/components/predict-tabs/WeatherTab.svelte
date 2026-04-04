@@ -1,9 +1,7 @@
 <script>
 	import { invalidateAll } from '$app/navigation';
 	import { callPredictPageAction } from '$lib/utils/predictPageActionClient.js';
-	import {
-		weatherData
-	} from '$lib/stores/weatherStore.js';
+	import { weatherData } from '$lib/stores/weatherStore.js';
 	import Icon from '@iconify/svelte';
 	import moment from 'moment';
 	import FilterButton from '$lib/components/FilterButton.svelte';
@@ -265,7 +263,7 @@
 
 					<!-- Location Header -->
 					<div class="px-3 py-2 pt-4 sm:px-4">
-						<div class="flex items-start justify-between gap-2 sm:items-center">
+						<div class="flex justify-between gap-2 items-center">
 							<h3
 								class="flex min-w-0 flex-shrink items-center text-[15px] font-extrabold text-slate-800"
 							>
@@ -289,37 +287,41 @@
 					<div class="p-3 pt-1 sm:p-4">
 						<!-- Weather Condition -->
 
-						<div class="mb-4 flex items-center gap-3 rounded-xl border border-gray-200 bg-white p-3 shadow-sm transition-colors hover:bg-gray-50/60 sm:p-4">
+						<div
+							class="mb-3 flex items-center gap-3 rounded-xl border border-gray-200 bg-white p-3 shadow-sm transition-colors hover:bg-gray-50/60 sm:p-4"
+						>
 							<Icon
 								icon={iconMap[currentData.icon] || 'mdi:weather-partly-cloudy'}
 								class="flex-shrink-0 text-slate-500"
 								width="44"
 							/>
-							<div class="flex-1 min-w-0">
+							<div class="min-w-0 flex-1">
 								<div class="text-[10px] font-bold text-slate-500 sm:text-xs">Condition</div>
-								<div class="mt-1 truncate text-base font-extrabold text-slate-800 line-clamp-2 sm:text-lg">
+								<div
+									class="mt-1 line-clamp-2 truncate text-base font-extrabold text-slate-800 sm:text-lg"
+								>
 									{currentData.conditions}
 								</div>
 							</div>
 						</div>
 
-						<!-- Rainfall Cards Row -->
-						<div class="mb-3 flex w-full flex-wrap gap-2 items-stretch">
+						<!-- Weather Metrics Grid -->
+						<div class="metrics-grid grid w-full grid-cols-1 md:grid-cols-2 items-stretch gap-3">
 							<!-- Rainfall Chance -->
 							<div
-								class="metric-card rounded-xl border border-blue-100 bg-blue-50/30 p-2.5 shadow-sm transition-colors hover:bg-blue-50/60"
+								class="metric-card flex w-full items-center justify-between rounded-xl border border-blue-100 bg-blue-50/30 p-2.5 shadow-sm transition-colors hover:bg-blue-50/60"
 							>
-								<div class="mb-1.5 flex items-center justify-between">
-									<Icon icon="mdi:water-percent" class="flex-shrink-0 text-blue-500" width="16" />
-									<span class="ml-1 truncate text-xs font-semibold text-slate-500">Rain %</span>
+								<div class="flex items-center justify-start gap-1">
+									<Icon icon="mdi:weather-heavy-rain" class="flex-shrink-0 text-blue-500" width="16" />
+									<p class="truncate text-xs font-semibold text-slate-500">Rain Chance:</p>
 								</div>
-								<div class="mt-1 flex items-baseline justify-between">
-									<div class="text-[15px] font-extrabold text-slate-800">
-										{currentData.precipprob}
-									</div>
+								<div class="flex items-center justify-end gap-1">
 									<div
-										class="truncate rounded bg-blue-100/50 px-1.5 py-0.5 text-[10px] font-bold text-blue-600/80"
+										class="flex items-center gap-1 truncate rounded bg-blue-100/50 px-1.5 py-0.5 text-[10px] font-bold text-blue-600/80"
 									>
+										<div class="text-[15px] font-extrabold">
+											{currentData.precipprob}
+										</div>
 										%
 									</div>
 								</div>
@@ -327,106 +329,63 @@
 
 							<!-- Precipitation Amount -->
 							<div
-								class="metric-card rounded-xl border border-cyan-100 bg-cyan-50/30 p-2.5 shadow-sm transition-colors hover:bg-cyan-50/60"
+								class="metric-card flex w-full items-center justify-between rounded-xl border border-cyan-100 bg-cyan-50/30 p-2.5 shadow-sm transition-colors hover:bg-cyan-50/60"
 							>
-								<div class="mb-1.5 flex items-center justify-between">
+								<div class="flex items-center justify-start gap-1">
 									<Icon icon="mdi:water" class="flex-shrink-0 text-cyan-500" width="16" />
-									<span class="ml-1 truncate text-xs font-semibold text-slate-500">Precip</span>
+									<p class="truncate text-xs font-semibold text-slate-500">Precip:</p>
 								</div>
-								<div class="mt-1 flex items-baseline justify-between">
-									<div class="text-[15px] font-extrabold text-slate-800">
-										{currentData.precip_mm}
-									</div>
+								<div class="flex items-center justify-end gap-1">
 									<div
-										class="truncate rounded bg-cyan-100/50 px-1.5 py-0.5 text-[10px] font-bold text-cyan-600/80"
+										class="flex items-center gap-1 truncate rounded bg-cyan-100/50 px-1.5 py-0.5 text-[10px] font-bold text-cyan-600/80"
 									>
+										<div class="text-[15px] font-extrabold">
+											{currentData.precip_mm}
+										</div>
 										mm
-									</div>
-								</div>
-							</div>
-						</div>
-
-						<!-- Weather Metrics Grid - Mobile Optimized -->
-						<div class="flex w-full flex-wrap gap-2 items-stretch">
-							<!-- Temperature -->
-							<div
-								class="metric-card rounded-xl border border-orange-100 bg-orange-50/30 p-2.5 shadow-sm transition-colors hover:bg-orange-50/60"
-							>
-								<div class="mb-1.5 flex items-center justify-between">
-									<Icon icon="mdi:thermometer" class="flex-shrink-0 text-orange-500" width="16" />
-									<span class="ml-1 truncate text-xs font-semibold text-slate-500">Temp</span>
-								</div>
-								<div class="mt-1 flex items-baseline justify-between">
-									<div class="text-[15px] font-extrabold text-slate-800">
-										{currentData.temp_c}
-									</div>
-									<div
-										class="truncate rounded bg-orange-100/50 px-1.5 py-0.5 text-[10px] font-bold text-orange-600/80"
-									>
-										°C
-									</div>
-								</div>
-							</div>
-
-							<!-- Humidity -->
-							<div
-								class="metric-card rounded-xl border border-cyan-100 bg-cyan-50/30 p-2.5 shadow-sm transition-colors hover:bg-cyan-50/60"
-							>
-								<div class="mb-1.5 flex items-center justify-between">
-									<Icon icon="mdi:water" class="flex-shrink-0 text-cyan-500" width="16" />
-									<span class="ml-1 truncate text-xs font-semibold text-slate-500">Humidity</span>
-								</div>
-								<div class="mt-1 flex items-baseline justify-between">
-									<div class="text-[15px] font-extrabold text-slate-800">
-										{currentData.humidity}%
-									</div>
-									<div
-										class="truncate rounded bg-cyan-100/50 px-1.5 py-0.5 text-[10px] font-bold text-cyan-600/80"
-									>
-										Moist
-									</div>
-								</div>
-							</div>
-
-							<!-- Wind Speed -->
-							<div
-								class="metric-card rounded-xl border border-slate-100 bg-slate-50/50 p-2.5 shadow-sm transition-colors hover:bg-slate-100/50"
-							>
-								<div class="mb-1.5 flex items-center justify-between">
-									<Icon icon="mdi:weather-windy" class="flex-shrink-0 text-slate-400" width="16" />
-									<span class="ml-1 truncate text-xs font-semibold text-slate-500">Wind</span>
-								</div>
-								<div class="mt-1 flex items-baseline justify-between">
-									<div class="text-[15px] font-extrabold text-slate-800">
-										{currentData.windspeed_kmh}
-									</div>
-									<div
-										class="truncate rounded bg-slate-200/50 px-1.5 py-0.5 text-[10px] font-bold text-slate-500"
-									>
-										km/h
 									</div>
 								</div>
 							</div>
 
 							<!-- Wind Gust -->
 							<div
-								class="metric-card rounded-xl border border-slate-200 bg-slate-50/80 p-2.5 shadow-sm transition-colors hover:bg-slate-100/80"
+								class="metric-card flex w-full items-center justify-between rounded-xl border border-slate-200 bg-slate-50/80 p-2.5 shadow-sm transition-colors hover:bg-slate-100/80"
 							>
-								<div class="mb-1.5 flex items-center justify-between">
+								<div class="flex items-center justify-start gap-1">
 									<Icon
 										icon="mdi:weather-windy-variant"
 										class="flex-shrink-0 text-slate-500"
 										width="16"
 									/>
-									<span class="ml-1 truncate text-xs font-semibold text-slate-600">Gust</span>
+									<p class="truncate text-xs font-semibold text-slate-600">Gust:</p>
 								</div>
-								<div class="mt-1 flex items-baseline justify-between">
-									<div class="text-[15px] font-extrabold text-slate-800">
-										{currentData.windgust_kmh}
-									</div>
+								<div class="flex items-center justify-end gap-1">
 									<div
-										class="truncate rounded bg-slate-200/50 px-1.5 py-0.5 text-[10px] font-bold text-slate-600"
+										class="flex items-center gap-1 truncate rounded bg-slate-200/50 px-1.5 py-0.5 text-[10px] font-bold text-slate-600"
 									>
+										<div class="text-[15px] font-extrabold">
+											{currentData.windgust_kmh}
+										</div>
+										km/h
+									</div>
+								</div>
+							</div>
+
+							<!-- Wind Speed -->
+							<div
+								class="metric-card flex w-full items-center justify-between rounded-xl border border-slate-100 bg-slate-50/50 p-2.5 shadow-sm transition-colors hover:bg-slate-100/50"
+							>
+								<div class="flex items-center justify-start gap-1">
+									<Icon icon="mdi:weather-windy" class="flex-shrink-0 text-slate-400" width="16" />
+									<p class="truncate text-xs font-semibold text-slate-500">Wind:</p>
+								</div>
+								<div class="flex items-center justify-end gap-1">
+									<div
+										class="flex items-center gap-1 truncate rounded bg-slate-200/50 px-1.5 py-0.5 text-[10px] font-bold text-slate-500"
+									>
+										<div class="text-[15px] font-extrabold">
+											{currentData.windspeed_kmh}
+										</div>
 										km/h
 									</div>
 								</div>
@@ -434,23 +393,63 @@
 
 							<!-- Cloud Cover -->
 							<div
-								class="metric-card rounded-xl border border-gray-200 bg-white p-2.5 shadow-sm transition-colors hover:bg-gray-50/60"
+								class="metric-card flex w-full items-center justify-between rounded-xl border border-gray-200 bg-white p-2.5 shadow-sm transition-colors hover:bg-gray-50/60"
 							>
-								<div class="mb-1.5 flex items-center justify-between">
+								<div class="flex items-center justify-start gap-1">
 									<Icon icon="mdi:weather-cloudy" class="flex-shrink-0 text-gray-400" width="16" />
-									<span class="ml-1 truncate text-xs font-semibold text-slate-500">Clouds</span>
+									<p class="truncate text-xs font-semibold text-slate-500">Clouds:</p>
 								</div>
-								<div class="mt-1 flex items-baseline justify-between">
-									<div class="text-[15px] font-extrabold text-slate-800">
-										{currentData.cloudcover}%
-									</div>
+								<div class="flex items-center justify-end gap-1">
 									<div
-										class="truncate rounded bg-gray-100 px-1.5 py-0.5 text-[10px] font-bold text-gray-500"
+										class="flex items-center gap-1 truncate rounded bg-gray-100 px-1.5 py-0.5 text-[10px] font-bold text-gray-500"
 									>
-										Cover
+										<div class="text-[15px] font-extrabold">
+											{currentData.cloudcover}
+										</div>
+										%
 									</div>
 								</div>
 							</div>
+
+							<!-- Humidity -->
+							<div
+								class="metric-card flex w-full items-center justify-between rounded-xl border border-cyan-100 bg-cyan-50/30 p-2.5 shadow-sm transition-colors hover:bg-cyan-50/60"
+							>
+								<div class="flex items-center justify-start gap-1">
+									<Icon icon="mdi:humidity" class="flex-shrink-0 text-cyan-500" width="16" />
+									<p class="truncate text-xs font-semibold text-slate-500">Humidity:</p>
+								</div>
+								<div class="flex items-center justify-end gap-1">
+									<div
+										class="flex items-center gap-1 truncate rounded bg-cyan-100/50 px-1.5 py-0.5 text-[10px] font-bold text-cyan-600/80"
+									>
+										<div class="text-[15px] font-extrabold">
+											{currentData.humidity}
+										</div>
+										%
+									</div>
+								</div>
+							</div>	
+
+							<!-- Temperature -->
+							<div
+								class="metric-card flex w-full items-center justify-between rounded-xl border border-orange-100 bg-orange-50/30 p-2.5 shadow-sm transition-colors hover:bg-orange-50/60"
+							>
+								<div class="flex items-center justify-start gap-1">
+									<Icon icon="mdi:thermometer" class="flex-shrink-0 text-orange-500" width="16" />
+									<p class="truncate text-xs font-semibold text-slate-500">Temp:</p>
+								</div>
+								<div class="flex items-center justify-end gap-1">
+									<div
+										class="flex items-center gap-1 truncate rounded bg-orange-100/50 px-1.5 py-0.5 text-[10px] font-bold text-orange-600/80"
+									>
+										<div class="text-[15px] font-extrabold">
+											{currentData.temp_c}
+										</div>
+										°C
+									</div>
+								</div>
+							</div>											
 						</div>
 					</div>
 
@@ -718,21 +717,21 @@
 					</div>
 
 					<!-- Visual Crossing Attribution -->
-					<div class="border-t border-slate-100 bg-slate-50/50 px-3 py-2.5">
+					<div class="border-t border-slate-100 bg-slate-50/80 px-4 py-2.5 flex justify-center">
 						<a
 							href="https://www.visualcrossing.com"
 							target="_blank"
 							rel="noopener noreferrer"
-							class="group flex items-center justify-center gap-2 text-[10px] font-bold text-slate-500 transition-all hover:text-slate-700"
+							class="group flex items-center justify-center gap-2 text-xs text-slate-500 transition-all hover:text-slate-800 px-2 py-1"
 							title="Weather data provided by Visual Crossing"
 						>
-							<span>Powered by</span>
+							<span class="font-medium">Powered by</span>
 							<img
 								src="/logo/visual-crossing-short.png"
-								alt="Visual Crossing Weather"
-								class="h-4 w-auto opacity-70 grayscale transition-all group-hover:scale-105 group-hover:opacity-100 group-hover:grayscale-0"
+								alt="Visual Crossing"
+								class="h-4 w-auto transition-transform group-hover:scale-105"
 							/>
-							<span class="text-slate-600 group-hover:text-slate-800">Visual Crossing</span>
+							<span class="font-medium">Visual Crossing</span>
 						</a>
 					</div>
 				</div>
@@ -793,6 +792,10 @@
 
 	.forecast-scroll::-webkit-scrollbar-thumb:hover {
 		background: #94a3b8;
+	}
+
+	.metrics-grid > .metric-card:last-child:nth-child(odd) {
+		grid-column: 1 / -1;
 	}
 
 	.metric-card {
