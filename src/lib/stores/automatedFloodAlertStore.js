@@ -16,7 +16,8 @@ export const automatedFloodAlerts = writable({
 		request_date: getPhilippineDate(),
 		forecast_indices: [0],
 		min_probability: 0.5,
-		count: 0
+		count: 0,
+		next_refresh_at: null
 	}
 });
 
@@ -71,7 +72,8 @@ export async function fetchAutomatedFloodAlerts({
 					typeof payload?.meta?.min_probability === 'number'
 						? payload.meta.min_probability
 						: minProbability,
-				count: Number(payload?.meta?.count ?? 0)
+				count: Number(payload?.meta?.count ?? 0),
+				next_refresh_at: payload?.meta?.next_refresh_at || null
 			}
 		}));
 	} catch (error) {
@@ -86,7 +88,8 @@ export async function fetchAutomatedFloodAlerts({
 				request_date: requestDate || getPhilippineDate(),
 				forecast_indices: forecastIndices,
 				min_probability: minProbability,
-				count: 0
+				count: 0,
+				next_refresh_at: null
 			}
 		});
 	}

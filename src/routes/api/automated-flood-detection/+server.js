@@ -18,6 +18,9 @@ const AUTOMATED_FLOOD_TABLE = 'automated_flood_detection';
 const MAX_CONCURRENCY = 2;
 const MAX_RETRIES = 2;
 const HF_BATCH_TIMEOUT_MS = 180000;
+const PHILIPPINE_UTC_OFFSET_MS = 8 * 60 * 60 * 1000;
+const AUTOMATED_REFRESH_SCHEDULE_HOURS = [7, 13, 19];
+const AUTOMATED_REFRESH_SCHEDULE_MINUTE = 30;
 
 let supabaseClient = null;
 
@@ -62,6 +65,34 @@ function getPhilippineDate() {
 	return new Intl.DateTimeFormat('en-CA', {
 		timeZone: 'Asia/Manila'
 	}).format(new Date());
+}
+
+function getNextAutomatedRefreshAt(now = new Date()) {
+	const nowMs = now.getTime();
+	const manilaNow = new Date(nowMs + PHILIPPINE_UTC_OFFSET_MS);
+	const year = manilaNow.getUTCFullYear();
+	const month = manilaNow.getUTCMonth();
+	const day = manilaNow.getUTCDate();
+
+	for (let dayOffset = 0; dayOffset <= 2; dayOffset += 1) {
+		for (const hour of AUTOMATED_REFRESH_SCHEDULE_HOURS) {
+			const candidateAsUtcMs = Date.UTC(
+				year,
+				month,
+				day + dayOffset,
+				hour,
+				AUTOMATED_REFRESH_SCHEDULE_MINUTE,
+				0,
+				0
+			);
+			const realUtcMs = candidateAsUtcMs - PHILIPPINE_UTC_OFFSET_MS;
+			if (realUtcMs > nowMs) {
+				return new Date(realUtcMs).toISOString();
+			}
+		}
+	}
+
+	return new Date(nowMs + 6 * 60 * 60 * 1000).toISOString();
 }
 
 function toNumberOrNull(value) {
@@ -391,6 +422,7 @@ export async function GET({ url }) {
 		lat: Number(row.latitude),
 		lon: Number(row.longitude)
 	}));
+	const generatedAt = new Date();
 
 	return json({
 		data: normalized,
@@ -400,7 +432,9 @@ export async function GET({ url }) {
 			snapshot_mode: runId ? 'run' : requestedDate ? 'request_date' : 'aggregate',
 			forecast_indices: forecastIndices,
 			min_probability: minProbability,
-			count: normalized.length
+			count: normalized.length,
+			next_refresh_at: getNextAutomatedRefreshAt(generatedAt),
+			generated_at: generatedAt.toISOString()
 		}
 	});
 }

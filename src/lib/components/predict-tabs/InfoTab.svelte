@@ -18,6 +18,7 @@
 		setAutomatedAlertsMapVisibility
 	} from '$lib/stores/automatedFloodAlertStore.js';
 	import { onMount, createEventDispatcher } from 'svelte';
+	import { callPredictPageAction } from '$lib/utils/predictPageActionClient.js';
 	import Icon from '@iconify/svelte';
 	import moment from 'moment';
 	import PawiSummarySection from './InfoTab_components/PawiSummarySection.svelte';
@@ -335,21 +336,15 @@
 		pawiSummaryError = null;
 
 		try {
-			const response = await fetch('/api/pawi-summary', {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json'
-				},
-				body: JSON.stringify({
-					prediction: predictionData,
-					locationName: $selectedLocation.locationName || null,
-					uiRiskLabels
-				})
+			const actionResult = await callPredictPageAction('pawiSummary', {
+				prediction: predictionData,
+				locationName: $selectedLocation.locationName || null,
+				uiRiskLabels
 			});
 
-			const data = await response.json();
-			if (!response.ok || data.status === 'error' || data.status === 'invalid') {
-				throw new Error(data.message || 'Failed to generate Pawi summary');
+			const data = actionResult?.payload;
+			if (!data || data.status === 'error' || data.status === 'invalid') {
+				throw new Error(data?.message || 'Failed to generate Pawi summary');
 			}
 
 			const summaryText = data?.summary || data?.overall_summary;
@@ -402,22 +397,14 @@
 				water_station_data: $waterStations.data
 			};
 
-			// NEW: Use POST request with a JSON body
-			const response = await fetch('/api/flood-prediction', {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json'
-				},
-				body: JSON.stringify(payload)
-			});
-
-			const data = await response.json();
+			const actionResult = await callPredictPageAction('predictFlood', payload);
+			const data = actionResult?.payload;
 			console.log('Flood prediction received:', data);
 
 			// Check if response is an error
-			if (!response.ok || data.status === 'error' || data.status === 'invalid') {
+			if (!data || data.status === 'error' || data.status === 'invalid') {
 				predictionErrorDetails = data;
-				throw new Error(data.message || 'Failed to fetch prediction');
+				throw new Error(data?.message || 'Failed to fetch prediction');
 			}
 
 			// Handle success response
@@ -439,7 +426,18 @@
 			}
 		} catch (error) {
 			console.error('Error predicting flood:', error);
-			predictionError = error.message || 'Failed to fetch flood prediction';
+			const rawErrorDetails = error?.details;
+			const normalizedErrorDetails =
+				rawErrorDetails?.details && typeof rawErrorDetails.details === 'object'
+					? rawErrorDetails.details
+					: rawErrorDetails;
+
+			predictionErrorDetails = normalizedErrorDetails || null;
+			predictionError =
+				normalizedErrorDetails?.message ||
+				rawErrorDetails?.message ||
+				error.message ||
+				'Failed to fetch flood prediction';
 		} finally {
 			completeProgress();
 		}
@@ -824,7 +822,8 @@
 					</div>
 				{/if}
 				<div>
-					<h3 class="text-sm font-bold tracking-tight text-gray-800">Alerts & Data Status 
+					<h3 class="text-sm font-bold tracking-tight text-gray-800">
+						Alerts & Data Status
 						{#if activeAlertsCount >= 1}
 							({activeAlertsCount} {activeAlertsCount === 1 ? 'alert' : 'alerts'})
 						{/if}
@@ -1036,7 +1035,8 @@
 									</p>
 								</div>
 								<p class="mt-1 text-xs leading-relaxed text-gray-600">
-									APAW automatically predicts flood risk in predefined flood-prone areas using real-time data.
+									APAW automatically predicts flood risk in predefined flood-prone areas using
+									real-time data.
 								</p>
 							</div>
 
@@ -1073,7 +1073,7 @@
 								>
 								<select
 									id="automated-forecast-date"
-									class="w-full rounded-md border border-gray-300 bg-white px-2 py-2 text-xs text-gray-700 cursor-pointer"
+									class="w-full cursor-pointer rounded-md border border-gray-300 bg-white px-2 py-2 text-xs text-gray-700"
 									value={selectedAutomatedIndex}
 									onchange={(event) =>
 										setAutomatedAlertsForecastIndex(Number(event.currentTarget.value))}
@@ -1097,7 +1097,8 @@
 							{:else if automatedVisibleAlerts.length === 0}
 								<div class="rounded-lg border border-gray-200 bg-white p-5 text-center">
 									<p class="text-sm font-semibold text-gray-800">
-										No flood-prone areas were predicted to be flooded by the automated prediction for this day.
+										No flood-prone areas were predicted to be flooded by the automated prediction
+										for this day.
 									</p>
 									<p class="mt-1 text-xs text-gray-500">
 										Try another forecast date or click on the map to explore flood probabilities for
@@ -1470,17 +1471,17 @@
 
 	<PredictionControlsSection
 		onPredict={predictFlood}
-		isPredicting={isPredicting}
+		{isPredicting}
 		hasLocation={!!$selectedLocation.lat}
-		locationLoadingState={locationLoadingState}
-		predictionError={predictionError}
-		predictionErrorDetails={predictionErrorDetails}
+		{locationLoadingState}
+		{predictionError}
+		{predictionErrorDetails}
 	/>
 
 	<PredictionLoadingSection
-		isPredicting={isPredicting}
-		locationLoadingMessage={locationLoadingMessage}
-		fakeProgress={fakeProgress}
+		{isPredicting}
+		{locationLoadingMessage}
+		{fakeProgress}
 		on:completionVisible={handleProgressCompletionVisible}
 	/>
 
@@ -1879,13 +1880,13 @@
 	{/if}
 
 	<LocationInfoSection
-		locationLoadingState={locationLoadingState}
-		locationLoadingMessage={locationLoadingMessage}
+		{locationLoadingState}
+		{locationLoadingMessage}
 		selectedLocation={$selectedLocation}
 		nearestWaterStation={$nearestWaterStation}
 		facilitiesLayerActive={$facilitiesLayerActive}
 		nearestFacilities={$nearestFacilities}
-		expandedFacilities={expandedFacilities}
+		{expandedFacilities}
 		onToggleFacility={toggleFacilityDetails}
 	/>
 

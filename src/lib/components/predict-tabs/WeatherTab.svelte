@@ -1,8 +1,8 @@
 <script>
 	import { invalidateAll } from '$app/navigation';
+	import { callPredictPageAction } from '$lib/utils/predictPageActionClient.js';
 	import {
-		weatherData,
-		fetchLocationForecast
+		weatherData
 	} from '$lib/stores/weatherStore.js';
 	import Icon from '@iconify/svelte';
 	import moment from 'moment';
@@ -125,7 +125,8 @@
 
 		loadingForecasts[location] = true;
 		try {
-			const data = await fetchLocationForecast(location);
+			const result = await callPredictPageAction('weatherLocationForecast', { location });
+			const data = Array.isArray(result?.payload) ? result.payload : [];
 			locationForecasts[location] = data;
 			setTimeout(() => scrollToCurrentHour(location), 100);
 		} catch (error) {

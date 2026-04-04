@@ -685,10 +685,6 @@
 		// Add zoom control
 		L.control.zoom({ position: 'bottomleft' }).addTo(map);
 
-		if (window.innerWidth > 768) {
-			isLegendExpanded = true;
-		}
-
 		// Add recenter control
 		createRecenterControl().addTo(map);
 
@@ -1016,8 +1012,7 @@
 	</div>
 	<div
 		class="map-interaction-blocker"
-		class:active={isLayerPanelExpanded || isLegendExpanded}
-		class:legend-active={isLegendExpanded}
+		class:active={isLayerPanelExpanded}
 		on:click={handleInteractionBlockerClick}
 		on:touchstart={handleInteractionBlockerClick}
 		on:pointerdown={handleInteractionBlockerClick}
@@ -1518,12 +1513,6 @@
 		display: none;
 		background: rgba(0, 0, 0, 0);
 		pointer-events: none;
-	}
-
-	.map-interaction-blocker.legend-active {
-		display: block;
-		background: rgba(0, 0, 0, 0);
-		pointer-events: auto;
 	}
 
 	@media (max-width: 1024px) {
