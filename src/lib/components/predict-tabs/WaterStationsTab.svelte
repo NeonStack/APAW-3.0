@@ -1,4 +1,5 @@
 <script>
+	import { invalidateAll } from '$app/navigation';
 	import { waterStations, focusedWaterStation } from '$lib/stores/waterStationStore.js';
 	import Icon from '@iconify/svelte';
 	import FilterButton from '$lib/components/FilterButton.svelte';
@@ -57,19 +58,17 @@
 
 	// Function to reload water station data
 	async function refreshWaterStations() {
-		try {
-			waterStations.update((current) => ({ ...current, loading: true, error: null }));
+		waterStations.update((current) => ({ ...current, loading: true, error: null }));
 
-			const response = await fetch('/api/water-stations');
-			if (!response.ok) {
-				const errorData = await response.json();
-				throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
-			}
-			const data = await response.json();
-			waterStations.set({ loading: false, data: data, error: null });
+		try {
+			await invalidateAll();
 		} catch (error) {
-			console.error('Failed to load water stations:', error);
-			waterStations.set({ loading: false, data: [], error: error.message });
+			console.error('Failed to refresh water stations:', error);
+			waterStations.update((current) => ({
+				...current,
+				loading: false,
+				error: error?.message || 'Unable to refresh water station data'
+			}));
 		}
 	}
 

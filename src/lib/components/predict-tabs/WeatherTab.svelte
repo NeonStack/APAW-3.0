@@ -1,7 +1,7 @@
 <script>
+	import { invalidateAll } from '$app/navigation';
 	import {
 		weatherData,
-		fetchWeatherData,
 		fetchLocationForecast
 	} from '$lib/stores/weatherStore.js';
 	import Icon from '@iconify/svelte';
@@ -100,7 +100,20 @@
 
 	// Refresh function
 	async function refreshWeather() {
-		await fetchWeatherData();
+		weatherData.update((store) => ({ ...store, loading: true, error: null }));
+
+		try {
+			await invalidateAll();
+			locationForecasts = {};
+			loadingForecasts = {};
+		} catch (error) {
+			console.error('Failed to refresh weather data:', error);
+			weatherData.update((store) => ({
+				...store,
+				loading: false,
+				error: error?.message || 'Unable to refresh weather data'
+			}));
+		}
 	}
 
 	// Load 5-day forecast for a specific location

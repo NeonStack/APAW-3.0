@@ -1,4 +1,5 @@
 <script>
+	import { invalidateAll } from '$app/navigation';
 	import {
 		selectedLocation,
 		findNearestPoint,
@@ -14,8 +15,7 @@
 		automatedFloodAlerts,
 		focusedAutomatedAlert,
 		setAutomatedAlertsForecastIndex,
-		setAutomatedAlertsMapVisibility,
-		fetchAutomatedFloodAlerts
+		setAutomatedAlertsMapVisibility
 	} from '$lib/stores/automatedFloodAlertStore.js';
 	import { onMount, createEventDispatcher } from 'svelte';
 	import Icon from '@iconify/svelte';
@@ -771,10 +771,22 @@
 	}
 
 	async function refreshAutomatedAlerts() {
-		await fetchAutomatedFloodAlerts({
-			forecastIndices: [0, 1, 2, 3, 4],
-			minProbability: 0.5
-		});
+		automatedFloodAlerts.update((store) => ({
+			...store,
+			loading: true,
+			error: null
+		}));
+
+		try {
+			await invalidateAll();
+		} catch (error) {
+			console.error('Failed to refresh automated alerts:', error);
+			automatedFloodAlerts.update((store) => ({
+				...store,
+				loading: false,
+				error: error?.message || 'Unable to refresh automated predictions.'
+			}));
+		}
 	}
 
 	// Helper function to format cyclone category badge colors
