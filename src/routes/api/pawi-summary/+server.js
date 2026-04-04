@@ -9,7 +9,11 @@ const CONFIG = {
 	REQUEST_TIMEOUT_MS: 60000,
 	CHAR_BUDGET: 12000,
 	MAX_SUMMARY_CHARS: 1200,
-	GROQ_MODEL: 'meta-llama/llama-4-scout-17b-16e-instruct'
+	GROQ_MODELS: [
+		'qwen/qwen3-32b',
+		'llama-3.1-8b-instant',
+		'meta-llama/llama-4-scout-17b-16e-instruct'
+	]
 };
 
 function elapsedMs(start) {
@@ -160,6 +164,24 @@ function buildStrictPrompt(digest, uiRiskLabels = []) {
 	};
 }
 
+function isRateLimitedResponse(status, bodyText = '') {
+	if (status === 429) return true;
+
+	const normalizedBody = String(bodyText || '').toLowerCase();
+	return (
+		normalizedBody.includes('rate limit') ||
+		normalizedBody.includes('ratelimit') ||
+		normalizedBody.includes('too many requests')
+	);
+}
+
+function getModelSourceTag(model) {
+	if (model === 'meta-llama/llama-4-scout-17b-16e-instruct') return 'scout';
+	if (model === 'qwen/qwen3-32b') return 'qwen';
+	if (model === 'llama-3.1-8b-instant') return 'instant';
+	return 'unknown';
+}
+
 async function callGroq(digest, uiRiskLabels = []) {
 	const groqApiKey = env.GROQ_API_KEY;
 
@@ -169,64 +191,89 @@ async function callGroq(digest, uiRiskLabels = []) {
 	}
 
 	const prompt = buildStrictPrompt(digest, uiRiskLabels);
-	const controller = new AbortController();
-	const timeout = setTimeout(() => controller.abort(), CONFIG.REQUEST_TIMEOUT_MS);
 
-	try {
-		const payload = {
-			model: CONFIG.GROQ_MODEL,
-			messages: [
-				{ role: 'system', content: prompt.system },
-				{ role: 'user', content: prompt.user }
-			],
-			temperature: 0.55,
-			max_tokens: 150
-		};
+	for (let i = 0; i < CONFIG.GROQ_MODELS.length; i += 1) {
+		const model = CONFIG.GROQ_MODELS[i];
+		const isLastModel = i === CONFIG.GROQ_MODELS.length - 1;
+		const nextModel = !isLastModel ? CONFIG.GROQ_MODELS[i + 1] : null;
+		const controller = new AbortController();
+		const timeout = setTimeout(() => controller.abort(), CONFIG.REQUEST_TIMEOUT_MS);
 
-		const fetchStart = performance.now();
-		const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-			method: 'POST',
-			headers: {
-				Authorization: `Bearer ${groqApiKey}`,
-				'Content-Type': 'application/json'
-			},
-			body: JSON.stringify(payload),
-			signal: controller.signal
-		});
-		timingLog('provider_fetch', fetchStart, `provider=groq status=${response.status}`);
+		try {
+			const payload = {
+				model,
+				messages: [
+					{ role: 'system', content: prompt.system },
+					{ role: 'user', content: prompt.user }
+				],
+				temperature: 0.55,
+				max_tokens: 150,
+				...(model.startsWith('qwen/') ? { reasoning_effort: 'none' } : {})
+			};
 
-		if (!response.ok) {
-			const errorText = await response.text();
-			console.error(
-				`[pawi] groq error | status=${response.status} body=${errorText.slice(0, 400)}`
+			const fetchStart = performance.now();
+			const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+				method: 'POST',
+				headers: {
+					Authorization: `Bearer ${groqApiKey}`,
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify(payload),
+				signal: controller.signal
+			});
+			timingLog(
+				'provider_fetch',
+				fetchStart,
+				`provider=groq model=${model} attempt=${i + 1} status=${response.status}`
 			);
-			return { ok: false, reason: 'provider_http_error' };
+
+			if (!response.ok) {
+				const errorText = await response.text();
+				const rateLimited = isRateLimitedResponse(response.status, errorText);
+				console.error(
+					`[pawi] groq error | model=${model} status=${response.status} rate_limited=${rateLimited} body=${errorText.slice(0, 400)}`
+				);
+
+				if (rateLimited && nextModel) {
+					console.warn(
+						`[pawi] rate-limited on model=${model}; retrying with model=${nextModel}`
+					);
+					continue;
+				}
+
+				return {
+					ok: false,
+					reason: rateLimited ? 'provider_rate_limit' : 'provider_http_error'
+				};
+			}
+
+			const parseStart = performance.now();
+			const raw = await response.json();
+			timingLog('provider_json_parse', parseStart, `model=${model}`);
+			const content = raw?.choices?.[0]?.message?.content;
+
+			if (typeof content !== 'string' || content.trim().length === 0) {
+				return { ok: false, reason: 'invalid_provider_response' };
+			}
+
+			const normalized = normalizeFinalOutput({ summary: content.trim() }, digest);
+			if (!validateSummaryShape(normalized)) {
+				return { ok: false, reason: 'invalid_provider_response' };
+			}
+
+			return { ok: true, data: normalized, sourceTag: getModelSourceTag(model) };
+		} catch (error) {
+			const reason = error?.name === 'AbortError' ? 'provider_timeout' : 'provider_exception';
+			console.error(
+				`[pawi] provider call failed | model=${model} reason=${reason} details=${error?.message || 'unknown_error'}`
+			);
+			return { ok: false, reason, details: error?.message || 'unknown_error' };
+		} finally {
+			clearTimeout(timeout);
 		}
-
-		const parseStart = performance.now();
-		const raw = await response.json();
-		timingLog('provider_json_parse', parseStart);
-		const content = raw?.choices?.[0]?.message?.content;
-
-		if (typeof content !== 'string' || content.trim().length === 0) {
-			return { ok: false, reason: 'invalid_provider_response' };
-		}
-
-		const normalized = normalizeFinalOutput({ summary: content.trim() }, digest);
-		if (!validateSummaryShape(normalized)) {
-			return { ok: false, reason: 'invalid_provider_response' };
-		}
-
-		return { ok: true, data: normalized };
-	} catch (error) {
-		const reason = error?.name === 'AbortError' ? 'provider_timeout' : 'provider_exception';
-		console.error(
-			`[pawi] provider call failed | reason=${reason} details=${error?.message || 'unknown_error'}`
-		);
-		return { ok: false, reason, details: error?.message || 'unknown_error' };
-	} finally {
-		clearTimeout(timeout);
 	}
+
+	return { ok: false, reason: 'provider_rate_limit' };
 }
 
 export async function POST({ request }) {
@@ -291,7 +338,7 @@ export async function POST({ request }) {
 		timingLog('total', endpointStart, 'source=model');
 		return json({
 			status: 'success',
-			source: 'model',
+			source: `model:${providerResult.sourceTag || 'unknown'}`,
 			generated_at: new Date().toISOString(),
 			digest_meta: { serializedLength, charBudget, day_count: digest.day_count },
 			...providerResult.data
