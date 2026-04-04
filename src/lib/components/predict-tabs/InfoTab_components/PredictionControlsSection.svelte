@@ -95,9 +95,13 @@
 			<div
 				class="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-100 text-blue-600 ring-1 ring-blue-200"
 			>
-				<Icon icon="mdi:chart-box-outline" width="16" />
+				<img
+						src="/APAW_SHORT_TRANSPARENT.webp"
+						alt="APAW logo"
+						class="h-fit drop-shadow-md"
+					/>
 			</div>
-			<h3 class="text-sm font-bold text-gray-800">APAW Flood Prediction</h3>
+			<h3 class="text-sm font-bold text-gray-800">Flood Prediction</h3>
 		</div>
 		<div
 			class="flex items-center rounded bg-gray-200/60 px-2 py-0.5 text-[10px] font-medium text-gray-600"

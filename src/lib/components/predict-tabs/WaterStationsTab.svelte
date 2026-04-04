@@ -148,7 +148,11 @@
 	<!-- Compact Header -->
 	<div class="flex items-center justify-center gap-5">
 		<!-- Action buttons aligned to the right -->
-		<FilterButton onclick={refreshWaterStations} className="grow max-w-48">
+		<FilterButton
+			onclick={refreshWaterStations}
+			className="grow max-w-48"
+			disabled={$waterStations.loading}
+		>
 			<Icon icon="mdi:refresh" width="15" />
 			<span class="hidden sm:inline">Refresh</span>
 		</FilterButton>
@@ -265,7 +269,7 @@
 					<h4 class="text-sm font-bold text-red-900">Error Loading Data</h4>
 					<p class="mt-1 text-xs text-red-700">{$waterStations.error}</p>
 					<button
-						class="mt-2 flex items-center gap-1 rounded bg-red-100 px-2 py-1 text-xs font-medium text-red-800 transition-colors hover:bg-red-200"
+						class="mt-2 flex items-center gap-1 rounded bg-red-100 px-2 py-1 text-xs font-medium text-red-800 transition-colors hover:bg-red-200 cursor-pointer"
 						onclick={refreshWaterStations}
 					>
 						<Icon icon="mdi:refresh" width="12" />
@@ -380,7 +384,7 @@
 								<div
 									class="flex w-full flex-col items-center justify-center rounded-lg border border-white/70 bg-white/70 p-2.5"
 								>
-									<div class="text-[10px] font-bold tracking-wider text-slate-500 uppercase">
+									<div class="text-[10px] font-bold tracking-wider text-slate-500 text-center uppercase">
 										Current Level
 									</div>
 									<div class="mt-1 flex items-baseline gap-1">
@@ -408,7 +412,7 @@
 										<Icon icon={change.icon} class="mr-1 flex-shrink-0" width="14" />
 										<span class="truncate">{change.text}</span>
 									</div>
-									<div class="mt-0.5 text-[10px] font-bold tracking-wider text-slate-400 uppercase">
+									<div class="mt-0.5 text-[10px] font-bold tracking-wider text-slate-400 uppercase text-center">
 										Compared to 10m ago
 									</div>
 								</div>

@@ -559,7 +559,7 @@
 
 		<!-- Mobile Toggle Button -->
 		<button
-			class="bg-primary fixed right-4 bottom-4 z-40 flex items-center justify-center rounded-full p-3 text-white shadow-lg md:hidden"
+			class="bg-primary fixed right-4 bottom-4 z-40 flex items-center justify-center rounded-full p-2 border-1 border-primary-light text-white shadow-lg md:hidden"
 			onclick={toggleSidebar}
 			aria-label={isSidebarOpen ? 'Close sidebar' : 'Open sidebar'}
 		>

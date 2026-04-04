@@ -1,9 +1,15 @@
 import { fail } from '@sveltejs/kit';
+import { formatRetryDelay } from '$lib/utils/api/requestRateLimiter.js';
 
 const DEFAULT_FORECAST_INDICES = [0, 1, 2, 3, 4];
 const DEFAULT_MIN_PROBABILITY = 0.5;
 const ACTION_RATE_LIMIT_WINDOW_MS = 60 * 1000;
-const ACTION_RATE_LIMIT_MAX_REQUESTS = 40;
+const ACTION_RATE_LIMIT_DEFAULT_MAX_REQUESTS = 15;
+const ACTION_RATE_LIMIT_MAX_BY_ACTION = {
+	predictFlood: 10,
+	pawiSummary: 10,
+	weatherLocationForecast: 25
+};
 
 const actionRateBuckets = new Map();
 
@@ -86,6 +92,10 @@ function getClientAddressFromRequest(request) {
 }
 
 function consumeActionRateLimit(clientAddress, actionName) {
+	const maxRequests =
+		actionName in ACTION_RATE_LIMIT_MAX_BY_ACTION
+			? ACTION_RATE_LIMIT_MAX_BY_ACTION[actionName]
+			: ACTION_RATE_LIMIT_DEFAULT_MAX_REQUESTS;
 	const key = `${actionName}:${clientAddress}`;
 	const now = Date.now();
 	const existing = actionRateBuckets.get(key);
@@ -98,12 +108,22 @@ function consumeActionRateLimit(clientAddress, actionName) {
 	bucket.count += 1;
 	actionRateBuckets.set(key, bucket);
 
-	if (bucket.count <= ACTION_RATE_LIMIT_MAX_REQUESTS) {
-		return { allowed: true, retryAfterSeconds: 0 };
+	if (bucket.count <= maxRequests) {
+		return {
+			allowed: true,
+			retryAfterSeconds: 0,
+			maxRequests,
+			windowMs: ACTION_RATE_LIMIT_WINDOW_MS
+		};
 	}
 
 	const retryAfterSeconds = Math.max(1, Math.ceil((bucket.resetAt - now) / 1000));
-	return { allowed: false, retryAfterSeconds };
+	return {
+		allowed: false,
+		retryAfterSeconds,
+		maxRequests,
+		windowMs: ACTION_RATE_LIMIT_WINDOW_MS
+	};
 }
 
 function enforceActionRateLimit(request, actionName) {
@@ -111,10 +131,16 @@ function enforceActionRateLimit(request, actionName) {
 	const verdict = consumeActionRateLimit(clientAddress, actionName);
 
 	if (verdict.allowed) return null;
+	const retryAfterHuman = formatRetryDelay(verdict.retryAfterSeconds);
+	const retryAfterMinutes = Math.max(1, Math.ceil(verdict.retryAfterSeconds / 60));
 
-	return actionFailure(429, 'Too many requests. Please try again shortly.', {
+	return actionFailure(429, `Too many requests. Please try again in ${retryAfterHuman}.`, {
 		action: actionName,
-		retry_after_seconds: verdict.retryAfterSeconds
+		retry_after_seconds: verdict.retryAfterSeconds,
+		retry_after_minutes: retryAfterMinutes,
+		retry_after_human: retryAfterHuman,
+		limit: verdict.maxRequests,
+		window_seconds: Math.floor(verdict.windowMs / 1000)
 	});
 }
 

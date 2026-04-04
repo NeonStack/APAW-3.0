@@ -61,6 +61,7 @@
 	// Cache for 5-day forecasts per location
 	let locationForecasts = $state({});
 	let loadingForecasts = $state({});
+	let locationForecastErrors = $state({});
 
 	// Derived filtered and sorted data
 	let filteredData = $derived(() => {
@@ -104,6 +105,7 @@
 			await invalidateAll();
 			locationForecasts = {};
 			loadingForecasts = {};
+			locationForecastErrors = {};
 		} catch (error) {
 			console.error('Failed to refresh weather data:', error);
 			weatherData.update((store) => ({
@@ -116,20 +118,25 @@
 
 	// Load 5-day forecast for a specific location
 	async function loadLocationForecast(location) {
-		if (locationForecasts[location]) {
+		if (Array.isArray(locationForecasts[location])) {
 			setTimeout(() => scrollToCurrentHour(location), 100);
 			return; // Already loaded
 		}
 
+		locationForecastErrors[location] = null;
 		loadingForecasts[location] = true;
 		try {
 			const result = await callPredictPageAction('weatherLocationForecast', { location });
 			const data = Array.isArray(result?.payload) ? result.payload : [];
 			locationForecasts[location] = data;
+			locationForecastErrors[location] = null;
 			setTimeout(() => scrollToCurrentHour(location), 100);
 		} catch (error) {
 			console.error(`Failed to load forecast for ${location}:`, error);
-			locationForecasts[location] = [];
+			const details = error?.details?.details;
+			locationForecastErrors[location] =
+				details?.message || error?.details?.message || error?.message || 'Unable to load forecast';
+			locationForecasts[location] = null;
 		} finally {
 			loadingForecasts[location] = false;
 		}
@@ -152,7 +159,7 @@
 
 <div class="weather-tab space-y-3">
 	<div class="flex items-center justify-center gap-5">
-		<FilterButton onclick={refreshWeather} className="grow max-w-48">
+		<FilterButton onclick={refreshWeather} className="grow max-w-48" disabled={$weatherData.loading}>
 			<Icon icon="mdi:refresh" width="15" />
 			<span class="hidden sm:inline">Refresh</span>
 		</FilterButton>
@@ -231,7 +238,7 @@
 					<h4 class="text-sm font-bold text-red-900">Error Loading Data</h4>
 					<p class="mt-1 text-xs text-red-700">{$weatherData.error}</p>
 					<button
-						class="mt-2 flex items-center gap-1 rounded bg-red-100 px-2 py-1 text-xs font-medium text-red-800 transition-colors hover:bg-red-200"
+						class="mt-2 flex items-center gap-1 rounded bg-red-100 px-2 py-1 text-xs font-medium text-red-800 transition-colors hover:bg-red-200 cursor-pointer"
 						onclick={refreshWeather}
 					>
 						<Icon icon="mdi:refresh" width="12" />
@@ -259,7 +266,7 @@
 					class="group relative overflow-hidden rounded-xl border border-slate-200/80 bg-white shadow-sm transition-all hover:border-slate-300 hover:shadow-md"
 				>
 					<!-- Color accent bar at the top -->
-					<div class="absolute top-0 left-0 h-1 w-full bg-blue-500"></div>
+					<div class="absolute top-0 left-0 h-1 w-full bg-primary-light"></div>
 
 					<!-- Location Header -->
 					<div class="px-3 py-2 pt-4 sm:px-4">
@@ -486,6 +493,22 @@
 											width="24"
 										/>
 										<p class="text-xs font-semibold text-blue-600">Loading 5-day forecast...</p>
+									</div>
+								{:else if locationForecastErrors[location]}
+									<div class="rounded-xl border border-red-200 bg-red-50 p-4 text-center shadow-sm">
+										<Icon
+											icon="mdi:alert-circle"
+											class="mx-auto mb-2 text-red-500"
+											width="20"
+										/>
+										<p class="text-xs font-semibold text-red-700">{locationForecastErrors[location]}</p>
+										<button
+											class="mx-auto mt-2 flex items-center gap-1 rounded bg-red-100 px-2 py-1 text-xs font-medium text-red-800 transition-colors cursor-pointer hover:bg-red-200"
+											onclick={() => loadLocationForecast(location)}
+										>
+											<Icon icon="mdi:refresh" width="12" />
+											Try Again
+										</button>
 									</div>
 								{:else if locationForecasts[location]}
 									{@const forecastData = locationForecasts[location]}
