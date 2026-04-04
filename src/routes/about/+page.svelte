@@ -174,7 +174,7 @@
 				<div class="relative z-10">
 					<img
 						src="/APAW_SHORT_TRANSPARENT.webp"
-						alt="APAW Symbol"
+						alt="APAW logo"
 						class="mb-8 h-16 drop-shadow-md"
 					/>
 					<h2 class="mb-6 text-4xl leading-tight font-extrabold text-slate-800">

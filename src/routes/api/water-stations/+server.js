@@ -1,5 +1,9 @@
 import { json } from '@sveltejs/kit';
 import moment from 'moment';
+import {
+	consumeRequestRateLimit,
+	formatRetryDelay
+} from '$lib/utils/api/requestRateLimiter.js';
 
 // Helper function to clean water level string
 function cleanWaterLevel(wl) {
@@ -14,7 +18,35 @@ function isStationFunctioning(station) {
 	// We use `some` to check if at least one reading is non-zero, which is more efficient.
 	return readings.some((wl) => parseFloat(wl || 0) !== 0);
 }
-export async function GET({ request }) {
+export async function GET({ request, getClientAddress }) {
+	const rateLimitVerdict = consumeRequestRateLimit({
+		request,
+		getClientAddress,
+		scope: 'api:water-stations',
+		maxRequests: 10,
+		windowMs: 60 * 1000
+	});
+
+	if (!rateLimitVerdict.allowed) {
+		const retryAfterHuman = formatRetryDelay(rateLimitVerdict.retryAfterSeconds);
+		const retryAfterMinutes = Math.max(1, Math.ceil(rateLimitVerdict.retryAfterSeconds / 60));
+
+		return json(
+			{
+				error: `Too many requests. Please try again in ${retryAfterHuman}.`,
+				retry_after_seconds: rateLimitVerdict.retryAfterSeconds,
+				retry_after_minutes: retryAfterMinutes,
+				retry_after_human: retryAfterHuman
+			},
+			{
+				status: 429,
+				headers: {
+					'retry-after': String(rateLimitVerdict.retryAfterSeconds)
+				}
+			}
+		);
+	}
+
 	const apiUrl = 'https://pasig-marikina-tullahanffws.pagasa.dost.gov.ph/water/main_list.do';
 
 	try {

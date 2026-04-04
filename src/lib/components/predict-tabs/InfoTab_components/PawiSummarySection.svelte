@@ -23,7 +23,7 @@
 	}
 
 	function getPawiSourceLabel(value) {
-		return value === 'fallback' ? 'Local' : 'Pawi';
+		return typeof value === 'string' && value.startsWith('fallback') ? 'Local' : 'Pawi';
 	}
 
 	$: hasSummary = typeof summary === 'string' && summary.trim().length > 0;

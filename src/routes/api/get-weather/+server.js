@@ -1,11 +1,43 @@
 import { createClient } from '@supabase/supabase-js';
 import { SUPABASE_URL, SUPABASE_SERVICE_KEY } from '$env/static/private';
 import { json } from '@sveltejs/kit';
+import {
+	consumeRequestRateLimit,
+	formatRetryDelay
+} from '$lib/utils/api/requestRateLimiter.js';
 
-export async function GET({ request }) {
+export async function GET({ request, getClientAddress }) {
 	const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 	const url = new URL(request.url);
 	const location = url.searchParams.get('location');
+
+	const rateLimitVerdict = consumeRequestRateLimit({
+		request,
+		getClientAddress,
+		scope: location ? 'api:get-weather:location' : 'api:get-weather:summary',
+		maxRequests: location ? 20 : 10,
+		windowMs: 60 * 1000
+	});
+
+	if (!rateLimitVerdict.allowed) {
+		const retryAfterHuman = formatRetryDelay(rateLimitVerdict.retryAfterSeconds);
+		const retryAfterMinutes = Math.max(1, Math.ceil(rateLimitVerdict.retryAfterSeconds / 60));
+
+		return json(
+			{
+				error: `Too many requests. Please try again in ${retryAfterHuman}.`,
+				retry_after_seconds: rateLimitVerdict.retryAfterSeconds,
+				retry_after_minutes: retryAfterMinutes,
+				retry_after_human: retryAfterHuman
+			},
+			{
+				status: 429,
+				headers: {
+					'retry-after': String(rateLimitVerdict.retryAfterSeconds)
+				}
+			}
+		);
+	}
 
 	// Get current date in Manila timezone
 	const today = new Date();

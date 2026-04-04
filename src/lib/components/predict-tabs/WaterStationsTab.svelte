@@ -1,4 +1,5 @@
 <script>
+	import { invalidateAll } from '$app/navigation';
 	import { waterStations, focusedWaterStation } from '$lib/stores/waterStationStore.js';
 	import Icon from '@iconify/svelte';
 	import FilterButton from '$lib/components/FilterButton.svelte';
@@ -39,7 +40,7 @@
 		const value = parseFloat(change);
 
 		if (value === 0) {
-			return { text: 'Stable', icon: 'mdi:minus', color: 'gray' };
+			return { text: 'Stable', icon: '', color: 'gray' };
 		} else if (value > 0) {
 			return {
 				text: `Rising ${Math.abs(value)} m`,
@@ -57,19 +58,17 @@
 
 	// Function to reload water station data
 	async function refreshWaterStations() {
-		try {
-			waterStations.update((current) => ({ ...current, loading: true, error: null }));
+		waterStations.update((current) => ({ ...current, loading: true, error: null }));
 
-			const response = await fetch('/api/water-stations');
-			if (!response.ok) {
-				const errorData = await response.json();
-				throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
-			}
-			const data = await response.json();
-			waterStations.set({ loading: false, data: data, error: null });
+		try {
+			await invalidateAll();
 		} catch (error) {
-			console.error('Failed to load water stations:', error);
-			waterStations.set({ loading: false, data: [], error: error.message });
+			console.error('Failed to refresh water stations:', error);
+			waterStations.update((current) => ({
+				...current,
+				loading: false,
+				error: error?.message || 'Unable to refresh water station data'
+			}));
 		}
 	}
 
@@ -149,7 +148,11 @@
 	<!-- Compact Header -->
 	<div class="flex items-center justify-center gap-5">
 		<!-- Action buttons aligned to the right -->
-		<FilterButton onclick={refreshWaterStations} className="grow max-w-48">
+		<FilterButton
+			onclick={refreshWaterStations}
+			className="grow max-w-48"
+			disabled={$waterStations.loading}
+		>
 			<Icon icon="mdi:refresh" width="15" />
 			<span class="hidden sm:inline">Refresh</span>
 		</FilterButton>
@@ -266,7 +269,7 @@
 					<h4 class="text-sm font-bold text-red-900">Error Loading Data</h4>
 					<p class="mt-1 text-xs text-red-700">{$waterStations.error}</p>
 					<button
-						class="mt-2 flex items-center gap-1 rounded bg-red-100 px-2 py-1 text-xs font-medium text-red-800 transition-colors hover:bg-red-200"
+						class="mt-2 flex items-center gap-1 rounded bg-red-100 px-2 py-1 text-xs font-medium text-red-800 transition-colors hover:bg-red-200 cursor-pointer"
 						onclick={refreshWaterStations}
 					>
 						<Icon icon="mdi:refresh" width="12" />
@@ -329,25 +332,24 @@
 									</h4>
 									<div class="mt-1 flex items-center text-xs font-semibold text-slate-500">
 										<Icon icon="mdi:clock-outline" class="mr-1" width="12" />
-										Updated {station.timestr}
+										{station.timestr}
 									</div>
 								</div>
 
 								<!-- Show on Map button -->
 								<button
-									class="flex shrink-0 cursor-pointer items-center gap-1.5 rounded-lg bg-blue-50 px-2.5 py-1.5 text-[11px] font-bold text-blue-700 shadow-sm transition-colors hover:bg-blue-100"
+									class="flex shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-lg bg-blue-50 px-2.5 py-1.5 text-[11px] font-bold text-blue-700 shadow-sm transition-colors hover:bg-blue-100"
 									onclick={() => showStationOnMap(station)}
 								>
 									<Icon icon="mdi:map-marker" width="14" />
-									<span class="hidden sm:inline">Map View</span>
-									<span class="sm:hidden">Map</span>
+									<span>Map View</span>
 								</button>
 							</div>
 						</div>
 
 						<!-- Main Water Level Area -->
 						<div
-							class={`mb-4 flex items-center justify-between rounded-xl border p-3.5 ${
+							class={`mb-4 rounded-xl border p-3.5 ${
 								status.color === 'green'
 									? 'border-emerald-100/50 bg-emerald-50/50'
 									: status.color === 'yellow'
@@ -359,9 +361,9 @@
 												: 'border-slate-100/50 bg-slate-50/50'
 							}`}
 						>
-							<div>
+							<div class="mb-3 flex items-center justify-center">
 								<span
-									class={`mb-2 inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-black tracking-wider uppercase ${
+									class={`inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-black tracking-wider uppercase ${
 										status.color === 'green'
 											? 'bg-emerald-100 text-emerald-800'
 											: status.color === 'yellow'
@@ -376,33 +378,28 @@
 									<Icon icon={status.icon} class="mr-1.5" width="12" />
 									{status.text} Status
 								</span>
-								<div class="flex items-baseline gap-1">
-									<span class="text-3xl font-black tracking-tight text-slate-800">
-										{station.wl || '--'}
-									</span>
-									<span class="text-sm font-bold text-slate-500">m</span>
-								</div>
-								<div
-									class={`text-[10px] font-bold tracking-wider uppercase ${
-										status.color === 'green'
-											? 'text-emerald-700'
-											: status.color === 'yellow'
-												? 'text-yellow-700'
-												: status.color === 'orange'
-													? 'text-orange-700'
-													: status.color === 'red'
-														? 'text-red-700'
-														: 'text-slate-700'
-									}`}
-								>
-									Current Level
-								</div>
 							</div>
 
-							<div class="text-right">
-								<div class="flex flex-col items-end text-right">
+							<div class="flex">
+								<div
+									class="flex w-full flex-col items-center justify-center rounded-lg border border-white/70 bg-white/70 p-2.5"
+								>
+									<div class="text-[10px] font-bold tracking-wider text-slate-500 text-center uppercase">
+										Current Level
+									</div>
+									<div class="mt-1 flex items-baseline gap-1">
+										<span class="text-3xl font-black tracking-tight text-slate-800">
+											{station.wl || '--'}
+										</span>
+										<span class="text-sm font-bold text-slate-500">m</span>
+									</div>
+								</div>
+
+								<div
+									class="flex w-full flex-col items-center justify-center rounded-lg border border-white/70 bg-white/70 p-2.5"
+								>
 									<div
-										class={`flex items-center text-sm font-black ${
+										class={`mt-1 flex items-center text-sm font-black ${
 											change.color === 'red'
 												? 'text-red-600'
 												: change.color === 'orange'
@@ -412,13 +409,11 @@
 														: 'text-slate-500'
 										}`}
 									>
-										{#if change.text !== 'Stable'}
-											<Icon icon={change.icon} class="mr-1" width="14" />
-										{/if}
-										{change.text}
+										<Icon icon={change.icon} class="mr-1 flex-shrink-0" width="14" />
+										<span class="truncate">{change.text}</span>
 									</div>
-									<div class="mt-0.5 text-[10px] font-bold tracking-wider text-slate-400 uppercase">
-										vs 10m ago
+									<div class="mt-0.5 text-[10px] font-bold tracking-wider text-slate-400 uppercase text-center">
+										Compared to 10m ago
 									</div>
 								</div>
 							</div>
@@ -496,12 +491,12 @@
 					</div>
 
 					<!-- PAGASA Attribution -->
-					<div class="border-t border-slate-100 bg-slate-50/80 px-4 py-2.5">
+					<div class="flex justify-center border-t border-slate-100 bg-slate-50/80 px-4 py-2.5">
 						<a
 							href="https://www.pagasa.dost.gov.ph/flood#koica"
 							target="_blank"
 							rel="noopener noreferrer"
-							class="group flex items-center justify-center gap-2 text-xs text-slate-500 transition-all hover:text-slate-800"
+							class="group flex items-center justify-center gap-2 px-2 py-1 text-xs text-slate-500 transition-all hover:text-slate-800"
 							title="Water level data from PAGASA"
 						>
 							<span class="font-medium">Data from</span>
@@ -510,7 +505,7 @@
 								alt="PAGASA"
 								class="h-4 w-auto transition-transform group-hover:scale-105"
 							/>
-							<span class="font-bold text-slate-700 group-hover:text-slate-900">PAGASA</span>
+							<span class="font-medium">PAGASA</span>
 						</a>
 					</div>
 				</div>

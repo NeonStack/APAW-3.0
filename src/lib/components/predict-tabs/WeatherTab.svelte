@@ -1,9 +1,7 @@
 <script>
-	import {
-		weatherData,
-		fetchWeatherData,
-		fetchLocationForecast
-	} from '$lib/stores/weatherStore.js';
+	import { invalidateAll } from '$app/navigation';
+	import { callPredictPageAction } from '$lib/utils/predictPageActionClient.js';
+	import { weatherData } from '$lib/stores/weatherStore.js';
 	import Icon from '@iconify/svelte';
 	import moment from 'moment';
 	import FilterButton from '$lib/components/FilterButton.svelte';
@@ -63,6 +61,7 @@
 	// Cache for 5-day forecasts per location
 	let locationForecasts = $state({});
 	let loadingForecasts = $state({});
+	let locationForecastErrors = $state({});
 
 	// Derived filtered and sorted data
 	let filteredData = $derived(() => {
@@ -100,24 +99,44 @@
 
 	// Refresh function
 	async function refreshWeather() {
-		await fetchWeatherData();
+		weatherData.update((store) => ({ ...store, loading: true, error: null }));
+
+		try {
+			await invalidateAll();
+			locationForecasts = {};
+			loadingForecasts = {};
+			locationForecastErrors = {};
+		} catch (error) {
+			console.error('Failed to refresh weather data:', error);
+			weatherData.update((store) => ({
+				...store,
+				loading: false,
+				error: error?.message || 'Unable to refresh weather data'
+			}));
+		}
 	}
 
 	// Load 5-day forecast for a specific location
 	async function loadLocationForecast(location) {
-		if (locationForecasts[location]) {
+		if (Array.isArray(locationForecasts[location])) {
 			setTimeout(() => scrollToCurrentHour(location), 100);
 			return; // Already loaded
 		}
 
+		locationForecastErrors[location] = null;
 		loadingForecasts[location] = true;
 		try {
-			const data = await fetchLocationForecast(location);
+			const result = await callPredictPageAction('weatherLocationForecast', { location });
+			const data = Array.isArray(result?.payload) ? result.payload : [];
 			locationForecasts[location] = data;
+			locationForecastErrors[location] = null;
 			setTimeout(() => scrollToCurrentHour(location), 100);
 		} catch (error) {
 			console.error(`Failed to load forecast for ${location}:`, error);
-			locationForecasts[location] = [];
+			const details = error?.details?.details;
+			locationForecastErrors[location] =
+				details?.message || error?.details?.message || error?.message || 'Unable to load forecast';
+			locationForecasts[location] = null;
 		} finally {
 			loadingForecasts[location] = false;
 		}
@@ -140,7 +159,7 @@
 
 <div class="weather-tab space-y-3">
 	<div class="flex items-center justify-center gap-5">
-		<FilterButton onclick={refreshWeather} className="grow max-w-48">
+		<FilterButton onclick={refreshWeather} className="grow max-w-48" disabled={$weatherData.loading}>
 			<Icon icon="mdi:refresh" width="15" />
 			<span class="hidden sm:inline">Refresh</span>
 		</FilterButton>
@@ -219,7 +238,7 @@
 					<h4 class="text-sm font-bold text-red-900">Error Loading Data</h4>
 					<p class="mt-1 text-xs text-red-700">{$weatherData.error}</p>
 					<button
-						class="mt-2 flex items-center gap-1 rounded bg-red-100 px-2 py-1 text-xs font-medium text-red-800 transition-colors hover:bg-red-200"
+						class="mt-2 flex items-center gap-1 rounded bg-red-100 px-2 py-1 text-xs font-medium text-red-800 transition-colors hover:bg-red-200 cursor-pointer"
 						onclick={refreshWeather}
 					>
 						<Icon icon="mdi:refresh" width="12" />
@@ -247,11 +266,11 @@
 					class="group relative overflow-hidden rounded-xl border border-slate-200/80 bg-white shadow-sm transition-all hover:border-slate-300 hover:shadow-md"
 				>
 					<!-- Color accent bar at the top -->
-					<div class="absolute top-0 left-0 h-1 w-full bg-blue-500"></div>
+					<div class="absolute top-0 left-0 h-1 w-full bg-primary-light"></div>
 
 					<!-- Location Header -->
 					<div class="px-3 py-2 pt-4 sm:px-4">
-						<div class="flex items-start justify-between gap-2 sm:items-center">
+						<div class="flex justify-between gap-2 items-center">
 							<h3
 								class="flex min-w-0 flex-shrink items-center text-[15px] font-extrabold text-slate-800"
 							>
@@ -275,37 +294,41 @@
 					<div class="p-3 pt-1 sm:p-4">
 						<!-- Weather Condition -->
 
-						<div class="mb-4 flex items-center gap-3 rounded-xl border border-gray-200 bg-white p-3 shadow-sm transition-colors hover:bg-gray-50/60 sm:p-4">
+						<div
+							class="mb-3 flex items-center gap-3 rounded-xl border border-gray-200 bg-white p-3 shadow-sm transition-colors hover:bg-gray-50/60 sm:p-4"
+						>
 							<Icon
 								icon={iconMap[currentData.icon] || 'mdi:weather-partly-cloudy'}
 								class="flex-shrink-0 text-slate-500"
 								width="44"
 							/>
-							<div class="flex-1 min-w-0">
+							<div class="min-w-0 flex-1">
 								<div class="text-[10px] font-bold text-slate-500 sm:text-xs">Condition</div>
-								<div class="mt-1 truncate text-base font-extrabold text-slate-800 line-clamp-2 sm:text-lg">
+								<div
+									class="mt-1 line-clamp-2 truncate text-base font-extrabold text-slate-800 sm:text-lg"
+								>
 									{currentData.conditions}
 								</div>
 							</div>
 						</div>
 
-						<!-- Rainfall Cards Row -->
-						<div class="mb-3 flex w-full flex-wrap gap-2 items-stretch">
+						<!-- Weather Metrics Grid -->
+						<div class="metrics-grid grid w-full grid-cols-1 md:grid-cols-2 items-stretch gap-3">
 							<!-- Rainfall Chance -->
 							<div
-								class="metric-card rounded-xl border border-blue-100 bg-blue-50/30 p-2.5 shadow-sm transition-colors hover:bg-blue-50/60"
+								class="metric-card flex w-full items-center justify-between rounded-xl border border-blue-100 bg-blue-50/30 p-2.5 shadow-sm transition-colors hover:bg-blue-50/60"
 							>
-								<div class="mb-1.5 flex items-center justify-between">
-									<Icon icon="mdi:water-percent" class="flex-shrink-0 text-blue-500" width="16" />
-									<span class="ml-1 truncate text-xs font-semibold text-slate-500">Rain %</span>
+								<div class="flex items-center justify-start gap-1">
+									<Icon icon="mdi:weather-heavy-rain" class="flex-shrink-0 text-blue-500" width="16" />
+									<p class="truncate text-xs font-semibold text-slate-500">Rain Chance:</p>
 								</div>
-								<div class="mt-1 flex items-baseline justify-between">
-									<div class="text-[15px] font-extrabold text-slate-800">
-										{currentData.precipprob}
-									</div>
+								<div class="flex items-center justify-end gap-1">
 									<div
-										class="truncate rounded bg-blue-100/50 px-1.5 py-0.5 text-[10px] font-bold text-blue-600/80"
+										class="flex items-center gap-1 truncate rounded bg-blue-100/50 px-1.5 py-0.5 text-[10px] font-bold text-blue-600/80"
 									>
+										<div class="text-[15px] font-extrabold">
+											{currentData.precipprob}
+										</div>
 										%
 									</div>
 								</div>
@@ -313,106 +336,63 @@
 
 							<!-- Precipitation Amount -->
 							<div
-								class="metric-card rounded-xl border border-cyan-100 bg-cyan-50/30 p-2.5 shadow-sm transition-colors hover:bg-cyan-50/60"
+								class="metric-card flex w-full items-center justify-between rounded-xl border border-cyan-100 bg-cyan-50/30 p-2.5 shadow-sm transition-colors hover:bg-cyan-50/60"
 							>
-								<div class="mb-1.5 flex items-center justify-between">
+								<div class="flex items-center justify-start gap-1">
 									<Icon icon="mdi:water" class="flex-shrink-0 text-cyan-500" width="16" />
-									<span class="ml-1 truncate text-xs font-semibold text-slate-500">Precip</span>
+									<p class="truncate text-xs font-semibold text-slate-500">Precip:</p>
 								</div>
-								<div class="mt-1 flex items-baseline justify-between">
-									<div class="text-[15px] font-extrabold text-slate-800">
-										{currentData.precip_mm}
-									</div>
+								<div class="flex items-center justify-end gap-1">
 									<div
-										class="truncate rounded bg-cyan-100/50 px-1.5 py-0.5 text-[10px] font-bold text-cyan-600/80"
+										class="flex items-center gap-1 truncate rounded bg-cyan-100/50 px-1.5 py-0.5 text-[10px] font-bold text-cyan-600/80"
 									>
+										<div class="text-[15px] font-extrabold">
+											{currentData.precip_mm}
+										</div>
 										mm
-									</div>
-								</div>
-							</div>
-						</div>
-
-						<!-- Weather Metrics Grid - Mobile Optimized -->
-						<div class="flex w-full flex-wrap gap-2 items-stretch">
-							<!-- Temperature -->
-							<div
-								class="metric-card rounded-xl border border-orange-100 bg-orange-50/30 p-2.5 shadow-sm transition-colors hover:bg-orange-50/60"
-							>
-								<div class="mb-1.5 flex items-center justify-between">
-									<Icon icon="mdi:thermometer" class="flex-shrink-0 text-orange-500" width="16" />
-									<span class="ml-1 truncate text-xs font-semibold text-slate-500">Temp</span>
-								</div>
-								<div class="mt-1 flex items-baseline justify-between">
-									<div class="text-[15px] font-extrabold text-slate-800">
-										{currentData.temp_c}
-									</div>
-									<div
-										class="truncate rounded bg-orange-100/50 px-1.5 py-0.5 text-[10px] font-bold text-orange-600/80"
-									>
-										°C
-									</div>
-								</div>
-							</div>
-
-							<!-- Humidity -->
-							<div
-								class="metric-card rounded-xl border border-cyan-100 bg-cyan-50/30 p-2.5 shadow-sm transition-colors hover:bg-cyan-50/60"
-							>
-								<div class="mb-1.5 flex items-center justify-between">
-									<Icon icon="mdi:water" class="flex-shrink-0 text-cyan-500" width="16" />
-									<span class="ml-1 truncate text-xs font-semibold text-slate-500">Humidity</span>
-								</div>
-								<div class="mt-1 flex items-baseline justify-between">
-									<div class="text-[15px] font-extrabold text-slate-800">
-										{currentData.humidity}%
-									</div>
-									<div
-										class="truncate rounded bg-cyan-100/50 px-1.5 py-0.5 text-[10px] font-bold text-cyan-600/80"
-									>
-										Moist
-									</div>
-								</div>
-							</div>
-
-							<!-- Wind Speed -->
-							<div
-								class="metric-card rounded-xl border border-slate-100 bg-slate-50/50 p-2.5 shadow-sm transition-colors hover:bg-slate-100/50"
-							>
-								<div class="mb-1.5 flex items-center justify-between">
-									<Icon icon="mdi:weather-windy" class="flex-shrink-0 text-slate-400" width="16" />
-									<span class="ml-1 truncate text-xs font-semibold text-slate-500">Wind</span>
-								</div>
-								<div class="mt-1 flex items-baseline justify-between">
-									<div class="text-[15px] font-extrabold text-slate-800">
-										{currentData.windspeed_kmh}
-									</div>
-									<div
-										class="truncate rounded bg-slate-200/50 px-1.5 py-0.5 text-[10px] font-bold text-slate-500"
-									>
-										km/h
 									</div>
 								</div>
 							</div>
 
 							<!-- Wind Gust -->
 							<div
-								class="metric-card rounded-xl border border-slate-200 bg-slate-50/80 p-2.5 shadow-sm transition-colors hover:bg-slate-100/80"
+								class="metric-card flex w-full items-center justify-between rounded-xl border border-slate-200 bg-slate-50/80 p-2.5 shadow-sm transition-colors hover:bg-slate-100/80"
 							>
-								<div class="mb-1.5 flex items-center justify-between">
+								<div class="flex items-center justify-start gap-1">
 									<Icon
 										icon="mdi:weather-windy-variant"
 										class="flex-shrink-0 text-slate-500"
 										width="16"
 									/>
-									<span class="ml-1 truncate text-xs font-semibold text-slate-600">Gust</span>
+									<p class="truncate text-xs font-semibold text-slate-600">Gust:</p>
 								</div>
-								<div class="mt-1 flex items-baseline justify-between">
-									<div class="text-[15px] font-extrabold text-slate-800">
-										{currentData.windgust_kmh}
-									</div>
+								<div class="flex items-center justify-end gap-1">
 									<div
-										class="truncate rounded bg-slate-200/50 px-1.5 py-0.5 text-[10px] font-bold text-slate-600"
+										class="flex items-center gap-1 truncate rounded bg-slate-200/50 px-1.5 py-0.5 text-[10px] font-bold text-slate-600"
 									>
+										<div class="text-[15px] font-extrabold">
+											{currentData.windgust_kmh}
+										</div>
+										km/h
+									</div>
+								</div>
+							</div>
+
+							<!-- Wind Speed -->
+							<div
+								class="metric-card flex w-full items-center justify-between rounded-xl border border-slate-100 bg-slate-50/50 p-2.5 shadow-sm transition-colors hover:bg-slate-100/50"
+							>
+								<div class="flex items-center justify-start gap-1">
+									<Icon icon="mdi:weather-windy" class="flex-shrink-0 text-slate-400" width="16" />
+									<p class="truncate text-xs font-semibold text-slate-500">Wind:</p>
+								</div>
+								<div class="flex items-center justify-end gap-1">
+									<div
+										class="flex items-center gap-1 truncate rounded bg-slate-200/50 px-1.5 py-0.5 text-[10px] font-bold text-slate-500"
+									>
+										<div class="text-[15px] font-extrabold">
+											{currentData.windspeed_kmh}
+										</div>
 										km/h
 									</div>
 								</div>
@@ -420,23 +400,63 @@
 
 							<!-- Cloud Cover -->
 							<div
-								class="metric-card rounded-xl border border-gray-200 bg-white p-2.5 shadow-sm transition-colors hover:bg-gray-50/60"
+								class="metric-card flex w-full items-center justify-between rounded-xl border border-gray-200 bg-white p-2.5 shadow-sm transition-colors hover:bg-gray-50/60"
 							>
-								<div class="mb-1.5 flex items-center justify-between">
+								<div class="flex items-center justify-start gap-1">
 									<Icon icon="mdi:weather-cloudy" class="flex-shrink-0 text-gray-400" width="16" />
-									<span class="ml-1 truncate text-xs font-semibold text-slate-500">Clouds</span>
+									<p class="truncate text-xs font-semibold text-slate-500">Clouds:</p>
 								</div>
-								<div class="mt-1 flex items-baseline justify-between">
-									<div class="text-[15px] font-extrabold text-slate-800">
-										{currentData.cloudcover}%
-									</div>
+								<div class="flex items-center justify-end gap-1">
 									<div
-										class="truncate rounded bg-gray-100 px-1.5 py-0.5 text-[10px] font-bold text-gray-500"
+										class="flex items-center gap-1 truncate rounded bg-gray-100 px-1.5 py-0.5 text-[10px] font-bold text-gray-500"
 									>
-										Cover
+										<div class="text-[15px] font-extrabold">
+											{currentData.cloudcover}
+										</div>
+										%
 									</div>
 								</div>
 							</div>
+
+							<!-- Humidity -->
+							<div
+								class="metric-card flex w-full items-center justify-between rounded-xl border border-cyan-100 bg-cyan-50/30 p-2.5 shadow-sm transition-colors hover:bg-cyan-50/60"
+							>
+								<div class="flex items-center justify-start gap-1">
+									<Icon icon="mdi:humidity" class="flex-shrink-0 text-cyan-500" width="16" />
+									<p class="truncate text-xs font-semibold text-slate-500">Humidity:</p>
+								</div>
+								<div class="flex items-center justify-end gap-1">
+									<div
+										class="flex items-center gap-1 truncate rounded bg-cyan-100/50 px-1.5 py-0.5 text-[10px] font-bold text-cyan-600/80"
+									>
+										<div class="text-[15px] font-extrabold">
+											{currentData.humidity}
+										</div>
+										%
+									</div>
+								</div>
+							</div>	
+
+							<!-- Temperature -->
+							<div
+								class="metric-card flex w-full items-center justify-between rounded-xl border border-orange-100 bg-orange-50/30 p-2.5 shadow-sm transition-colors hover:bg-orange-50/60"
+							>
+								<div class="flex items-center justify-start gap-1">
+									<Icon icon="mdi:thermometer" class="flex-shrink-0 text-orange-500" width="16" />
+									<p class="truncate text-xs font-semibold text-slate-500">Temp:</p>
+								</div>
+								<div class="flex items-center justify-end gap-1">
+									<div
+										class="flex items-center gap-1 truncate rounded bg-orange-100/50 px-1.5 py-0.5 text-[10px] font-bold text-orange-600/80"
+									>
+										<div class="text-[15px] font-extrabold">
+											{currentData.temp_c}
+										</div>
+										°C
+									</div>
+								</div>
+							</div>											
 						</div>
 					</div>
 
@@ -473,6 +493,22 @@
 											width="24"
 										/>
 										<p class="text-xs font-semibold text-blue-600">Loading 5-day forecast...</p>
+									</div>
+								{:else if locationForecastErrors[location]}
+									<div class="rounded-xl border border-red-200 bg-red-50 p-4 text-center shadow-sm">
+										<Icon
+											icon="mdi:alert-circle"
+											class="mx-auto mb-2 text-red-500"
+											width="20"
+										/>
+										<p class="text-xs font-semibold text-red-700">{locationForecastErrors[location]}</p>
+										<button
+											class="mx-auto mt-2 flex items-center gap-1 rounded bg-red-100 px-2 py-1 text-xs font-medium text-red-800 transition-colors cursor-pointer hover:bg-red-200"
+											onclick={() => loadLocationForecast(location)}
+										>
+											<Icon icon="mdi:refresh" width="12" />
+											Try Again
+										</button>
 									</div>
 								{:else if locationForecasts[location]}
 									{@const forecastData = locationForecasts[location]}
@@ -704,21 +740,21 @@
 					</div>
 
 					<!-- Visual Crossing Attribution -->
-					<div class="border-t border-slate-100 bg-slate-50/50 px-3 py-2.5">
+					<div class="border-t border-slate-100 bg-slate-50/80 px-4 py-2.5 flex justify-center">
 						<a
 							href="https://www.visualcrossing.com"
 							target="_blank"
 							rel="noopener noreferrer"
-							class="group flex items-center justify-center gap-2 text-[10px] font-bold text-slate-500 transition-all hover:text-slate-700"
+							class="group flex items-center justify-center gap-2 text-xs text-slate-500 transition-all hover:text-slate-800 px-2 py-1"
 							title="Weather data provided by Visual Crossing"
 						>
-							<span>Powered by</span>
+							<span class="font-medium">Powered by</span>
 							<img
 								src="/logo/visual-crossing-short.png"
-								alt="Visual Crossing Weather"
-								class="h-4 w-auto opacity-70 grayscale transition-all group-hover:scale-105 group-hover:opacity-100 group-hover:grayscale-0"
+								alt="Visual Crossing"
+								class="h-4 w-auto transition-transform group-hover:scale-105"
 							/>
-							<span class="text-slate-600 group-hover:text-slate-800">Visual Crossing</span>
+							<span class="font-medium">Visual Crossing</span>
 						</a>
 					</div>
 				</div>
@@ -779,6 +815,10 @@
 
 	.forecast-scroll::-webkit-scrollbar-thumb:hover {
 		background: #94a3b8;
+	}
+
+	.metrics-grid > .metric-card:last-child:nth-child(odd) {
+		grid-column: 1 / -1;
 	}
 
 	.metric-card {

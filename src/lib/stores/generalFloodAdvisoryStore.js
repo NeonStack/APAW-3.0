@@ -1,29 +1,35 @@
 import { writable } from 'svelte/store';
 
 export const generalFloodAdvisoryStore = writable({
-    data: null,
-    loading: true,
-    error: null
+	data: null,
+	meta: null,
+	loading: true,
+	error: null
 });
 
 export async function fetchGeneralFloodAdvisory() {
-    generalFloodAdvisoryStore.update((state) => ({ ...state, loading: true, error: null }));
+	generalFloodAdvisoryStore.update((state) => ({ ...state, loading: true, error: null }));
 
-    try {
-        const response = await fetch('/api/general-flood-advisory');
-        if (!response.ok) throw new Error('Failed to fetch flood advisory');
+	try {
+		const response = await fetch('/api/general-flood-advisory');
+		if (!response.ok) throw new Error('Failed to fetch flood advisory');
 
-        const data = await response.json();
+		const payload = await response.json();
+		const envelope =
+			payload && typeof payload === 'object' && !Array.isArray(payload) ? payload : null;
+		const data = envelope && 'data' in envelope ? (envelope.data ?? null) : payload;
+		const meta = envelope?.meta && typeof envelope.meta === 'object' ? envelope.meta : null;
 
-        console.log('General Flood Advisory Data:', data);
-        generalFloodAdvisoryStore.update((state) => ({ ...state, data, loading: false }));
-    } catch (error) {
-        generalFloodAdvisoryStore.update((state) => ({
-            ...state,
-            error: error.message,
-            loading: false
-        }));
-    }
+		console.log('General Flood Advisory Data:', data);
+		generalFloodAdvisoryStore.update((state) => ({ ...state, data, meta, loading: false }));
+	} catch (error) {
+		generalFloodAdvisoryStore.update((state) => ({
+			...state,
+			meta: state.meta || null,
+			error: error.message,
+			loading: false
+		}));
+	}
 }
 
 /*
