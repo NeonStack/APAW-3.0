@@ -1,16 +1,99 @@
 <script>
+	import { browser } from '$app/environment';
+	import { invalidateAll } from '$app/navigation';
 	import Map from '$lib/components/Map.svelte';
-	import { fetchTropicalCycloneTracker } from '$lib/stores/tropicalCycloneTrackerStore.js';
-	import { fetchWaterStations } from '$lib/stores/waterStationStore.js';
-	import { fetchWeatherData } from '$lib/stores/weatherStore.js';
-	import { fetchGeneralFloodAdvisory } from '$lib/stores/generalFloodAdvisoryStore.js';
-	import { fetchAutomatedFloodAlerts } from '$lib/stores/automatedFloodAlertStore.js';
+	import {
+		automatedFloodAlerts,
+		fetchAutomatedFloodAlerts
+	} from '$lib/stores/automatedFloodAlertStore.js';
+	import {
+		fetchGeneralFloodAdvisory,
+		generalFloodAdvisoryStore
+	} from '$lib/stores/generalFloodAdvisoryStore.js';
+	import {
+		fetchTropicalCycloneTracker,
+		tropicalCycloneTrackerStore
+	} from '$lib/stores/tropicalCycloneTrackerStore.js';
+	import { fetchWaterStations, waterStations } from '$lib/stores/waterStationStore.js';
+	import { fetchWeatherData, weatherData } from '$lib/stores/weatherStore.js';
 	import PredictSidebar from '$lib/components/PredictSidebar.svelte';
 	import { onMount } from 'svelte';
 	import Icon from '@iconify/svelte';
 
+	const LIVE_REFRESH_INTERVAL_MS = 5 * 60 * 1000;
+
+	let { data } = $props();
+
 	let navbarHeight = $state(0);
 	let isSidebarOpen = $state(true);
+	let lastBootstrapAt = $state(null);
+
+	function applyServerBootstrap(initialData, bootstrapAt) {
+		if (!browser || !initialData) return false;
+
+		if (bootstrapAt && lastBootstrapAt === bootstrapAt) {
+			return true;
+		}
+
+		weatherData.set({
+			loading: false,
+			data: Array.isArray(initialData?.weather?.data) ? initialData.weather.data : [],
+			error: initialData?.weather?.error || null
+		});
+
+		waterStations.set({
+			loading: false,
+			data: Array.isArray(initialData?.waterStations?.data) ? initialData.waterStations.data : [],
+			error: initialData?.waterStations?.error || null
+		});
+
+		tropicalCycloneTrackerStore.set({
+			loading: false,
+			data: Array.isArray(initialData?.tropicalCyclone?.data) ? initialData.tropicalCyclone.data : [],
+			error: initialData?.tropicalCyclone?.error || null
+		});
+
+		generalFloodAdvisoryStore.set({
+			loading: false,
+			data: initialData?.generalFloodAdvisory?.data ?? null,
+			error: initialData?.generalFloodAdvisory?.error || null
+		});
+
+		automatedFloodAlerts.update((store) => ({
+			...store,
+			loading: false,
+			data: Array.isArray(initialData?.automatedFloodAlerts?.data)
+				? initialData.automatedFloodAlerts.data
+				: [],
+			error: initialData?.automatedFloodAlerts?.error || null,
+			meta: {
+				request_date:
+					initialData?.automatedFloodAlerts?.meta?.request_date || store.meta.request_date,
+				forecast_indices: Array.isArray(initialData?.automatedFloodAlerts?.meta?.forecast_indices)
+					? initialData.automatedFloodAlerts.meta.forecast_indices
+					: store.meta.forecast_indices,
+				min_probability:
+					typeof initialData?.automatedFloodAlerts?.meta?.min_probability === 'number'
+						? initialData.automatedFloodAlerts.meta.min_probability
+						: store.meta.min_probability,
+				count: Number(
+					initialData?.automatedFloodAlerts?.meta?.count ??
+						(Array.isArray(initialData?.automatedFloodAlerts?.data)
+							? initialData.automatedFloodAlerts.data.length
+							: 0)
+				)
+			}
+		}));
+
+		lastBootstrapAt = bootstrapAt || new Date().toISOString();
+		return true;
+	}
+
+	$effect(() => {
+		if (data?.bootstrapOk) {
+			applyServerBootstrap(data?.initialData, data?.bootstrapAt);
+		}
+	});
 
 	function handleResize() {
 		const windowWidth = window.innerWidth;
@@ -34,16 +117,31 @@
 			isSidebarOpen = false;
 		}
 
-		await Promise.all([
-			fetchWeatherData(),
-			fetchWaterStations(),
-			fetchTropicalCycloneTracker(),
-			fetchGeneralFloodAdvisory(),
-			fetchAutomatedFloodAlerts({ forecastIndices: [0, 1, 2, 3, 4], minProbability: 0.5 })
-		]);
+		const hydratedFromServer = data?.bootstrapOk
+			? applyServerBootstrap(data?.initialData, data?.bootstrapAt)
+			: false;
+
+		if (!hydratedFromServer) {
+			await Promise.all([
+				fetchWeatherData(),
+				fetchWaterStations(),
+				fetchTropicalCycloneTracker(),
+				fetchGeneralFloodAdvisory(),
+				fetchAutomatedFloodAlerts({ forecastIndices: [0, 1, 2, 3, 4], minProbability: 0.5 })
+			]);
+		}
+
+		const liveRefreshInterval = setInterval(() => {
+			invalidateAll().catch((error) => {
+				console.warn('Predict live refresh failed:', error?.message || 'unknown_error');
+			});
+		}, LIVE_REFRESH_INTERVAL_MS);
 
 		window.addEventListener('resize', handleResize);
-		return () => window.removeEventListener('resize', handleResize);
+		return () => {
+			window.removeEventListener('resize', handleResize);
+			clearInterval(liveRefreshInterval);
+		};
 	});
 
 	function toggleSidebar() {
