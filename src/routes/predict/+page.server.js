@@ -199,11 +199,15 @@ export async function load({ fetch, url, setHeaders }) {
 		initialData: {
 			weather: {
 				data: Array.isArray(weatherResult.data) ? weatherResult.data : [],
-				error: weatherResult.error
+				error: weatherResult.error,
+				status: Number.isFinite(weatherResult.status) ? weatherResult.status : null
 			},
 			waterStations: {
 				data: Array.isArray(waterStationsResult.data) ? waterStationsResult.data : [],
-				error: waterStationsResult.error
+				error: waterStationsResult.error,
+				status: Number.isFinite(waterStationsResult.status)
+					? waterStationsResult.status
+					: null
 			},
 			tropicalCyclone: {
 				data: Array.isArray(tropicalCycloneResult.data) ? tropicalCycloneResult.data : [],
