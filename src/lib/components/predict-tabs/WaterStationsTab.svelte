@@ -2,7 +2,8 @@
 	import { invalidateAll } from '$app/navigation';
 	import { waterStations, focusedWaterStation } from '$lib/stores/waterStationStore.js';
 	import Icon from '@iconify/svelte';
-	import FilterButton from '$lib/components/FilterButton.svelte';
+	import TabActionButton from '$lib/components/predict-tabs/shared/TabActionButton.svelte';
+	import TabFilterCard from '$lib/components/predict-tabs/shared/TabFilterCard.svelte';
 
 	// Helper function to determine water station status
 	function getStationStatus(station) {
@@ -95,6 +96,61 @@
 		{ value: 'change-low', label: 'Level Change (Falling)' }
 	];
 
+	const sortOptionGroups = [
+		{ label: 'Name', options: sortOptions.filter((option) => option.value.includes('name')) },
+		{
+			label: 'Water Level',
+			options: sortOptions.filter((option) => option.value.includes('level'))
+		},
+		{
+			label: 'Change Rate',
+			options: sortOptions.filter((option) => option.value.includes('change'))
+		}
+	];
+
+	const statusColorClasses = {
+		green: {
+			accentBar: 'bg-emerald-500',
+			panel: 'border-emerald-100/50 bg-emerald-50/50',
+			badge: 'bg-emerald-100 text-emerald-800'
+		},
+		yellow: {
+			accentBar: 'bg-yellow-400',
+			panel: 'border-yellow-100/50 bg-yellow-50/50',
+			badge: 'bg-yellow-100 text-yellow-800'
+		},
+		orange: {
+			accentBar: 'bg-orange-500',
+			panel: 'border-orange-100/50 bg-orange-50/50',
+			badge: 'bg-orange-100 text-orange-800'
+		},
+		red: {
+			accentBar: 'bg-red-500',
+			panel: 'border-red-100/50 bg-red-50/50',
+			badge: 'bg-red-100 text-red-800'
+		},
+		default: {
+			accentBar: 'bg-slate-400',
+			panel: 'border-slate-100/50 bg-slate-50/50',
+			badge: 'bg-slate-100 text-slate-800'
+		}
+	};
+
+	const changeColorClasses = {
+		red: 'text-red-600',
+		orange: 'text-orange-600',
+		blue: 'text-blue-600',
+		default: 'text-slate-500'
+	};
+
+	function getStatusColorClasses(color) {
+		return statusColorClasses[color] || statusColorClasses.default;
+	}
+
+	function getChangeTextClass(color) {
+		return changeColorClasses[color] || changeColorClasses.default;
+	}
+
 	// Access the water stations store value directly
 	let waterStationsValue = $derived($waterStations);
 
@@ -148,31 +204,23 @@
 	<!-- Compact Header -->
 	<div class="flex items-center justify-center gap-5">
 		<!-- Action buttons aligned to the right -->
-		<FilterButton
+		<TabActionButton
 			onclick={refreshWaterStations}
-			className="grow max-w-48"
 			disabled={$waterStations.loading}
-		>
-			<Icon icon="mdi:refresh" width="15" />
-			<span class="hidden sm:inline">Refresh</span>
-		</FilterButton>
+			icon="mdi:refresh"
+			label="Refresh"
+		/>
 
-		<FilterButton onclick={() => (showFilters = !showFilters)} className="grow max-w-48">
-			<Icon icon={showFilters ? 'mdi:filter-off' : 'mdi:filter'} width="15" />
-			<span class="hidden sm:inline">{showFilters ? 'Hide' : 'Filters'}</span>
-		</FilterButton>
+		<TabActionButton
+			onclick={() => (showFilters = !showFilters)}
+			icon={showFilters ? 'mdi:filter-off' : 'mdi:filter'}
+			label={showFilters ? 'Hide' : 'Filters'}
+		/>
 	</div>
 
 	<!-- Compact Filter Section -->
 	{#if showFilters}
-		<div class="rounded-lg border border-gray-200 bg-gray-50 p-3 shadow-sm">
-			<div class="mb-2 flex items-center space-x-2">
-				<div class="rounded bg-[#0c3143] p-1">
-					<Icon icon="mdi:filter" class="text-white" width="12" />
-				</div>
-				<h3 class="text-sm font-semibold text-[#0c3143]">Filter & Sort</h3>
-			</div>
-
+		<TabFilterCard headingIconWrapperClass="bg-[#0c3143]" headingTextClass="text-[#0c3143]">
 			<div class="space-y-2">
 				<div class="grid grid-cols-1 gap-3 md:grid-cols-2">
 					<!-- Status Filter -->
@@ -201,21 +249,13 @@
 							id="sort-option"
 							class="w-full cursor-pointer rounded border border-gray-300 bg-white px-2 py-1.5 text-xs focus:border-blue-500 focus:outline-none"
 						>
-							<optgroup label="Name">
-								{#each sortOptions.filter((o) => o.value.includes('name')) as option}
-									<option value={option.value}>{option.label}</option>
-								{/each}
-							</optgroup>
-							<optgroup label="Water Level">
-								{#each sortOptions.filter((o) => o.value.includes('level')) as option}
-									<option value={option.value}>{option.label}</option>
-								{/each}
-							</optgroup>
-							<optgroup label="Change Rate">
-								{#each sortOptions.filter((o) => o.value.includes('change')) as option}
-									<option value={option.value}>{option.label}</option>
-								{/each}
-							</optgroup>
+							{#each sortOptionGroups as group}
+								<optgroup label={group.label}>
+									{#each group.options as option}
+										<option value={option.value}>{option.label}</option>
+									{/each}
+								</optgroup>
+							{/each}
 						</select>
 					</div>
 				</div>
@@ -246,7 +286,7 @@
 					</div>
 				</div>
 			</div>
-		</div>
+		</TabFilterCard>
 	{/if}
 
 	<!-- Loading State -->
@@ -269,7 +309,7 @@
 					<h4 class="text-sm font-bold text-red-900">Error Loading Data</h4>
 					<p class="mt-1 text-xs text-red-700">{$waterStations.error}</p>
 					<button
-						class="mt-2 flex items-center gap-1 rounded bg-red-100 px-2 py-1 text-xs font-medium text-red-800 transition-colors hover:bg-red-200 cursor-pointer"
+						class="mt-2 flex cursor-pointer items-center gap-1 rounded bg-red-100 px-2 py-1 text-xs font-medium text-red-800 transition-colors hover:bg-red-200"
 						onclick={refreshWaterStations}
 					>
 						<Icon icon="mdi:refresh" width="12" />
@@ -311,7 +351,9 @@
 						<div>
 							<p class="text-xs font-semibold text-amber-800">Refresh temporarily limited</p>
 							<p class="mt-1 text-xs text-amber-700">{$waterStations.error}</p>
-							<p class="mt-1 text-[11px] text-amber-700/90">Showing last available water-station data.</p>
+							<p class="mt-1 text-[11px] text-amber-700/90">
+								Showing last available water-station data.
+							</p>
 						</div>
 					</div>
 				</div>
@@ -320,24 +362,13 @@
 			{#each filteredStations as station (station.obsnm)}
 				{@const status = getStationStatus(station)}
 				{@const change = calculateWaterChange(station)}
+				{@const statusClasses = getStatusColorClasses(status.color)}
 
 				<div
 					class="group relative overflow-hidden rounded-xl border border-slate-200/80 bg-white shadow-sm transition-all hover:border-slate-300 hover:shadow-md"
 				>
 					<!-- Color accent bar at the top -->
-					<div
-						class={`absolute top-0 left-0 h-1 w-full ${
-							status.color === 'green'
-								? 'bg-emerald-500'
-								: status.color === 'yellow'
-									? 'bg-yellow-400'
-									: status.color === 'orange'
-										? 'bg-orange-500'
-										: status.color === 'red'
-											? 'bg-red-500'
-											: 'bg-slate-400'
-						}`}
-					></div>
+					<div class={`absolute top-0 left-0 h-1 w-full ${statusClasses.accentBar}`}></div>
 
 					<div class="p-4 pt-5">
 						<div class="mb-4">
@@ -365,32 +396,10 @@
 						</div>
 
 						<!-- Main Water Level Area -->
-						<div
-							class={`mb-4 rounded-xl border p-3.5 ${
-								status.color === 'green'
-									? 'border-emerald-100/50 bg-emerald-50/50'
-									: status.color === 'yellow'
-										? 'border-yellow-100/50 bg-yellow-50/50'
-										: status.color === 'orange'
-											? 'border-orange-100/50 bg-orange-50/50'
-											: status.color === 'red'
-												? 'border-red-100/50 bg-red-50/50'
-												: 'border-slate-100/50 bg-slate-50/50'
-							}`}
-						>
+						<div class={`mb-4 rounded-xl border p-3.5 ${statusClasses.panel}`}>
 							<div class="mb-3 flex items-center justify-center">
 								<span
-									class={`inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-black tracking-wider uppercase ${
-										status.color === 'green'
-											? 'bg-emerald-100 text-emerald-800'
-											: status.color === 'yellow'
-												? 'bg-yellow-100 text-yellow-800'
-												: status.color === 'orange'
-													? 'bg-orange-100 text-orange-800'
-													: status.color === 'red'
-														? 'bg-red-100 text-red-800'
-														: 'bg-slate-100 text-slate-800'
-									}`}
+									class={`inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-black tracking-wider uppercase ${statusClasses.badge}`}
 								>
 									<Icon icon={status.icon} class="mr-1.5" width="12" />
 									{status.text} Status
@@ -401,7 +410,9 @@
 								<div
 									class="flex w-full flex-col items-center justify-center rounded-lg border border-white/70 bg-white/70 p-2.5"
 								>
-									<div class="text-[10px] font-bold tracking-wider text-slate-500 text-center uppercase">
+									<div
+										class="text-center text-[10px] font-bold tracking-wider text-slate-500 uppercase"
+									>
 										Current Level
 									</div>
 									<div class="mt-1 flex items-baseline gap-1">
@@ -416,20 +427,14 @@
 									class="flex w-full flex-col items-center justify-center rounded-lg border border-white/70 bg-white/70 p-2.5"
 								>
 									<div
-										class={`mt-1 flex items-center text-sm font-black ${
-											change.color === 'red'
-												? 'text-red-600'
-												: change.color === 'orange'
-													? 'text-orange-600'
-													: change.color === 'blue'
-														? 'text-blue-600'
-														: 'text-slate-500'
-										}`}
+										class={`mt-1 flex items-center text-sm font-black ${getChangeTextClass(change.color)}`}
 									>
 										<Icon icon={change.icon} class="mr-1 flex-shrink-0" width="14" />
 										<span class="truncate">{change.text}</span>
 									</div>
-									<div class="mt-0.5 text-[10px] font-bold tracking-wider text-slate-400 uppercase text-center">
+									<div
+										class="mt-0.5 text-center text-[10px] font-bold tracking-wider text-slate-400 uppercase"
+									>
 										Compared to 10m ago
 									</div>
 								</div>
