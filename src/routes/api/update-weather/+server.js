@@ -1,4 +1,3 @@
-import { createClient } from '@supabase/supabase-js';
 import { json } from '@sveltejs/kit';
 import {
 	SUPABASE_URL,
@@ -6,17 +5,10 @@ import {
 	VISUAL_CROSSING_API_KEY,
 	JOB_TRIGGER_SECRET
 } from '$env/static/private';
+import { getSupabaseServiceClient } from '$lib/server/supabaseClient.js';
+import { METRO_MANILA_COORDINATES } from '$lib/constants/metroManila.js';
 
 // --- CONFIGURATION ---
-let supabaseClient = null;
-
-function getSupabaseClient() {
-	if (!supabaseClient) {
-		supabaseClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
-	}
-	return supabaseClient;
-}
-
 function getMissingConfig() {
 	const missing = [];
 	if (!SUPABASE_URL) missing.push('SUPABASE_URL');
@@ -25,28 +17,6 @@ function getMissingConfig() {
 	if (!JOB_TRIGGER_SECRET) missing.push('JOB_TRIGGER_SECRET');
 	return missing;
 }
-
-const NCR_LOCATIONS = [
-	{ name: 'Manila', lat: 14.604595, lon: 120.982569 },
-	{ name: 'Mandaluyong', lat: 14.582112, lon: 121.039043 },
-	{ name: 'Marikina', lat: 14.64806, lon: 121.104192 },
-	{ name: 'Pasig', lat: 14.572916, lon: 121.081955 },
-	{ name: 'Quezon City', lat: 14.649734, lon: 121.039224 },
-	{ name: 'San Juan', lat: 14.602108, lon: 121.035626 },
-	{ name: 'Caloocan (North)', lat: 14.761262, lon: 121.045706 },
-	{ name: 'Caloocan (South)', lat: 14.651013, lon: 120.980904 },
-	{ name: 'Malabon', lat: 14.67242, lon: 120.957245 },
-	{ name: 'Navotas', lat: 14.666291, lon: 120.941 },
-	{ name: 'Valenzuela', lat: 14.707549, lon: 120.982046 },
-	{ name: 'Las Piñas', lat: 14.443451, lon: 120.994801 },
-	{ name: 'Makati', lat: 14.551987, lon: 121.024302 },
-	{ name: 'Muntinlupa', lat: 14.402166, lon: 121.030928 },
-	{ name: 'Parañaque', lat: 14.473714, lon: 121.020472 },
-	{ name: 'Pasay', lat: 14.534401, lon: 121.001278 },
-	{ name: 'Pateros', lat: 14.54508, lon: 121.069831 },
-	{ name: 'Taguig', lat: 14.517084, lon: 121.0572 }
-];
-
 const TARGET_TABLE = 'hourly_weather_forecasts';
 
 export async function POST({ request }) {
@@ -76,16 +46,18 @@ export async function POST({ request }) {
 		return json({ error: 'Unauthorized: Invalid or missing secret token.' }, { status: 401 });
 	}
 
-	console.log(`[update-weather][${requestId}] Job trigger authorized. Starting weather data update...`);
+	console.log(
+		`[update-weather][${requestId}] Job trigger authorized. Starting weather data update...`
+	);
 	const jobSummary = [];
-	const supabase = getSupabaseClient();
+	const supabase = getSupabaseServiceClient();
 	if (!supabase) {
 		console.error(`[update-weather][${requestId}] Failed to initialize Supabase client.`);
 		return json({ error: 'Supabase client initialization failed.' }, { status: 500 });
 	}
 
 	try {
-		for (const location of NCR_LOCATIONS) {
+		for (const location of METRO_MANILA_COORDINATES) {
 			console.log(`[update-weather][${requestId}] Processing location: ${location.name}`);
 
 			// 2. --- FETCH DATA FROM VISUAL CROSSING ---
@@ -184,10 +156,7 @@ export async function POST({ request }) {
 		// 5. --- LONG-TERM DATA RETENTION ---
 		const threeYearsAgo = new Date();
 		threeYearsAgo.setFullYear(threeYearsAgo.getFullYear() - 3);
-		await supabase
-			.from(TARGET_TABLE)
-			.delete()
-			.lt('datetime', threeYearsAgo.toISOString());
+		await supabase.from(TARGET_TABLE).delete().lt('datetime', threeYearsAgo.toISOString());
 		console.log(`[update-weather][${requestId}] Successfully pruned data older than 3 years.`);
 		jobSummary.push({ task: 'pruning', status: 'success' });
 		console.log(`[update-weather][${requestId}] Job completed successfully.`);

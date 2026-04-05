@@ -1,9 +1,9 @@
 // Using $env/static/private as you requested
-import { SUPABASE_URL, SUPABASE_SERVICE_KEY, GEMINI_API_KEY } from '$env/static/private';
-import { createClient } from '@supabase/supabase-js';
+import { GEMINI_API_KEY } from '$env/static/private';
 import { json } from '@sveltejs/kit';
 import { GoogleGenAI, Type } from '@google/genai';
 import { Buffer } from 'buffer';
+import { getSupabaseServiceClient } from '$lib/server/supabaseClient.js';
 
 // ===================================================================
 // --- CONFIGURATION ---
@@ -75,7 +75,7 @@ const bulletinSchema = {
 
 // --- 3. THE API ENDPOINT ---
 export async function GET({ platform }) {
-	const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+	const supabase = getSupabaseServiceClient();
 	const now = new Date();
 
 	const { data: oldestCache } = await supabase

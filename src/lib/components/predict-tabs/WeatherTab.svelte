@@ -6,14 +6,9 @@
 	import moment from 'moment';
 	import TabActionButton from '$lib/components/predict-tabs/shared/TabActionButton.svelte';
 	import TabFilterCard from '$lib/components/predict-tabs/shared/TabFilterCard.svelte';
+	import { METRO_MANILA_DISTRICTS } from '$lib/constants/metroManila.js';
 
-	// Define districts
-	const districts = {
-		'1st District': ['Manila'],
-		'2nd District': ['Mandaluyong', 'Marikina', 'Pasig', 'Quezon City', 'San Juan'],
-		'3rd District': ['Caloocan (North)', 'Caloocan (South)', 'Malabon', 'Navotas', 'Valenzuela'],
-		'4th District': ['Las Piñas', 'Makati', 'Muntinlupa', 'Parañaque', 'Pasay', 'Pateros', 'Taguig']
-	};
+	const districts = METRO_MANILA_DISTRICTS;
 
 	// Icon mapping
 	const iconMap = {

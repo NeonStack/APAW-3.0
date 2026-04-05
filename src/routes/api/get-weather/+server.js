@@ -1,13 +1,11 @@
-import { createClient } from '@supabase/supabase-js';
-import { SUPABASE_URL, SUPABASE_SERVICE_KEY } from '$env/static/private';
 import { json } from '@sveltejs/kit';
-import {
-	consumeRequestRateLimit,
-	formatRetryDelay
-} from '$lib/utils/api/requestRateLimiter.js';
+import { consumeRequestRateLimit } from '$lib/utils/api/requestRateLimiter.js';
+import { createRateLimitResponse } from '$lib/utils/api/rateLimitResponse.js';
+import { getSupabaseServiceClient } from '$lib/server/supabaseClient.js';
+import { METRO_MANILA_LOCATION_NAMES } from '$lib/constants/metroManila.js';
 
 export async function GET({ request, getClientAddress }) {
-	const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+	const supabase = getSupabaseServiceClient();
 	const url = new URL(request.url);
 	const location = url.searchParams.get('location');
 
@@ -20,23 +18,7 @@ export async function GET({ request, getClientAddress }) {
 	});
 
 	if (!rateLimitVerdict.allowed) {
-		const retryAfterHuman = formatRetryDelay(rateLimitVerdict.retryAfterSeconds);
-		const retryAfterMinutes = Math.max(1, Math.ceil(rateLimitVerdict.retryAfterSeconds / 60));
-
-		return json(
-			{
-				error: `Too many requests. Please try again in ${retryAfterHuman}.`,
-				retry_after_seconds: rateLimitVerdict.retryAfterSeconds,
-				retry_after_minutes: retryAfterMinutes,
-				retry_after_human: retryAfterHuman
-			},
-			{
-				status: 429,
-				headers: {
-					'retry-after': String(rateLimitVerdict.retryAfterSeconds)
-				}
-			}
-		);
+		return createRateLimitResponse(rateLimitVerdict);
 	}
 
 	// Get current date in Manila timezone
@@ -57,28 +39,6 @@ export async function GET({ request, getClientAddress }) {
 		endDate.setDate(localTime.getDate() + 1); // Just today for all locations
 	}
 
-	// List of all location names
-	const locations = [
-		'Manila',
-		'Mandaluyong',
-		'Marikina',
-		'Pasig',
-		'Quezon City',
-		'San Juan',
-		'Caloocan (North)',
-		'Caloocan (South)',
-		'Malabon',
-		'Navotas',
-		'Valenzuela',
-		'Las Piñas',
-		'Makati',
-		'Muntinlupa',
-		'Parañaque',
-		'Pasay',
-		'Pateros',
-		'Taguig'
-	];
-
 	// Build query
 	let query = supabase
 		.from('hourly_weather_forecasts')
@@ -91,7 +51,9 @@ export async function GET({ request, getClientAddress }) {
 	if (location) {
 		query = query.eq('location_name', location);
 	} else {
-		query = query.in('location_name', locations).order('location_name', { ascending: true });
+		query = query
+			.in('location_name', METRO_MANILA_LOCATION_NAMES)
+			.order('location_name', { ascending: true });
 	}
 
 	const { data, error } = await query;
