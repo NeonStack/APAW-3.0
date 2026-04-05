@@ -15,14 +15,19 @@ const actionRateBuckets = new Map();
 
 async function fetchJson(fetchFn, endpoint, referer, options = {}) {
 	try {
+		const {
+			allowEdgeCache = false,
+			headers: optionHeaders,
+			...requestOptions
+		} = options;
+
 		const response = await fetchFn(endpoint, {
-			...options,
-			cache: 'no-store',
+			...requestOptions,
+			...(allowEdgeCache ? {} : { cache: 'no-store' }),
 			headers: {
-				'cache-control': 'no-cache',
-				pragma: 'no-cache',
+				...(allowEdgeCache ? {} : { 'cache-control': 'no-cache', pragma: 'no-cache' }),
 				referer,
-				...(options.headers || {})
+				...(optionHeaders || {})
 			}
 		});
 
@@ -161,8 +166,8 @@ export async function load({ fetch, url, setHeaders }) {
 		advisoryResult,
 		automatedResult
 	] = await Promise.all([
-		fetchJson(fetch, '/api/get-weather', referer),
-		fetchJson(fetch, '/api/water-stations', referer),
+		fetchJson(fetch, '/api/get-weather', referer, { allowEdgeCache: true }),
+		fetchJson(fetch, '/api/water-stations', referer, { allowEdgeCache: true }),
 		fetchJson(fetch, '/api/tropicalCyclone-tracker', referer),
 		fetchJson(fetch, '/api/general-flood-advisory', referer),
 		fetchJson(fetch, automatedQuery, referer)
@@ -332,7 +337,7 @@ export const actions = {
 
 		const referer = `${url.origin}${url.pathname}`;
 		const endpoint = `/api/get-weather?location=${encodeURIComponent(location)}`;
-		const result = await fetchJson(fetch, endpoint, referer);
+		const result = await fetchJson(fetch, endpoint, referer, { allowEdgeCache: true });
 
 		if (!result.ok) {
 			return actionFailure(
