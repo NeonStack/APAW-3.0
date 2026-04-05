@@ -15,7 +15,7 @@ const ALLOWED_ORIGIN = [
 const EXCEPTIONS = ['/api/update-weather', '/api/automated-flood-detection'];
 const CACHE_CONFIG = {
 	'/api/get-weather': 'public, max-age=300, s-maxage=900',
-	'/api/water-stations': 'public, max-age=900, s-maxage=1800',
+	'/api/water-stations': 'public, max-age=300, s-maxage=540',
 	'/api/tropicalCyclone-tracker': 'public, max-age=300, s-maxage=900',
 	'/api/tropical-cyclone-warning': 'public, max-age=300, s-maxage=900',
 	'/api/general-flood-advisory': 'public, max-age=300, s-maxage=900'

@@ -122,13 +122,18 @@
 		return now - lastRefreshAt >= Number(fallbackIntervalMs || 0);
 	}
 
-	async function fetchPredictJson(endpoint) {
+	async function fetchPredictJson(endpoint, options = {}) {
+		const { allowEdgeCache = false } = options;
 		const response = await fetch(endpoint, {
-			cache: 'no-store',
-			headers: {
-				'cache-control': 'no-cache',
-				pragma: 'no-cache'
-			}
+			...(allowEdgeCache ? {} : { cache: 'no-store' }),
+			...(allowEdgeCache
+				? {}
+				: {
+						headers: {
+							'cache-control': 'no-cache',
+							pragma: 'no-cache'
+						}
+					})
 		});
 
 		let payload = null;
@@ -163,7 +168,7 @@
 	async function refreshWeatherSource(reason = 'interval') {
 		await runSourceRefresh(PREDICT_SOURCE_KEYS.WEATHER, async () => {
 			try {
-				const payload = await fetchPredictJson('/api/get-weather');
+				const payload = await fetchPredictJson('/api/get-weather', { allowEdgeCache: true });
 				weatherData.set({
 					loading: false,
 					data: Array.isArray(payload) ? payload : [],
@@ -186,7 +191,9 @@
 	async function refreshWaterStationsSource(reason = 'interval') {
 		await runSourceRefresh(PREDICT_SOURCE_KEYS.WATER_STATIONS, async () => {
 			try {
-				const payload = await fetchPredictJson('/api/water-stations');
+				const payload = await fetchPredictJson('/api/water-stations', {
+					allowEdgeCache: true
+				});
 				waterStations.set({
 					loading: false,
 					data: Array.isArray(payload) ? payload : [],
