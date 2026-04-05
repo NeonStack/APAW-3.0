@@ -68,7 +68,7 @@
 		{ value: 'windspeed_kmh', label: 'Wind Speed' },
 		{ value: 'cloudcover', label: 'Cloud Cover' },
 		{ value: 'humidity', label: 'Humidity' },
-		{ value: 'temp_c', label: 'Temperature' },
+		{ value: 'temp_c', label: 'Temperature' }
 	];
 
 	let totalLocationCount = $derived(
@@ -141,6 +141,113 @@
 
 	function getMetricBorderClass(metricKey, defaultBorderClass) {
 		return sortMetric === metricKey ? 'border-primary-light border-2' : defaultBorderClass;
+	}
+
+	function getWeatherMetrics(currentData) {
+		return [
+			{
+				key: 'precipprob',
+				icon: 'mdi:weather-heavy-rain',
+				iconClass: 'text-blue-500',
+				label: 'Rain Chance:',
+				labelClass: 'text-slate-500',
+				value: currentData?.precipprob,
+				unit: '%',
+				containerBorderClass: 'border border-blue-100',
+				containerBgClass: 'bg-blue-50/30',
+				hoverClass: 'hover:bg-blue-50/60',
+				valueChipClass: 'bg-blue-100/50 text-blue-600/80'
+			},
+			{
+				key: 'precip_mm',
+				icon: 'mdi:water',
+				iconClass: 'text-cyan-500',
+				label: 'Precip:',
+				labelClass: 'text-slate-500',
+				value: currentData?.precip_mm,
+				unit: 'mm',
+				containerBorderClass: 'border border-cyan-100',
+				containerBgClass: 'bg-cyan-50/30',
+				hoverClass: 'hover:bg-cyan-50/60',
+				valueChipClass: 'bg-cyan-100/50 text-cyan-600/80'
+			},
+			{
+				key: 'windgust_kmh',
+				icon: 'mdi:weather-windy-variant',
+				iconClass: 'text-slate-500',
+				label: 'Gust:',
+				labelClass: 'text-slate-600',
+				value: currentData?.windgust_kmh,
+				unit: 'km/h',
+				containerBorderClass: 'border border-slate-200',
+				containerBgClass: 'bg-slate-50/80',
+				hoverClass: 'hover:bg-slate-100/80',
+				valueChipClass: 'bg-slate-200/50 text-slate-600'
+			},
+			{
+				key: 'windspeed_kmh',
+				icon: 'mdi:weather-windy',
+				iconClass: 'text-slate-400',
+				label: 'Wind:',
+				labelClass: 'text-slate-500',
+				value: currentData?.windspeed_kmh,
+				unit: 'km/h',
+				containerBorderClass: 'border border-slate-100',
+				containerBgClass: 'bg-slate-50/50',
+				hoverClass: 'hover:bg-slate-100/50',
+				valueChipClass: 'bg-slate-200/50 text-slate-500'
+			},
+			{
+				key: 'cloudcover',
+				icon: 'mdi:weather-cloudy',
+				iconClass: 'text-gray-400',
+				label: 'Clouds:',
+				labelClass: 'text-slate-500',
+				value: currentData?.cloudcover,
+				unit: '%',
+				containerBorderClass: 'border border-gray-200',
+				containerBgClass: 'bg-white',
+				hoverClass: 'hover:bg-gray-50/60',
+				valueChipClass: 'bg-gray-100 text-gray-500'
+			},
+			{
+				key: 'humidity',
+				icon: 'mdi:humidity',
+				iconClass: 'text-cyan-500',
+				label: 'Humidity:',
+				labelClass: 'text-slate-500',
+				value: currentData?.humidity,
+				unit: '%',
+				containerBorderClass: 'border border-cyan-100',
+				containerBgClass: 'bg-cyan-50/30',
+				hoverClass: 'hover:bg-cyan-50/60',
+				valueChipClass: 'bg-cyan-100/50 text-cyan-600/80'
+			},
+			{
+				key: 'temp_c',
+				icon: 'mdi:thermometer',
+				iconClass: 'text-orange-500',
+				label: 'Temp:',
+				labelClass: 'text-slate-500',
+				value: currentData?.temp_c,
+				unit: '°C',
+				containerBorderClass: 'border border-orange-100',
+				containerBgClass: 'bg-orange-50/30',
+				hoverClass: 'hover:bg-orange-50/60',
+				valueChipClass: 'bg-orange-100/50 text-orange-600/80'
+			}
+		];
+	}
+
+	function getHourlyDetailRows(hour) {
+		return [
+			{ label: 'Precip', value: hour?.precip_mm ?? '--', unit: 'mm' },
+			{ label: 'Gust', value: hour?.windgust_kmh ?? '--', unit: 'km/h' },
+			{ label: 'Press', value: hour?.pressure_mb ?? '--', unit: 'mb' },
+			{ label: 'Clouds', value: hour?.cloudcover ?? '--' },
+			{ label: 'UV', value: hour?.uvindex ?? '--' },
+			{ label: 'Solar', value: hour?.solarradiation ?? '--', unit: 'W/m²' }
+		];
 	}
 
 	// Load 5-day forecast for a specific location
@@ -328,6 +435,7 @@
 
 			{#each Object.entries(filteredData()) as [location, days]}
 				{@const currentData = getCurrentHourData(days)}
+				{@const metrics = getWeatherMetrics(currentData)}
 				<div
 					class="group relative overflow-hidden rounded-xl border border-slate-200/80 bg-white shadow-sm transition-all hover:border-slate-300 hover:shadow-md"
 				>
@@ -380,153 +488,30 @@
 
 						<!-- Weather Metrics Grid -->
 						<div class="metrics-grid grid w-full grid-cols-1 items-stretch gap-3 md:grid-cols-2">
-							<!-- Rainfall Chance -->
-							<div
-								class={`metric-card flex w-full items-center justify-between rounded-xl ${getMetricBorderClass('precipprob', 'border border-blue-100')} bg-blue-50/30 p-2.5 shadow-sm transition-colors hover:bg-blue-50/60`}
-							>
-								<div class="flex items-center justify-start gap-1">
-									<Icon
-										icon="mdi:weather-heavy-rain"
-										class="flex-shrink-0 text-blue-500"
-										width="16"
-									/>
-									<p class="truncate text-xs font-semibold text-slate-500">Rain Chance:</p>
-								</div>
-								<div class="flex items-center justify-end gap-1">
-									<div
-										class="flex items-center gap-1 truncate rounded bg-blue-100/50 px-1.5 py-0.5 text-[10px] font-bold text-blue-600/80"
-									>
-										<div class="text-[15px] font-extrabold">
-											{currentData.precipprob}
+							{#each metrics as metric}
+								<div
+									class={`metric-card flex w-full items-center justify-between rounded-xl ${getMetricBorderClass(metric.key, metric.containerBorderClass)} ${metric.containerBgClass} p-2.5 shadow-sm transition-colors ${metric.hoverClass}`}
+								>
+									<div class="flex items-center justify-start gap-1">
+										<Icon
+											icon={metric.icon}
+											class={`flex-shrink-0 ${metric.iconClass}`}
+											width="16"
+										/>
+										<p class={`truncate text-xs font-semibold ${metric.labelClass}`}>
+											{metric.label}
+										</p>
+									</div>
+									<div class="flex items-center justify-end gap-1">
+										<div
+											class={`flex items-center gap-1 truncate rounded px-1.5 py-0.5 text-[10px] font-bold ${metric.valueChipClass}`}
+										>
+											<div class="text-[15px] font-extrabold">{metric.value ?? '--'}</div>
+											{metric.unit}
 										</div>
-										%
 									</div>
 								</div>
-							</div>
-
-							<!-- Precipitation Amount -->
-							<div
-								class={`metric-card flex w-full items-center justify-between rounded-xl ${getMetricBorderClass('precip_mm', 'border border-cyan-100')} bg-cyan-50/30 p-2.5 shadow-sm transition-colors hover:bg-cyan-50/60`}
-							>
-								<div class="flex items-center justify-start gap-1">
-									<Icon icon="mdi:water" class="flex-shrink-0 text-cyan-500" width="16" />
-									<p class="truncate text-xs font-semibold text-slate-500">Precip:</p>
-								</div>
-								<div class="flex items-center justify-end gap-1">
-									<div
-										class="flex items-center gap-1 truncate rounded bg-cyan-100/50 px-1.5 py-0.5 text-[10px] font-bold text-cyan-600/80"
-									>
-										<div class="text-[15px] font-extrabold">
-											{currentData.precip_mm}
-										</div>
-										mm
-									</div>
-								</div>
-							</div>
-
-							<!-- Wind Gust -->
-							<div
-								class={`metric-card flex w-full items-center justify-between rounded-xl ${getMetricBorderClass('windgust_kmh', 'border border-slate-200')} bg-slate-50/80 p-2.5 shadow-sm transition-colors hover:bg-slate-100/80`}
-							>
-								<div class="flex items-center justify-start gap-1">
-									<Icon
-										icon="mdi:weather-windy-variant"
-										class="flex-shrink-0 text-slate-500"
-										width="16"
-									/>
-									<p class="truncate text-xs font-semibold text-slate-600">Gust:</p>
-								</div>
-								<div class="flex items-center justify-end gap-1">
-									<div
-										class="flex items-center gap-1 truncate rounded bg-slate-200/50 px-1.5 py-0.5 text-[10px] font-bold text-slate-600"
-									>
-										<div class="text-[15px] font-extrabold">
-											{currentData.windgust_kmh}
-										</div>
-										km/h
-									</div>
-								</div>
-							</div>
-
-							<!-- Wind Speed -->
-							<div
-								class={`metric-card flex w-full items-center justify-between rounded-xl ${getMetricBorderClass('windspeed_kmh', 'border border-slate-100')} bg-slate-50/50 p-2.5 shadow-sm transition-colors hover:bg-slate-100/50`}
-							>
-								<div class="flex items-center justify-start gap-1">
-									<Icon icon="mdi:weather-windy" class="flex-shrink-0 text-slate-400" width="16" />
-									<p class="truncate text-xs font-semibold text-slate-500">Wind:</p>
-								</div>
-								<div class="flex items-center justify-end gap-1">
-									<div
-										class="flex items-center gap-1 truncate rounded bg-slate-200/50 px-1.5 py-0.5 text-[10px] font-bold text-slate-500"
-									>
-										<div class="text-[15px] font-extrabold">
-											{currentData.windspeed_kmh}
-										</div>
-										km/h
-									</div>
-								</div>
-							</div>
-
-							<!-- Cloud Cover -->
-							<div
-								class={`metric-card flex w-full items-center justify-between rounded-xl ${getMetricBorderClass('cloudcover', 'border border-gray-200')} bg-white p-2.5 shadow-sm transition-colors hover:bg-gray-50/60`}
-							>
-								<div class="flex items-center justify-start gap-1">
-									<Icon icon="mdi:weather-cloudy" class="flex-shrink-0 text-gray-400" width="16" />
-									<p class="truncate text-xs font-semibold text-slate-500">Clouds:</p>
-								</div>
-								<div class="flex items-center justify-end gap-1">
-									<div
-										class="flex items-center gap-1 truncate rounded bg-gray-100 px-1.5 py-0.5 text-[10px] font-bold text-gray-500"
-									>
-										<div class="text-[15px] font-extrabold">
-											{currentData.cloudcover}
-										</div>
-										%
-									</div>
-								</div>
-							</div>
-
-							<!-- Humidity -->
-							<div
-								class={`metric-card flex w-full items-center justify-between rounded-xl ${getMetricBorderClass('humidity', 'border border-cyan-100')} bg-cyan-50/30 p-2.5 shadow-sm transition-colors hover:bg-cyan-50/60`}
-							>
-								<div class="flex items-center justify-start gap-1">
-									<Icon icon="mdi:humidity" class="flex-shrink-0 text-cyan-500" width="16" />
-									<p class="truncate text-xs font-semibold text-slate-500">Humidity:</p>
-								</div>
-								<div class="flex items-center justify-end gap-1">
-									<div
-										class="flex items-center gap-1 truncate rounded bg-cyan-100/50 px-1.5 py-0.5 text-[10px] font-bold text-cyan-600/80"
-									>
-										<div class="text-[15px] font-extrabold">
-											{currentData.humidity}
-										</div>
-										%
-									</div>
-								</div>
-							</div>
-
-							<!-- Temperature -->
-							<div
-								class={`metric-card flex w-full items-center justify-between rounded-xl ${getMetricBorderClass('temp_c', 'border border-orange-100')} bg-orange-50/30 p-2.5 shadow-sm transition-colors hover:bg-orange-50/60`}
-							>
-								<div class="flex items-center justify-start gap-1">
-									<Icon icon="mdi:thermometer" class="flex-shrink-0 text-orange-500" width="16" />
-									<p class="truncate text-xs font-semibold text-slate-500">Temp:</p>
-								</div>
-								<div class="flex items-center justify-end gap-1">
-									<div
-										class="flex items-center gap-1 truncate rounded bg-orange-100/50 px-1.5 py-0.5 text-[10px] font-bold text-orange-600/80"
-									>
-										<div class="text-[15px] font-extrabold">
-											{currentData.temp_c}
-										</div>
-										°C
-									</div>
-								</div>
-							</div>
+							{/each}
 						</div>
 					</div>
 
@@ -601,7 +586,7 @@
 										<!-- Horizontal scrollable container -->
 										<div class="forecast-scroll -mx-1 overflow-x-scroll px-1 pb-3">
 											<div class="flex min-w-max gap-3">
-												{#each forecastData as hour, index}
+												{#each forecastData as hour}
 													{@const isCurrentHour = moment(
 														hour.datetime,
 														'YYYY-MM-DD HH:mm:ss'
@@ -725,58 +710,19 @@
 																<div
 																	class="mt-2 space-y-1.5 border-t border-slate-100 pt-2 text-[10px] font-semibold"
 																>
-																	<div
-																		class="flex items-center justify-between rounded bg-slate-50 px-1.5 py-1"
-																	>
-																		<span class="text-slate-500">Precip</span>
-																		<span class="truncate font-bold text-slate-700"
-																			>{hour.precip_mm}
-																			<span class="text-[9px] font-medium text-slate-400">mm</span
-																			></span
+																	{#each getHourlyDetailRows(hour) as row}
+																		<div
+																			class="flex items-center justify-between rounded bg-slate-50 px-1.5 py-1"
 																		>
-																	</div>
-																	<div
-																		class="flex items-center justify-between rounded bg-slate-50 px-1.5 py-1"
-																	>
-																		<span class="text-slate-500">Gust</span>
-																		<span class="truncate font-bold text-slate-700"
-																			>{hour.windgust_kmh}
-																			<span class="text-[9px] font-medium text-slate-400">km/h</span
-																			></span
-																		>
-																	</div>
-																	<div
-																		class="flex items-center justify-between rounded bg-slate-50 px-1.5 py-1"
-																	>
-																		<span class="text-slate-500">Press</span>
-																		<span class="truncate font-bold text-slate-700"
-																			>{hour.pressure_mb}
-																			<span class="text-[9px] font-medium text-slate-400">mb</span
-																			></span
-																		>
-																	</div>
-																	<div
-																		class="flex items-center justify-between rounded bg-slate-50 px-1.5 py-1"
-																	>
-																		<span class="text-slate-500">Clouds</span>
-																		<span class="font-bold text-slate-700">{hour.cloudcover}%</span>
-																	</div>
-																	<div
-																		class="flex items-center justify-between rounded bg-slate-50 px-1.5 py-1"
-																	>
-																		<span class="text-slate-500">UV</span>
-																		<span class="font-bold text-slate-700">{hour.uvindex}</span>
-																	</div>
-																	<div
-																		class="flex items-center justify-between rounded bg-slate-50 px-1.5 py-1"
-																	>
-																		<span class="text-slate-500">Solar</span>
-																		<span class="truncate font-bold text-slate-700"
-																			>{hour.solarradiation}
-																			<span class="text-[9px] font-medium text-slate-400">W/m²</span
-																			></span
-																		>
-																	</div>
+																			<span class="text-slate-500">{row.label}</span>
+																			<span class="truncate font-bold text-slate-700"
+																				>{row.value}{#if row.unit}<span
+																						class="text-[9px] font-medium text-slate-400"
+																						>{row.unit}</span
+																					>{/if}</span
+																			>
+																		</div>
+																	{/each}
 																	<div
 																		class="mt-2 rounded-lg border border-blue-100 bg-blue-50 p-1.5 text-center text-[10px] font-bold break-words text-blue-700"
 																	>
