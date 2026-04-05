@@ -230,7 +230,7 @@
 				</div>
 			</div>
 		</div>
-	{:else if $weatherData.error}
+	{:else if $weatherData.error && $weatherData.data.length === 0}
 		<div class="rounded-lg border border-red-200 bg-red-50 p-4">
 			<div class="flex items-start">
 				<Icon icon="mdi:alert-circle" class="mt-0.5 mr-2 flex-shrink-0 text-red-500" width="18" />
@@ -260,6 +260,23 @@
 	{:else}
 		<!-- Weather Cards -->
 		<div class="space-y-5">
+			{#if $weatherData.error}
+				<div class="rounded-lg border border-amber-200 bg-amber-50 p-3">
+					<div class="flex items-start">
+						<Icon
+							icon="mdi:alert-outline"
+							class="mt-0.5 mr-2 flex-shrink-0 text-amber-600"
+							width="16"
+						/>
+						<div>
+							<p class="text-xs font-semibold text-amber-800">Refresh temporarily limited</p>
+							<p class="mt-1 text-xs text-amber-700">{$weatherData.error}</p>
+							<p class="mt-1 text-[11px] text-amber-700/90">Showing last available weather data.</p>
+						</div>
+					</div>
+				</div>
+			{/if}
+
 			{#each Object.entries(filteredData()) as [location, days]}
 				{@const currentData = getCurrentHourData(days)}
 				<div

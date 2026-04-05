@@ -260,7 +260,7 @@
 				</div>
 			</div>
 		</div>
-	{:else if $waterStations.error}
+	{:else if $waterStations.error && $waterStations.data.length === 0}
 		<!-- Error State -->
 		<div class="rounded-lg border border-red-200 bg-red-50 p-4">
 			<div class="flex items-start">
@@ -300,6 +300,23 @@
 	{:else}
 		<!-- Compact Water Station Cards -->
 		<div class="space-y-5">
+			{#if $waterStations.error}
+				<div class="rounded-lg border border-amber-200 bg-amber-50 p-3">
+					<div class="flex items-start">
+						<Icon
+							icon="mdi:alert-outline"
+							class="mt-0.5 mr-2 flex-shrink-0 text-amber-600"
+							width="16"
+						/>
+						<div>
+							<p class="text-xs font-semibold text-amber-800">Refresh temporarily limited</p>
+							<p class="mt-1 text-xs text-amber-700">{$waterStations.error}</p>
+							<p class="mt-1 text-[11px] text-amber-700/90">Showing last available water-station data.</p>
+						</div>
+					</div>
+				</div>
+			{/if}
+
 			{#each filteredStations as station (station.obsnm)}
 				{@const status = getStationStatus(station)}
 				{@const change = calculateWaterChange(station)}

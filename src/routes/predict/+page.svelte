@@ -379,16 +379,53 @@
 			return true;
 		}
 
-		weatherData.set({
-			loading: false,
-			data: Array.isArray(initialData?.weather?.data) ? initialData.weather.data : [],
-			error: initialData?.weather?.error || null
+		const incomingWeatherData = Array.isArray(initialData?.weather?.data)
+			? initialData.weather.data
+			: [];
+		const incomingWeatherError = initialData?.weather?.error || null;
+		const incomingWeatherStatus = Number(initialData?.weather?.status || 0);
+		const weatherRateLimitedByStatus = incomingWeatherStatus === 429;
+		const weatherRateLimitedByMessage =
+			typeof incomingWeatherError === 'string' &&
+			incomingWeatherError.toLowerCase().includes('too many requests');
+		const isWeatherRateLimited = weatherRateLimitedByStatus || weatherRateLimitedByMessage;
+
+		weatherData.update((store) => {
+			const hasExistingData = Array.isArray(store?.data) && store.data.length > 0;
+			const shouldKeepExistingData =
+				isWeatherRateLimited && hasExistingData && incomingWeatherData.length === 0;
+
+			return {
+				...store,
+				loading: false,
+				data: shouldKeepExistingData ? store.data : incomingWeatherData,
+				error: incomingWeatherError
+			};
 		});
 
-		waterStations.set({
-			loading: false,
-			data: Array.isArray(initialData?.waterStations?.data) ? initialData.waterStations.data : [],
-			error: initialData?.waterStations?.error || null
+		const incomingWaterStationsData = Array.isArray(initialData?.waterStations?.data)
+			? initialData.waterStations.data
+			: [];
+		const incomingWaterStationsError = initialData?.waterStations?.error || null;
+		const incomingWaterStationsStatus = Number(initialData?.waterStations?.status || 0);
+		const waterStationsRateLimitedByStatus = incomingWaterStationsStatus === 429;
+		const waterStationsRateLimitedByMessage =
+			typeof incomingWaterStationsError === 'string' &&
+			incomingWaterStationsError.toLowerCase().includes('too many requests');
+		const isWaterStationsRateLimited =
+			waterStationsRateLimitedByStatus || waterStationsRateLimitedByMessage;
+
+		waterStations.update((store) => {
+			const hasExistingData = Array.isArray(store?.data) && store.data.length > 0;
+			const shouldKeepExistingData =
+				isWaterStationsRateLimited && hasExistingData && incomingWaterStationsData.length === 0;
+
+			return {
+				...store,
+				loading: false,
+				data: shouldKeepExistingData ? store.data : incomingWaterStationsData,
+				error: incomingWaterStationsError
+			};
 		});
 
 		tropicalCycloneTrackerStore.set({
