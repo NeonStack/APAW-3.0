@@ -1,7 +1,12 @@
-import { SUPABASE_URL, SUPABASE_SERVICE_KEY } from '$env/static/private';
-import { createClient } from '@supabase/supabase-js';
 import { json } from '@sveltejs/kit';
 import { XMLParser } from 'fast-xml-parser';
+import { getSupabaseServiceClient } from '$lib/server/supabaseClient.js';
+import {
+	isCacheExpired,
+	readCacheStatus,
+	replaceCacheRows,
+	triggerBackgroundTask
+} from '$lib/utils/api/cacheRefresh.js';
 
 // ===================================================================
 // --- CONFIGURATION ---
@@ -27,26 +32,16 @@ const parser = new XMLParser({
 
 // --- API ENDPOINT ---
 export async function GET({ platform }) {
-	const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+	const supabase = getSupabaseServiceClient();
 	const now = new Date();
 
-	const { data: cacheStatus } = await supabase
-		.from('pagasa_flood_advisories')
-		.select('cache_expiry_time')
-		.limit(1)
-		.single();
-
-	const isCacheStale = !cacheStatus || new Date(cacheStatus.cache_expiry_time) < now;
+	const cacheStatus = await readCacheStatus(supabase, 'pagasa_flood_advisories');
+	const isCacheStale = isCacheExpired(cacheStatus, now);
 
 	if (isCacheStale) {
 		console.log('GFA Cache is STALE. Triggering background fetch.');
 		const backgroundFetchTask = doBackgroundFetch(now, supabase);
-
-		if (platform?.context?.waitUntil) {
-			platform.context.waitUntil(backgroundFetchTask);
-		} else {
-			await backgroundFetchTask; // Dev mode
-		}
+		await triggerBackgroundTask(platform, backgroundFetchTask);
 	} else {
 		console.log('GFA Cache is FRESH.');
 	}
@@ -123,15 +118,13 @@ async function doBackgroundFetch(currentDate, supabase) {
 		}
 
 		console.log('GFA BACKGROUND: Swapping cache...');
-		await supabase.from('pagasa_flood_advisories').delete().neq('id', -1); // Clear table
-		await supabase.from('pagasa_flood_advisories').insert(newDbRow);
+		await replaceCacheRows(supabase, 'pagasa_flood_advisories', newDbRow);
 		console.log('GFA BACKGROUND: Fetch complete. Database updated.');
 	} catch (error) {
 		console.error('GFA BACKGROUND: Error during background fetch:', error);
 		const snoozeTime = new Date(currentDate.getTime() + CONFIG.CACHE_MINS_ON_ERROR * 60 * 1000);
 
-		await supabase.from('pagasa_flood_advisories').delete().neq('id', -1);
-		await supabase.from('pagasa_flood_advisories').insert({
+		await replaceCacheRows(supabase, 'pagasa_flood_advisories', {
 			advisory_type: 'EMPTY_CACHE',
 			cache_expiry_time: snoozeTime.toISOString()
 		});

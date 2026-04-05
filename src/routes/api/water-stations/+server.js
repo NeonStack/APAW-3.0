@@ -1,9 +1,7 @@
 import { json } from '@sveltejs/kit';
 import moment from 'moment';
-import {
-	consumeRequestRateLimit,
-	formatRetryDelay
-} from '$lib/utils/api/requestRateLimiter.js';
+import { consumeRequestRateLimit } from '$lib/utils/api/requestRateLimiter.js';
+import { createRateLimitResponse } from '$lib/utils/api/rateLimitResponse.js';
 
 // Helper function to clean water level string
 function cleanWaterLevel(wl) {
@@ -28,23 +26,7 @@ export async function GET({ request, getClientAddress }) {
 	});
 
 	if (!rateLimitVerdict.allowed) {
-		const retryAfterHuman = formatRetryDelay(rateLimitVerdict.retryAfterSeconds);
-		const retryAfterMinutes = Math.max(1, Math.ceil(rateLimitVerdict.retryAfterSeconds / 60));
-
-		return json(
-			{
-				error: `Too many requests. Please try again in ${retryAfterHuman}.`,
-				retry_after_seconds: rateLimitVerdict.retryAfterSeconds,
-				retry_after_minutes: retryAfterMinutes,
-				retry_after_human: retryAfterHuman
-			},
-			{
-				status: 429,
-				headers: {
-					'retry-after': String(rateLimitVerdict.retryAfterSeconds)
-				}
-			}
-		);
+		return createRateLimitResponse(rateLimitVerdict);
 	}
 
 	const apiUrl = 'https://pasig-marikina-tullahanffws.pagasa.dost.gov.ph/water/main_list.do';

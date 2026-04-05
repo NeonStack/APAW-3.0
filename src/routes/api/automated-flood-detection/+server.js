@@ -1,5 +1,5 @@
 import { json } from '@sveltejs/kit';
-import { createClient } from '@supabase/supabase-js';
+import { getSupabaseServiceClient } from '$lib/server/supabaseClient.js';
 
 import {
 	SUPABASE_URL,
@@ -21,15 +21,6 @@ const HF_BATCH_TIMEOUT_MS = 180000;
 const PHILIPPINE_UTC_OFFSET_MS = 8 * 60 * 60 * 1000;
 const AUTOMATED_REFRESH_SCHEDULE_HOURS = [7, 13, 19];
 const AUTOMATED_REFRESH_SCHEDULE_MINUTE = 30;
-
-let supabaseClient = null;
-
-function getSupabaseClient() {
-	if (!supabaseClient) {
-		supabaseClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
-	}
-	return supabaseClient;
-}
 
 function msSince(startedAt) {
 	return Date.now() - startedAt;
@@ -209,7 +200,7 @@ async function fetchWaterStations() {
 }
 
 async function fetchConfiguredCoordinates() {
-	const supabase = getSupabaseClient();
+	const supabase = getSupabaseServiceClient();
 	let { data, error } = await supabase
 		.from(COORDINATES_TABLE)
 		.select(
@@ -378,7 +369,7 @@ export async function GET({ url }) {
 		return json({ error: 'Configuration error: Supabase variables are missing.' }, { status: 500 });
 	}
 
-	const supabase = getSupabaseClient();
+	const supabase = getSupabaseServiceClient();
 	const requestedDate = url.searchParams.get('request_date');
 	const requestedRunId = url.searchParams.get('run_id');
 	const forecastIndices = parseForecastIndices(url.searchParams.get('forecast_index'));

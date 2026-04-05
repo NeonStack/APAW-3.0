@@ -4,15 +4,11 @@
 	import { weatherData } from '$lib/stores/weatherStore.js';
 	import Icon from '@iconify/svelte';
 	import moment from 'moment';
-	import FilterButton from '$lib/components/FilterButton.svelte';
+	import TabActionButton from '$lib/components/predict-tabs/shared/TabActionButton.svelte';
+	import TabFilterCard from '$lib/components/predict-tabs/shared/TabFilterCard.svelte';
+	import { METRO_MANILA_DISTRICTS } from '$lib/constants/metroManila.js';
 
-	// Define districts
-	const districts = {
-		'1st District': ['Manila'],
-		'2nd District': ['Mandaluyong', 'Marikina', 'Pasig', 'Quezon City', 'San Juan'],
-		'3rd District': ['Caloocan (North)', 'Caloocan (South)', 'Malabon', 'Navotas', 'Valenzuela'],
-		'4th District': ['Las Piñas', 'Makati', 'Muntinlupa', 'Parañaque', 'Pasay', 'Pateros', 'Taguig']
-	};
+	const districts = METRO_MANILA_DISTRICTS;
 
 	// Icon mapping
 	const iconMap = {
@@ -56,7 +52,23 @@
 
 	// Filters
 	let districtFilter = $state('all'); // Changed default to 'all'
-	let sortOption = $state('location-asc');
+	let sortMetric = $state('location');
+	let sortDirection = $state('asc');
+
+	const sortMetricOptions = [
+		{ value: 'location', label: 'Location' },
+		{ value: 'precipprob', label: 'Rain Chance' },
+		{ value: 'precip_mm', label: 'Precipitation (mm)' },
+		{ value: 'windgust_kmh', label: 'Wind Gust' },
+		{ value: 'windspeed_kmh', label: 'Wind Speed' },
+		{ value: 'cloudcover', label: 'Cloud Cover' },
+		{ value: 'humidity', label: 'Humidity' },
+		{ value: 'temp_c', label: 'Temperature' }
+	];
+
+	let totalLocationCount = $derived(
+		new Set($weatherData.data.map((item) => item.location_name)).size
+	);
 
 	// Cache for 5-day forecasts per location
 	let locationForecasts = $state({});
@@ -81,15 +93,15 @@
 		const sortedLocations = Object.keys(grouped).sort((a, b) => {
 			const aData = getCurrentHourData(grouped[a]);
 			const bData = getCurrentHourData(grouped[b]);
-			if (sortOption === 'location-asc') return a.localeCompare(b);
-			if (sortOption === 'location-desc') return b.localeCompare(a);
-			if (sortOption === 'temp-high') return (bData?.temp_c || 0) - (aData?.temp_c || 0);
-			if (sortOption === 'temp-low') return (aData?.temp_c || 0) - (bData?.temp_c || 0);
-			if (sortOption === 'precip-high') return (bData?.precipprob || 0) - (aData?.precipprob || 0);
-			if (sortOption === 'humidity-high') return (bData?.humidity || 0) - (aData?.humidity || 0);
-			if (sortOption === 'wind-high')
-				return (bData?.windspeed_kmh || 0) - (aData?.windspeed_kmh || 0);
-			return 0;
+			const directionMultiplier = sortDirection === 'asc' ? 1 : -1;
+
+			if (sortMetric === 'location') {
+				return directionMultiplier * a.localeCompare(b);
+			}
+
+			const aValue = parseFloat(aData?.[sortMetric]) || 0;
+			const bValue = parseFloat(bData?.[sortMetric]) || 0;
+			return directionMultiplier * (aValue - bValue);
 		});
 
 		const sortedGrouped = {};
@@ -114,6 +126,123 @@
 				error: error?.message || 'Unable to refresh weather data'
 			}));
 		}
+	}
+
+	function resetWeatherFilters() {
+		districtFilter = 'all';
+		sortMetric = 'location';
+		sortDirection = 'asc';
+	}
+
+	function getMetricBorderClass(metricKey, defaultBorderClass) {
+		return sortMetric === metricKey ? 'border-primary-light border-2' : defaultBorderClass;
+	}
+
+	function getWeatherMetrics(currentData) {
+		return [
+			{
+				key: 'precipprob',
+				icon: 'mdi:weather-heavy-rain',
+				iconClass: 'text-blue-500',
+				label: 'Rain Chance:',
+				labelClass: 'text-slate-500',
+				value: currentData?.precipprob,
+				unit: '%',
+				containerBorderClass: 'border border-blue-100',
+				containerBgClass: 'bg-blue-50/30',
+				hoverClass: 'hover:bg-blue-50/60',
+				valueChipClass: 'bg-blue-100/50 text-blue-600/80'
+			},
+			{
+				key: 'precip_mm',
+				icon: 'mdi:water',
+				iconClass: 'text-cyan-500',
+				label: 'Precip:',
+				labelClass: 'text-slate-500',
+				value: currentData?.precip_mm,
+				unit: 'mm',
+				containerBorderClass: 'border border-cyan-100',
+				containerBgClass: 'bg-cyan-50/30',
+				hoverClass: 'hover:bg-cyan-50/60',
+				valueChipClass: 'bg-cyan-100/50 text-cyan-600/80'
+			},
+			{
+				key: 'windgust_kmh',
+				icon: 'mdi:weather-windy-variant',
+				iconClass: 'text-slate-500',
+				label: 'Gust:',
+				labelClass: 'text-slate-600',
+				value: currentData?.windgust_kmh,
+				unit: 'km/h',
+				containerBorderClass: 'border border-slate-200',
+				containerBgClass: 'bg-slate-50/80',
+				hoverClass: 'hover:bg-slate-100/80',
+				valueChipClass: 'bg-slate-200/50 text-slate-600'
+			},
+			{
+				key: 'windspeed_kmh',
+				icon: 'mdi:weather-windy',
+				iconClass: 'text-slate-400',
+				label: 'Wind:',
+				labelClass: 'text-slate-500',
+				value: currentData?.windspeed_kmh,
+				unit: 'km/h',
+				containerBorderClass: 'border border-slate-100',
+				containerBgClass: 'bg-slate-50/50',
+				hoverClass: 'hover:bg-slate-100/50',
+				valueChipClass: 'bg-slate-200/50 text-slate-500'
+			},
+			{
+				key: 'cloudcover',
+				icon: 'mdi:weather-cloudy',
+				iconClass: 'text-gray-400',
+				label: 'Clouds:',
+				labelClass: 'text-slate-500',
+				value: currentData?.cloudcover,
+				unit: '%',
+				containerBorderClass: 'border border-gray-200',
+				containerBgClass: 'bg-white',
+				hoverClass: 'hover:bg-gray-50/60',
+				valueChipClass: 'bg-gray-100 text-gray-500'
+			},
+			{
+				key: 'humidity',
+				icon: 'mdi:humidity',
+				iconClass: 'text-cyan-500',
+				label: 'Humidity:',
+				labelClass: 'text-slate-500',
+				value: currentData?.humidity,
+				unit: '%',
+				containerBorderClass: 'border border-cyan-100',
+				containerBgClass: 'bg-cyan-50/30',
+				hoverClass: 'hover:bg-cyan-50/60',
+				valueChipClass: 'bg-cyan-100/50 text-cyan-600/80'
+			},
+			{
+				key: 'temp_c',
+				icon: 'mdi:thermometer',
+				iconClass: 'text-orange-500',
+				label: 'Temp:',
+				labelClass: 'text-slate-500',
+				value: currentData?.temp_c,
+				unit: '°C',
+				containerBorderClass: 'border border-orange-100',
+				containerBgClass: 'bg-orange-50/30',
+				hoverClass: 'hover:bg-orange-50/60',
+				valueChipClass: 'bg-orange-100/50 text-orange-600/80'
+			}
+		];
+	}
+
+	function getHourlyDetailRows(hour) {
+		return [
+			{ label: 'Precip', value: hour?.precip_mm ?? '--', unit: 'mm' },
+			{ label: 'Gust', value: hour?.windgust_kmh ?? '--', unit: 'km/h' },
+			{ label: 'Press', value: hour?.pressure_mb ?? '--', unit: 'mb' },
+			{ label: 'Clouds', value: hour?.cloudcover ?? '--' },
+			{ label: 'UV', value: hour?.uvindex ?? '--' },
+			{ label: 'Solar', value: hour?.solarradiation ?? '--', unit: 'W/m²' }
+		];
 	}
 
 	// Load 5-day forecast for a specific location
@@ -159,64 +288,86 @@
 
 <div class="weather-tab space-y-3">
 	<div class="flex items-center justify-center gap-5">
-		<FilterButton onclick={refreshWeather} className="grow max-w-48" disabled={$weatherData.loading}>
-			<Icon icon="mdi:refresh" width="15" />
-			<span class="hidden sm:inline">Refresh</span>
-		</FilterButton>
+		<TabActionButton
+			onclick={refreshWeather}
+			disabled={$weatherData.loading}
+			icon="mdi:refresh"
+			label="Refresh"
+		/>
 
-		<FilterButton onclick={() => (showFilters = !showFilters)} className="grow max-w-48">
-			<Icon icon={showFilters ? 'mdi:filter-off' : 'mdi:filter'} width="15" />
-			<span class="hidden sm:inline">{showFilters ? 'Hide' : 'Filters'}</span>
-		</FilterButton>
+		<TabActionButton
+			onclick={() => (showFilters = !showFilters)}
+			icon={showFilters ? 'mdi:filter-off' : 'mdi:filter'}
+			label={showFilters ? 'Hide' : 'Filters'}
+		/>
 	</div>
 
 	<!-- Filters -->
 	{#if showFilters}
-		<div class="rounded-lg border border-gray-200 bg-gray-50 p-3 shadow-sm">
-			<div class="mb-2 flex items-center space-x-2">
-				<div class="bg-primary rounded p-1">
-					<Icon icon="mdi:filter" class="text-white" width="12" />
-				</div>
-				<h3 class="text-primary text-sm font-semibold">Filter & Sort</h3>
-			</div>
+		<TabFilterCard>
+			<div class="space-y-3">
+				<div class="grid grid-cols-1 gap-3 md:grid-cols-3">
+					<div>
+						<label class="mb-1 block text-xs font-medium text-gray-600" for="district-filter"
+							>District</label
+						>
+						<select
+							bind:value={districtFilter}
+							id="district-filter"
+							class="w-full cursor-pointer rounded border border-gray-300 bg-white px-2 py-1.5 text-xs focus:border-blue-500 focus:outline-none"
+						>
+							<option value="all">All Districts</option>
+							{#each Object.keys(districts) as district}
+								<option value={district}>{district}</option>
+							{/each}
+						</select>
+					</div>
 
-			<div class="space-y-2">
-				<div>
-					<label class="mb-1 block text-xs font-medium text-gray-600" for="distict-filter"
-						>District</label
-					>
-					<select
-						bind:value={districtFilter}
-						id="distict-filter"
-						class="w-full cursor-pointer rounded border border-gray-300 bg-white px-2 py-1.5 text-xs focus:border-blue-500 focus:outline-none"
-					>
-						<option value="all">All Districts</option>
-						{#each Object.keys(districts) as district}
-							<option value={district}>{district}</option>
-						{/each}
-					</select>
+					<div>
+						<label class="mb-1 block text-xs font-medium text-gray-600" for="sort-metric"
+							>Sort metric</label
+						>
+						<select
+							bind:value={sortMetric}
+							id="sort-metric"
+							class="w-full cursor-pointer rounded border border-gray-300 bg-white px-2 py-1.5 text-xs focus:border-blue-500 focus:outline-none"
+						>
+							{#each sortMetricOptions as option}
+								<option value={option.value}>{option.label}</option>
+							{/each}
+						</select>
+					</div>
+
+					<div>
+						<label class="mb-1 block text-xs font-medium text-gray-600" for="sort-direction"
+							>Sort order</label
+						>
+						<select
+							bind:value={sortDirection}
+							id="sort-direction"
+							class="w-full cursor-pointer rounded border border-gray-300 bg-white px-2 py-1.5 text-xs focus:border-blue-500 focus:outline-none"
+						>
+							<option value="asc">{sortMetric === 'location' ? 'A-Z' : 'Low to High'}</option>
+							<option value="desc">{sortMetric === 'location' ? 'Z-A' : 'High to Low'}</option>
+						</select>
+					</div>
 				</div>
 
-				<div>
-					<label class="mb-1 block text-xs font-medium text-gray-600" for="sort-option"
-						>Sort by</label
+				<div class="flex items-center justify-between border-t border-gray-200 pt-2">
+					<div class="text-xs text-gray-500">
+						Showing {Object.keys(filteredData()).length} of {totalLocationCount} locations
+					</div>
+					<button
+						type="button"
+						class="flex cursor-pointer items-center gap-1 rounded bg-gray-100 px-2 py-1 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-200"
+						onclick={resetWeatherFilters}
 					>
-					<select
-						bind:value={sortOption}
-						id="sort-option"
-						class="w-full cursor-pointer rounded border border-gray-300 bg-white px-2 py-1.5 text-xs focus:border-blue-500 focus:outline-none"
-					>
-						<option value="location-asc">Location A-Z</option>
-						<option value="location-desc">Location Z-A</option>
-						<option value="temp-high">Highest Temperature</option>
-						<option value="temp-low">Lowest Temperature</option>
-						<option value="precip-high">Highest Rain Chance</option>
-						<option value="humidity-high">Highest Humidity</option>
-						<option value="wind-high">Highest Wind Speed</option>
-					</select>
+						<Icon icon="mdi:filter-remove-outline" width="12" />
+						Reset
+					</button>
 				</div>
 			</div>
-		</div>
+		</TabFilterCard>
 	{/if}
 
 	<!-- Loading/Error States -->
@@ -238,7 +389,7 @@
 					<h4 class="text-sm font-bold text-red-900">Error Loading Data</h4>
 					<p class="mt-1 text-xs text-red-700">{$weatherData.error}</p>
 					<button
-						class="mt-2 flex items-center gap-1 rounded bg-red-100 px-2 py-1 text-xs font-medium text-red-800 transition-colors hover:bg-red-200 cursor-pointer"
+						class="mt-2 flex cursor-pointer items-center gap-1 rounded bg-red-100 px-2 py-1 text-xs font-medium text-red-800 transition-colors hover:bg-red-200"
 						onclick={refreshWeather}
 					>
 						<Icon icon="mdi:refresh" width="12" />
@@ -279,15 +430,16 @@
 
 			{#each Object.entries(filteredData()) as [location, days]}
 				{@const currentData = getCurrentHourData(days)}
+				{@const metrics = getWeatherMetrics(currentData)}
 				<div
 					class="group relative overflow-hidden rounded-xl border border-slate-200/80 bg-white shadow-sm transition-all hover:border-slate-300 hover:shadow-md"
 				>
 					<!-- Color accent bar at the top -->
-					<div class="absolute top-0 left-0 h-1 w-full bg-primary-light"></div>
+					<div class="bg-primary-light absolute top-0 left-0 h-1 w-full"></div>
 
 					<!-- Location Header -->
 					<div class="px-3 py-2 pt-4 sm:px-4">
-						<div class="flex justify-between gap-2 items-center">
+						<div class="flex items-center justify-between gap-2">
 							<h3
 								class="flex min-w-0 flex-shrink items-center text-[15px] font-extrabold text-slate-800"
 							>
@@ -330,150 +482,31 @@
 						</div>
 
 						<!-- Weather Metrics Grid -->
-						<div class="metrics-grid grid w-full grid-cols-1 md:grid-cols-2 items-stretch gap-3">
-							<!-- Rainfall Chance -->
-							<div
-								class="metric-card flex w-full items-center justify-between rounded-xl border border-blue-100 bg-blue-50/30 p-2.5 shadow-sm transition-colors hover:bg-blue-50/60"
-							>
-								<div class="flex items-center justify-start gap-1">
-									<Icon icon="mdi:weather-heavy-rain" class="flex-shrink-0 text-blue-500" width="16" />
-									<p class="truncate text-xs font-semibold text-slate-500">Rain Chance:</p>
-								</div>
-								<div class="flex items-center justify-end gap-1">
-									<div
-										class="flex items-center gap-1 truncate rounded bg-blue-100/50 px-1.5 py-0.5 text-[10px] font-bold text-blue-600/80"
-									>
-										<div class="text-[15px] font-extrabold">
-											{currentData.precipprob}
+						<div class="metrics-grid grid w-full grid-cols-1 items-stretch gap-3 md:grid-cols-2">
+							{#each metrics as metric}
+								<div
+									class={`metric-card flex w-full items-center justify-between rounded-xl ${getMetricBorderClass(metric.key, metric.containerBorderClass)} ${metric.containerBgClass} p-2.5 shadow-sm transition-colors ${metric.hoverClass}`}
+								>
+									<div class="flex items-center justify-start gap-1">
+										<Icon
+											icon={metric.icon}
+											class={`flex-shrink-0 ${metric.iconClass}`}
+											width="16"
+										/>
+										<p class={`truncate text-xs font-semibold ${metric.labelClass}`}>
+											{metric.label}
+										</p>
+									</div>
+									<div class="flex items-center justify-end gap-1">
+										<div
+											class={`flex items-center gap-1 truncate rounded px-1.5 py-0.5 text-[10px] font-bold ${metric.valueChipClass}`}
+										>
+											<div class="text-[15px] font-extrabold">{metric.value ?? '--'}</div>
+											{metric.unit}
 										</div>
-										%
 									</div>
 								</div>
-							</div>
-
-							<!-- Precipitation Amount -->
-							<div
-								class="metric-card flex w-full items-center justify-between rounded-xl border border-cyan-100 bg-cyan-50/30 p-2.5 shadow-sm transition-colors hover:bg-cyan-50/60"
-							>
-								<div class="flex items-center justify-start gap-1">
-									<Icon icon="mdi:water" class="flex-shrink-0 text-cyan-500" width="16" />
-									<p class="truncate text-xs font-semibold text-slate-500">Precip:</p>
-								</div>
-								<div class="flex items-center justify-end gap-1">
-									<div
-										class="flex items-center gap-1 truncate rounded bg-cyan-100/50 px-1.5 py-0.5 text-[10px] font-bold text-cyan-600/80"
-									>
-										<div class="text-[15px] font-extrabold">
-											{currentData.precip_mm}
-										</div>
-										mm
-									</div>
-								</div>
-							</div>
-
-							<!-- Wind Gust -->
-							<div
-								class="metric-card flex w-full items-center justify-between rounded-xl border border-slate-200 bg-slate-50/80 p-2.5 shadow-sm transition-colors hover:bg-slate-100/80"
-							>
-								<div class="flex items-center justify-start gap-1">
-									<Icon
-										icon="mdi:weather-windy-variant"
-										class="flex-shrink-0 text-slate-500"
-										width="16"
-									/>
-									<p class="truncate text-xs font-semibold text-slate-600">Gust:</p>
-								</div>
-								<div class="flex items-center justify-end gap-1">
-									<div
-										class="flex items-center gap-1 truncate rounded bg-slate-200/50 px-1.5 py-0.5 text-[10px] font-bold text-slate-600"
-									>
-										<div class="text-[15px] font-extrabold">
-											{currentData.windgust_kmh}
-										</div>
-										km/h
-									</div>
-								</div>
-							</div>
-
-							<!-- Wind Speed -->
-							<div
-								class="metric-card flex w-full items-center justify-between rounded-xl border border-slate-100 bg-slate-50/50 p-2.5 shadow-sm transition-colors hover:bg-slate-100/50"
-							>
-								<div class="flex items-center justify-start gap-1">
-									<Icon icon="mdi:weather-windy" class="flex-shrink-0 text-slate-400" width="16" />
-									<p class="truncate text-xs font-semibold text-slate-500">Wind:</p>
-								</div>
-								<div class="flex items-center justify-end gap-1">
-									<div
-										class="flex items-center gap-1 truncate rounded bg-slate-200/50 px-1.5 py-0.5 text-[10px] font-bold text-slate-500"
-									>
-										<div class="text-[15px] font-extrabold">
-											{currentData.windspeed_kmh}
-										</div>
-										km/h
-									</div>
-								</div>
-							</div>
-
-							<!-- Cloud Cover -->
-							<div
-								class="metric-card flex w-full items-center justify-between rounded-xl border border-gray-200 bg-white p-2.5 shadow-sm transition-colors hover:bg-gray-50/60"
-							>
-								<div class="flex items-center justify-start gap-1">
-									<Icon icon="mdi:weather-cloudy" class="flex-shrink-0 text-gray-400" width="16" />
-									<p class="truncate text-xs font-semibold text-slate-500">Clouds:</p>
-								</div>
-								<div class="flex items-center justify-end gap-1">
-									<div
-										class="flex items-center gap-1 truncate rounded bg-gray-100 px-1.5 py-0.5 text-[10px] font-bold text-gray-500"
-									>
-										<div class="text-[15px] font-extrabold">
-											{currentData.cloudcover}
-										</div>
-										%
-									</div>
-								</div>
-							</div>
-
-							<!-- Humidity -->
-							<div
-								class="metric-card flex w-full items-center justify-between rounded-xl border border-cyan-100 bg-cyan-50/30 p-2.5 shadow-sm transition-colors hover:bg-cyan-50/60"
-							>
-								<div class="flex items-center justify-start gap-1">
-									<Icon icon="mdi:humidity" class="flex-shrink-0 text-cyan-500" width="16" />
-									<p class="truncate text-xs font-semibold text-slate-500">Humidity:</p>
-								</div>
-								<div class="flex items-center justify-end gap-1">
-									<div
-										class="flex items-center gap-1 truncate rounded bg-cyan-100/50 px-1.5 py-0.5 text-[10px] font-bold text-cyan-600/80"
-									>
-										<div class="text-[15px] font-extrabold">
-											{currentData.humidity}
-										</div>
-										%
-									</div>
-								</div>
-							</div>	
-
-							<!-- Temperature -->
-							<div
-								class="metric-card flex w-full items-center justify-between rounded-xl border border-orange-100 bg-orange-50/30 p-2.5 shadow-sm transition-colors hover:bg-orange-50/60"
-							>
-								<div class="flex items-center justify-start gap-1">
-									<Icon icon="mdi:thermometer" class="flex-shrink-0 text-orange-500" width="16" />
-									<p class="truncate text-xs font-semibold text-slate-500">Temp:</p>
-								</div>
-								<div class="flex items-center justify-end gap-1">
-									<div
-										class="flex items-center gap-1 truncate rounded bg-orange-100/50 px-1.5 py-0.5 text-[10px] font-bold text-orange-600/80"
-									>
-										<div class="text-[15px] font-extrabold">
-											{currentData.temp_c}
-										</div>
-										°C
-									</div>
-								</div>
-							</div>											
+							{/each}
 						</div>
 					</div>
 
@@ -513,14 +546,12 @@
 									</div>
 								{:else if locationForecastErrors[location]}
 									<div class="rounded-xl border border-red-200 bg-red-50 p-4 text-center shadow-sm">
-										<Icon
-											icon="mdi:alert-circle"
-											class="mx-auto mb-2 text-red-500"
-											width="20"
-										/>
-										<p class="text-xs font-semibold text-red-700">{locationForecastErrors[location]}</p>
+										<Icon icon="mdi:alert-circle" class="mx-auto mb-2 text-red-500" width="20" />
+										<p class="text-xs font-semibold text-red-700">
+											{locationForecastErrors[location]}
+										</p>
 										<button
-											class="mx-auto mt-2 flex items-center gap-1 rounded bg-red-100 px-2 py-1 text-xs font-medium text-red-800 transition-colors cursor-pointer hover:bg-red-200"
+											class="mx-auto mt-2 flex cursor-pointer items-center gap-1 rounded bg-red-100 px-2 py-1 text-xs font-medium text-red-800 transition-colors hover:bg-red-200"
 											onclick={() => loadLocationForecast(location)}
 										>
 											<Icon icon="mdi:refresh" width="12" />
@@ -550,7 +581,7 @@
 										<!-- Horizontal scrollable container -->
 										<div class="forecast-scroll -mx-1 overflow-x-scroll px-1 pb-3">
 											<div class="flex min-w-max gap-3">
-												{#each forecastData as hour, index}
+												{#each forecastData as hour}
 													{@const isCurrentHour = moment(
 														hour.datetime,
 														'YYYY-MM-DD HH:mm:ss'
@@ -674,58 +705,19 @@
 																<div
 																	class="mt-2 space-y-1.5 border-t border-slate-100 pt-2 text-[10px] font-semibold"
 																>
-																	<div
-																		class="flex items-center justify-between rounded bg-slate-50 px-1.5 py-1"
-																	>
-																		<span class="text-slate-500">Precip</span>
-																		<span class="truncate font-bold text-slate-700"
-																			>{hour.precip_mm}
-																			<span class="text-[9px] font-medium text-slate-400">mm</span
-																			></span
+																	{#each getHourlyDetailRows(hour) as row}
+																		<div
+																			class="flex items-center justify-between rounded bg-slate-50 px-1.5 py-1"
 																		>
-																	</div>
-																	<div
-																		class="flex items-center justify-between rounded bg-slate-50 px-1.5 py-1"
-																	>
-																		<span class="text-slate-500">Gust</span>
-																		<span class="truncate font-bold text-slate-700"
-																			>{hour.windgust_kmh}
-																			<span class="text-[9px] font-medium text-slate-400">km/h</span
-																			></span
-																		>
-																	</div>
-																	<div
-																		class="flex items-center justify-between rounded bg-slate-50 px-1.5 py-1"
-																	>
-																		<span class="text-slate-500">Press</span>
-																		<span class="truncate font-bold text-slate-700"
-																			>{hour.pressure_mb}
-																			<span class="text-[9px] font-medium text-slate-400">mb</span
-																			></span
-																		>
-																	</div>
-																	<div
-																		class="flex items-center justify-between rounded bg-slate-50 px-1.5 py-1"
-																	>
-																		<span class="text-slate-500">Clouds</span>
-																		<span class="font-bold text-slate-700">{hour.cloudcover}%</span>
-																	</div>
-																	<div
-																		class="flex items-center justify-between rounded bg-slate-50 px-1.5 py-1"
-																	>
-																		<span class="text-slate-500">UV</span>
-																		<span class="font-bold text-slate-700">{hour.uvindex}</span>
-																	</div>
-																	<div
-																		class="flex items-center justify-between rounded bg-slate-50 px-1.5 py-1"
-																	>
-																		<span class="text-slate-500">Solar</span>
-																		<span class="truncate font-bold text-slate-700"
-																			>{hour.solarradiation}
-																			<span class="text-[9px] font-medium text-slate-400">W/m²</span
-																			></span
-																		>
-																	</div>
+																			<span class="text-slate-500">{row.label}</span>
+																			<span class="truncate font-bold text-slate-700"
+																				>{row.value}{#if row.unit}<span
+																						class="text-[9px] font-medium text-slate-400"
+																						>{row.unit}</span
+																					>{/if}</span
+																			>
+																		</div>
+																	{/each}
 																	<div
 																		class="mt-2 rounded-lg border border-blue-100 bg-blue-50 p-1.5 text-center text-[10px] font-bold break-words text-blue-700"
 																	>
@@ -757,12 +749,12 @@
 					</div>
 
 					<!-- Visual Crossing Attribution -->
-					<div class="border-t border-slate-100 bg-slate-50/80 px-4 py-2.5 flex justify-center">
+					<div class="flex justify-center border-t border-slate-100 bg-slate-50/80 px-4 py-2.5">
 						<a
 							href="https://www.visualcrossing.com"
 							target="_blank"
 							rel="noopener noreferrer"
-							class="group flex items-center justify-center gap-2 text-xs text-slate-500 transition-all hover:text-slate-800 px-2 py-1"
+							class="group flex items-center justify-center gap-2 px-2 py-1 text-xs text-slate-500 transition-all hover:text-slate-800"
 							title="Weather data provided by Visual Crossing"
 						>
 							<span class="font-medium">Powered by</span>
@@ -804,10 +796,6 @@
 
 	.space-y-3 > :not([hidden]) ~ :not([hidden]) {
 		margin-top: 0.75rem;
-	}
-
-	.space-y-2 > :not([hidden]) ~ :not([hidden]) {
-		margin-top: 0.5rem;
 	}
 
 	/* Improve scrollbar for horizontal scroll */
