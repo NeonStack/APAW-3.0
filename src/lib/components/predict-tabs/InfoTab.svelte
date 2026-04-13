@@ -133,11 +133,15 @@
 		} else {
 			sources[5].status = 'pending';
 		}
+
+		sourceErrorCount = sources.filter((source) => source.status === 'error').length;
 	}
 
 	let dataSourcesExpanded = false;
 	let tropicalCycloneTrackerExpanded = false;
 	let generalFloodAdvisoryExpanded = false;
+	let sourceErrorCount = 0;
+	let hasStatusIssues = false;
 
 	// Add new state for combined alerts section
 	let alertsExpanded = false;
@@ -641,6 +645,8 @@
 		($generalFloodAdvisoryStore.data ? 1 : 0) +
 		automatedAlertCount;
 
+	$: hasStatusIssues = sourceErrorCount > 0 || activeAlertsCount > 0;
+
 	$: automatedDateChoices = (() => {
 		const map = new Map();
 		const baseRequestDate = $automatedFloodAlerts?.meta?.request_date;
@@ -807,8 +813,14 @@
 			onclick={() => (alertsExpanded = !alertsExpanded)}
 			class="flex w-full cursor-pointer items-center justify-between p-3.5 py-2 text-left transition-colors hover:bg-slate-50"
 		>
-			<div class="flex items-center gap-4">
-				{#if activeAlertsCount === 0}
+			<div class="flex min-w-0 flex-1 items-center gap-4">
+				{#if sourceErrorCount > 0}
+					<div
+						class="flex h-7 w-7 items-center justify-center rounded-xl bg-red-100 ring-1 ring-red-200"
+					>
+						<Icon icon="mdi:close-circle" class="text-red-600" width="16" />
+					</div>
+				{:else if activeAlertsCount === 0}
 					<div
 						class="flex h-7 w-7 items-center justify-center rounded-xl bg-green-100 ring-1 ring-green-200"
 					>
@@ -821,11 +833,24 @@
 						<Icon icon="mdi:alert-circle" class="text-orange-600" width="16" />
 					</div>
 				{/if}
-				<div>
-					<h3 class="text-sm font-bold tracking-tight text-gray-800">
-						Alerts & Data Status
-						{#if activeAlertsCount >= 1}
-							({activeAlertsCount} {activeAlertsCount === 1 ? 'alert' : 'alerts'})
+				<div class="min-w-0">
+					<h3 class="flex flex-wrap items-center gap-1 text-sm font-bold tracking-tight text-gray-800">
+						<span>Alerts & Data Status</span>
+						{#if hasStatusIssues}
+							<span class="text-gray-400">-</span>
+							{#if sourceErrorCount > 0}
+								<span class="text-red-600"
+									>{sourceErrorCount} {sourceErrorCount === 1 ? 'error' : 'errors'}</span
+								>
+							{/if}
+							{#if sourceErrorCount > 0 && activeAlertsCount > 0}
+								<span class="text-gray-400" aria-hidden="true">•</span>
+							{/if}
+							{#if activeAlertsCount > 0}
+								<span class="text-orange-700"
+									>{activeAlertsCount} {activeAlertsCount === 1 ? 'alert' : 'alerts'}</span
+								>
+							{/if}
 						{/if}
 					</h3>
 				</div>

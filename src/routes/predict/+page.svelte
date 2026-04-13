@@ -379,6 +379,25 @@
 		});
 	}
 
+	function isPromiseLike(value) {
+		return !!value && typeof value.then === 'function';
+	}
+
+	function getSynchronousBootstrapPayload(payload) {
+		if (!payload || typeof payload !== 'object') return null;
+
+		if (payload.bootstrapOk && payload.initialData) {
+			return payload;
+		}
+
+		const nestedBootstrap = payload.bootstrap;
+		if (nestedBootstrap && !isPromiseLike(nestedBootstrap) && typeof nestedBootstrap === 'object') {
+			return nestedBootstrap;
+		}
+
+		return null;
+	}
+
 	function applyServerBootstrap(initialData, bootstrapAt) {
 		if (!browser || !initialData) return false;
 
@@ -507,10 +526,41 @@
 		return true;
 	}
 
-	$effect(() => {
-		if (data?.bootstrapOk) {
-			applyServerBootstrap(data?.initialData, data?.bootstrapAt);
+	function applyBootstrapPayload(payload) {
+		if (!payload?.bootstrapOk || !payload?.initialData) {
+			return false;
 		}
+
+		return applyServerBootstrap(payload.initialData, payload.bootstrapAt || data?.bootstrapAt);
+	}
+
+	$effect(() => {
+		const bootstrapPayload = getSynchronousBootstrapPayload(data);
+		if (bootstrapPayload) {
+			applyBootstrapPayload(bootstrapPayload);
+		}
+	});
+
+	$effect(() => {
+		const streamedBootstrap = data?.bootstrap;
+		if (!isPromiseLike(streamedBootstrap)) {
+			return;
+		}
+
+		let cancelled = false;
+		streamedBootstrap
+			.then((payload) => {
+				if (cancelled) return;
+				applyBootstrapPayload(payload);
+			})
+			.catch((error) => {
+				if (cancelled) return;
+				console.warn(`Predict streamed bootstrap failed: ${error?.message || 'unknown_error'}`);
+			});
+
+		return () => {
+			cancelled = true;
+		};
 	});
 
 	function handleResize() {
@@ -535,8 +585,7 @@
 			isSidebarOpen = false;
 		}
 
-		const hydratedFromServer =
-			data?.bootstrapOk && applyServerBootstrap(data?.initialData, data?.bootstrapAt);
+		const hydratedFromServer = applyBootstrapPayload(getSynchronousBootstrapPayload(data));
 
 		const refreshSchedules = getRefreshSchedules();
 
@@ -603,7 +652,7 @@
 
 		<!-- Mobile Toggle Button -->
 		<button
-			class="bg-primary fixed right-4 bottom-4 z-40 flex items-center justify-center rounded-full p-2 border-1 border-primary-light text-white shadow-lg md:hidden"
+			class="bg-primary border-primary-light fixed right-4 bottom-4 z-40 flex items-center justify-center rounded-full border-1 p-2 text-white shadow-lg md:hidden"
 			onclick={toggleSidebar}
 			aria-label={isSidebarOpen ? 'Close sidebar' : 'Open sidebar'}
 		>
