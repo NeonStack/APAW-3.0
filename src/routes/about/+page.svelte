@@ -133,14 +133,8 @@
 
 	<div class="relative z-10 container mx-auto px-6">
 		<div class="mx-auto max-w-5xl text-center">
-			<img
-				src="/APAW_TRANSPARENT.webp"
-				alt="APAW Logo"
-				class="mx-auto mb-8 h-auto w-full max-w-[220px] object-contain drop-shadow-md sm:max-w-[280px]"
-			/>
-
-			<h1 class="mb-6 text-4xl leading-tight font-extrabold text-slate-800 md:text-5xl lg:text-6xl">
-				About APAW Flood Prediction Platform
+			<h1 class="mb-8 text-primary font-black text-5xl md:text-6xl lg:text-7xl">
+				About Us
 			</h1>
 
 			<p
@@ -172,13 +166,12 @@
 					/>
 				</div>
 				<div class="relative z-10">
-					<img
-						src="/APAW_SHORT_TRANSPARENT.webp"
-						alt="APAW logo"
-						class="mb-8 h-16 drop-shadow-md"
-					/>
 					<h2 class="mb-6 text-4xl leading-tight font-extrabold text-slate-800">
-						What is <span class="text-primary-light">APAW</span>?
+					What is <img
+						src="/APAW_TRANSPARENT.webp"
+						alt="APAW"
+						class="inline-block h-10 w-auto drop-shadow-md align-middle"
+					/>?
 					</h2>
 					<p class="mb-6 text-lg leading-relaxed text-gray-600">
 						APAW (Advanced Predictive Analysis of Water-related Flood Risk) is a machine
@@ -411,7 +404,11 @@
 					Experimental Model
 				</div>
 				<h3 class="mb-8 flex items-center gap-3 text-2xl font-bold text-white">
-					<Icon icon="mdi:shield-check" class="text-primary-light" /> APAW Architecture
+					<img
+						src="/APAW_SHORT_TRANSPARENT.webp"
+						alt="APAW logo"
+						class="inline-block h-7 w-auto drop-shadow-md align-middle"
+					/> APAW Architecture
 				</h3>
 				<ul class="space-y-6">
 					{#each features as feature}
