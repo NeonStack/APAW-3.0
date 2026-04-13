@@ -137,7 +137,7 @@
 	/>
 </svelte:head>
 
-<section class="relative flex overflow-hidden bg-[oklch(0.984_0.003_247.858)] pt-12 lg:py-10">
+<section class="relative flex overflow-hidden bg-[oklch(0.984_0.003_247.858)] pt-12 lg:py-4">
 	<!-- Rain Effect -->
 	<div class="raindrops-container">
 		{#each raindrops as raindrop}

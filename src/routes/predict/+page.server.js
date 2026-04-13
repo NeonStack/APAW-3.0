@@ -15,11 +15,7 @@ const actionRateBuckets = new Map();
 
 async function fetchJson(fetchFn, endpoint, referer, options = {}) {
 	try {
-		const {
-			allowEdgeCache = false,
-			headers: optionHeaders,
-			...requestOptions
-		} = options;
+		const { allowEdgeCache = false, headers: optionHeaders, ...requestOptions } = options;
 
 		const response = await fetchFn(endpoint, {
 			...requestOptions,
@@ -149,12 +145,7 @@ function enforceActionRateLimit(request, actionName) {
 	});
 }
 
-export async function load({ fetch, url, setHeaders }) {
-	setHeaders({
-		'cache-control': 'no-store, max-age=0'
-	});
-
-	const referer = `${url.origin}${url.pathname}`;
+async function fetchPredictBootstrap(fetchFn, referer) {
 	const automatedQuery =
 		`/api/automated-flood-detection?forecast_index=${DEFAULT_FORECAST_INDICES.join(',')}` +
 		`&min_probability=${DEFAULT_MIN_PROBABILITY}`;
@@ -166,11 +157,11 @@ export async function load({ fetch, url, setHeaders }) {
 		advisoryResult,
 		automatedResult
 	] = await Promise.all([
-		fetchJson(fetch, '/api/get-weather', referer, { allowEdgeCache: true }),
-		fetchJson(fetch, '/api/water-stations', referer, { allowEdgeCache: true }),
-		fetchJson(fetch, '/api/tropicalCyclone-tracker', referer),
-		fetchJson(fetch, '/api/general-flood-advisory', referer),
-		fetchJson(fetch, automatedQuery, referer)
+		fetchJson(fetchFn, '/api/get-weather', referer, { allowEdgeCache: true }),
+		fetchJson(fetchFn, '/api/water-stations', referer, { allowEdgeCache: true }),
+		fetchJson(fetchFn, '/api/tropicalCyclone-tracker', referer),
+		fetchJson(fetchFn, '/api/general-flood-advisory', referer),
+		fetchJson(fetchFn, automatedQuery, referer)
 	]);
 
 	const advisoryPayload = advisoryResult?.data;
@@ -210,9 +201,7 @@ export async function load({ fetch, url, setHeaders }) {
 			waterStations: {
 				data: Array.isArray(waterStationsResult.data) ? waterStationsResult.data : [],
 				error: waterStationsResult.error,
-				status: Number.isFinite(waterStationsResult.status)
-					? waterStationsResult.status
-					: null
+				status: Number.isFinite(waterStationsResult.status) ? waterStationsResult.status : null
 			},
 			tropicalCyclone: {
 				data: Array.isArray(tropicalCycloneResult.data) ? tropicalCycloneResult.data : [],
@@ -238,6 +227,26 @@ export async function load({ fetch, url, setHeaders }) {
 				error: automatedResult.error
 			}
 		}
+	};
+}
+
+export async function load({ fetch, url, setHeaders }) {
+	setHeaders({
+		'cache-control': 'no-store, max-age=0'
+	});
+
+	const referer = `${url.origin}${url.pathname}`;
+
+	return {
+		bootstrapAt: new Date().toISOString(),
+		bootstrapOk: false,
+		initialData: null,
+		bootstrap: fetchPredictBootstrap(fetch, referer).catch((error) => ({
+			bootstrapAt: new Date().toISOString(),
+			bootstrapOk: false,
+			initialData: null,
+			error: error?.message || 'Failed to bootstrap predict page data'
+		}))
 	};
 }
 
