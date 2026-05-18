@@ -55,7 +55,17 @@ function isCacheFresh(cacheRow, now = new Date()) {
 }
 
 function extractCachedStations(cacheRow) {
-	return Array.isArray(cacheRow?.stations_data) ? cacheRow.stations_data : [];
+	const raw = cacheRow?.stations_data;
+	if (Array.isArray(raw)) return raw;
+	if (typeof raw === 'string') {
+		try {
+			const parsed = JSON.parse(raw);
+			return Array.isArray(parsed) ? parsed : [];
+		} catch {
+			return [];
+		}
+	}
+	return [];
 }
 
 async function readCacheRow(supabase) {
