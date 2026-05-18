@@ -13,6 +13,9 @@ const HF_BATCH_API_URL =
 	'https://hunterexist2-apaw-hourly-docker-2.hf.space/predict_flood_with_data_batch_persist';
 const WATER_STATIONS_API_URL =
 	'https://pasig-marikina-tullahanffws.pagasa.dost.gov.ph/water/main_list.do';
+const WATER_STATIONS_CACHE_TABLE = 'pagasa_water_stations_cache';
+const WATER_STATIONS_CACHE_KEY = 'ACTIVE_PAGASA_WATER_STATIONS';
+const WATER_STATIONS_CACHE_SUCCESS_MINS = 10;
 const COORDINATES_TABLE = 'automated_detection_locations';
 const AUTOMATED_FLOOD_TABLE = 'automated_flood_detection';
 const MAX_CONCURRENCY = 2;
@@ -50,6 +53,99 @@ function cleanWaterLevel(wl) {
 function isStationFunctioning(station) {
 	const readings = [station.wl, station.wl10m, station.wl30m, station.wl1h, station.wl2h];
 	return readings.some((wl) => parseFloat(wl || 0) !== 0);
+}
+
+function normalizeStations(rawStations) {
+	if (!Array.isArray(rawStations)) return [];
+
+	return rawStations
+		.map((station) => ({
+			obscd: station.obscd,
+			obsnm: station.obsnm,
+			lon: station.lon,
+			lat: station.lat,
+			wl: cleanWaterLevel(station.wl),
+			wl10m: cleanWaterLevel(station.wl10m),
+			wl30m: cleanWaterLevel(station.wl30m),
+			wl1h: cleanWaterLevel(station.wl1h),
+			wl2h: cleanWaterLevel(station.wl2h),
+			wlchange: station.wlchange,
+			alertwl: station.alertwl,
+			alarmwl: station.alarmwl,
+			criticalwl: station.criticalwl
+		}))
+		.filter(isStationFunctioning);
+}
+
+function isCacheFresh(cacheRow, now = new Date()) {
+	const expiryMs = Date.parse(String(cacheRow?.cache_expiry_time || ''));
+	return Number.isFinite(expiryMs) && expiryMs > now.getTime();
+}
+
+function extractCachedStations(cacheRow) {
+	const raw = cacheRow?.stations_data;
+	if (Array.isArray(raw)) return raw;
+	if (typeof raw === 'string') {
+		try {
+			const parsed = JSON.parse(raw);
+			return Array.isArray(parsed) ? parsed : [];
+		} catch {
+			return [];
+		}
+	}
+	return [];
+}
+
+function getCacheAgeMs(cacheRow, now = new Date()) {
+	const lastSuccessMs = Date.parse(String(cacheRow?.last_success_at || ''));
+	return Number.isFinite(lastSuccessMs) ? now.getTime() - lastSuccessMs : null;
+}
+
+async function readStationsCache(supabase) {
+	const { data, error } = await supabase
+		.from(WATER_STATIONS_CACHE_TABLE)
+		.select('stations_data, cache_expiry_time, last_success_at')
+		.eq('cache_key', WATER_STATIONS_CACHE_KEY)
+		.maybeSingle();
+
+	if (error) {
+		console.warn('[automated-flood-detection] Water stations cache read failed:', error);
+		return null;
+	}
+
+	return data || null;
+}
+
+async function writeSuccessCache(supabase, stations, now = new Date()) {
+	const cacheExpiryTime = new Date(
+		now.getTime() + WATER_STATIONS_CACHE_SUCCESS_MINS * 60 * 1000
+	).toISOString();
+
+	const { error } = await supabase.from(WATER_STATIONS_CACHE_TABLE).upsert(
+		{
+			cache_key: WATER_STATIONS_CACHE_KEY,
+			stations_data: stations,
+			station_count: stations.length,
+			cache_expiry_time: cacheExpiryTime,
+			last_attempt_at: now.toISOString(),
+			last_success_at: now.toISOString(),
+			source: 'pagasa_live'
+		},
+		{ onConflict: 'cache_key' }
+	);
+
+	if (error) {
+		throw new Error(`Failed to update water stations cache: ${error.message}`);
+	}
+}
+
+async function fetchLiveStationsFromPagasa() {
+	const response = await fetch(WATER_STATIONS_API_URL);
+	if (!response.ok) {
+		throw new Error(`Water stations API failed with status ${response.status}`);
+	}
+	const data = await response.json();
+	return normalizeStations(data);
 }
 
 function getPhilippineDate() {
@@ -174,29 +270,53 @@ async function runWithConcurrency(items, concurrency, worker) {
 	return results;
 }
 
-async function fetchWaterStations() {
-	const response = await fetch(WATER_STATIONS_API_URL);
-	if (!response.ok) {
-		throw new Error(`Water stations API failed with status ${response.status}`);
+async function fetchWaterStationsWithFallback() {
+	const supabase = getSupabaseServiceClient();
+	const now = new Date();
+	const cacheRow = await readStationsCache(supabase);
+	const cachedStations = normalizeStations(extractCachedStations(cacheRow));
+	const cacheAgeMs = getCacheAgeMs(cacheRow, now);
+	const cacheStale = cacheRow ? !isCacheFresh(cacheRow, now) : null;
+
+	try {
+		const liveStations = await fetchLiveStationsFromPagasa();
+		if (liveStations.length > 0) {
+			try {
+				await writeSuccessCache(supabase, liveStations, now);
+			} catch (error) {
+				console.warn(
+					'[automated-flood-detection] Water stations cache write failed:',
+					error
+				);
+			}
+			return {
+				stations: liveStations,
+				meta: {
+					source: 'pagasa_live',
+					cache_age_ms: null,
+					cache_stale: null
+				}
+			};
+		}
+	} catch (error) {
+		console.warn(
+			'[automated-flood-detection] Water stations live fetch failed:',
+			error
+		);
 	}
-	const data = await response.json();
-	return data
-		.map((station) => ({
-			obscd: station.obscd,
-			obsnm: station.obsnm,
-			lon: station.lon,
-			lat: station.lat,
-			wl: cleanWaterLevel(station.wl),
-			wl10m: cleanWaterLevel(station.wl10m),
-			wl30m: cleanWaterLevel(station.wl30m),
-			wl1h: cleanWaterLevel(station.wl1h),
-			wl2h: cleanWaterLevel(station.wl2h),
-			wlchange: station.wlchange,
-			alertwl: station.alertwl,
-			alarmwl: station.alarmwl,
-			criticalwl: station.criticalwl
-		}))
-		.filter(isStationFunctioning);
+
+	if (cachedStations.length > 0) {
+		return {
+			stations: cachedStations,
+			meta: {
+				source: 'supabase_cache',
+				cache_age_ms: cacheAgeMs,
+				cache_stale: cacheStale
+			}
+		};
+	}
+
+	throw new Error('No available water station data from PAGASA or cache.');
 }
 
 async function fetchConfiguredCoordinates() {
@@ -504,9 +624,12 @@ export async function POST({ request, url }) {
 	const triggeredAt = new Date().toISOString();
 
 	let waterStationData = [];
+	let waterStationsMeta = { source: 'unknown', cache_age_ms: null, cache_stale: null };
 	const waterStationsStartedAt = Date.now();
 	try {
-		waterStationData = await fetchWaterStations();
+		const waterStationsResult = await fetchWaterStationsWithFallback();
+		waterStationData = waterStationsResult.stations;
+		waterStationsMeta = waterStationsResult.meta;
 	} catch (error) {
 		return json(
 			{
@@ -584,6 +707,9 @@ export async function POST({ request, url }) {
 		triggered_at: triggeredAt,
 		trigger_source: controls.triggerSource,
 		request_date: controls.inputDate,
+		water_stations_source: waterStationsMeta.source,
+		water_stations_cache_age_ms: waterStationsMeta.cache_age_ms,
+		water_stations_cache_stale: waterStationsMeta.cache_stale,
 		concurrency: MAX_CONCURRENCY,
 		total_available: availableCoordinates.length,
 		selected_count: selectedCoordinates.length,
