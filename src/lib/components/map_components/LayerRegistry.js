@@ -6,8 +6,8 @@
 
 // --- Helper function (moved from WeatherLayers.js) ---
 function createPagasaSatelliteLayer(L) {
-	const northEast = L.latLng(29.0, 147.0);
-	const southWest = L.latLng(-1.0, 104.0);
+	const northEast = L.latLng(29.2, 147.0);
+	const southWest = L.latLng(-1.1, 104.0);
 	const bounds = L.latLngBounds(southWest, northEast);
 	const satelliteUrl =
 		'https://src.meteopilipinas.gov.ph/repo/mtsat-colored/24hour/latest-him-colored-hourly.gif';
