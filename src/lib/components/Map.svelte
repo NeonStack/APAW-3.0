@@ -190,32 +190,30 @@
 		}
 
 		const zoom = map.getZoom();
+		console.log('Current zoom level:', zoom);
 
-		// Keep NCR behavior strict at close zoom, then progressively loosen while zooming out.
-		if (zoom >= 10) {
+		// Super zoomed in: constrain to NCR
+		if (zoom >= 12) {
+			console.log('Zoom >= 12: Constraining to NCR bounds');
 			return {
 				bounds: paddedNcrBounds,
-				viscosity: 0.9
+				viscosity: 0.05
 			};
 		}
 
-		if (zoom >= 8) {
+		if (zoom >= 10) {
+			console.log('Zoom >= 10: Loose NCR constraint');
 			return {
-				bounds: strictNcrBounds.pad(2.8),
-				viscosity: 0.4
+				bounds: strictNcrBounds.pad(1),
+				viscosity: 0.05
 			};
 		}
 
-		if (zoom >= 7) {
-			return {
-				bounds: strictNcrBounds.pad(8),
-				viscosity: 0.18
-			};
-		}
-
+		// Zoomed out: worldwide freedom
+		console.log('Zoom < 10: Worldwide bounds (free movement)');
 		return {
 			bounds: L.latLngBounds(L.latLng(-85, -180), L.latLng(85, 180)),
-			viscosity: 0.08
+			viscosity: 0.05
 		};
 	}
 
@@ -223,6 +221,7 @@
 		const settings = getAdaptiveBoundsSettings();
 		if (!settings || !map) return;
 
+		console.log('Applying bounds:', settings.bounds, 'Viscosity:', settings.viscosity);
 		map.options.maxBoundsViscosity = settings.viscosity;
 		map.setMaxBounds(settings.bounds);
 	}
