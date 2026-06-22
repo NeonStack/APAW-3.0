@@ -317,8 +317,8 @@ export function drawCycloneTrack(L, layerGroup, cycloneData) {
 		const color1 = getCategoryColor(point1.category);
 		const color2 = getCategoryColor(point2.category);
 		
-		// Create 5 sub-segments for smooth gradient transition
-		const segments = 5;
+		// Create 12 sub-segments for better gradient visibility
+		const segments = 12;
 		for (let s = 0; s < segments; s++) {
 			const factor1 = s / segments;
 			const factor2 = (s + 1) / segments;
@@ -328,7 +328,9 @@ export function drawCycloneTrack(L, layerGroup, cycloneData) {
 			const lat2 = point1.lat + (point2.lat - point1.lat) * factor2;
 			const lon2 = point1.lon + (point2.lon - point1.lon) * factor2;
 			
-			const gradientColor = interpolateColor(color1, color2, factor1 + 0.1 / segments);
+			// Use midpoint of segment for color, creates stepped gradient effect
+			const colorFactor = (factor1 + factor2) / 2;
+			const gradientColor = interpolateColor(color1, color2, colorFactor);
 			
 			const pathSegment = L.polyline([[lat1, lon1], [lat2, lon2]], {
 				color: gradientColor,
@@ -342,6 +344,20 @@ export function drawCycloneTrack(L, layerGroup, cycloneData) {
 	// Draw the forecast points (smaller circles with popups)
 	forecastTrack.forEach((point) => {
 		const categoryMeta = getCycloneCategoryMeta(point.category);
+		const formattedDate = moment(point.date_time).format('MMM D, YYYY h:mm A');
+		
+		// Create detailed popup content
+		const popupContent = `
+			<div style="min-width: 250px;">
+				<b style="font-size: 14px;">${categoryMeta.label}</b><br>
+				<hr style="margin: 6px 0;">
+				<b>Location:</b> ${point.location || 'N/A'}<br>
+				<b>Date/Time:</b> ${formattedDate}<br>
+				<b>Max Winds:</b> ${point.msw_kmh} km/h<br>
+				<b>Movement:</b> ${point.movement || 'N/A'}<br>
+			</div>
+		`;
+		
 		const circle = L.circleMarker([point.lat, point.lon], {
 			radius: 5,
 			fillColor: getCategoryColor(point.category),
@@ -349,7 +365,18 @@ export function drawCycloneTrack(L, layerGroup, cycloneData) {
 			weight: 1.5,
 			opacity: 1,
 			fillOpacity: 0.85
-		}).bindPopup(categoryMeta.label, { closeButton: true, autoPan: true });
+		}).bindPopup(popupContent, { closeButton: true, autoPan: true });
+		
+		// Add hover effect to enlarge circle
+		circle.on('mouseover', function() {
+			this.setRadius(9);
+			this.setStyle({ weight: 2 });
+		});
+		circle.on('mouseout', function() {
+			this.setRadius(5);
+			this.setStyle({ weight: 1.5 });
+		});
+		
 		layerGroup.addLayer(circle);
 	});
 
