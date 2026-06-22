@@ -1684,12 +1684,12 @@
 		height: var(--cyclone-size, 40px);
 		border-radius: 50%;
 		overflow: visible;
-		filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.4));
+		filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.65)) drop-shadow(0 2px 4px rgba(0, 0, 0, 0.45));
 	}
 
 	:global(.cyclone-icon-mini) {
 		--cyclone-size: 20px;
-		filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.35));
+		filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.55)) drop-shadow(0 1px 2px rgba(0, 0, 0, 0.35));
 	}
 
 	:global(.cyclone-ring),

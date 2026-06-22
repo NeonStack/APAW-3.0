@@ -279,6 +279,26 @@ function getCurrentCyclonePosition(forecastTrack) {
 	return null;
 }
 
+// Helper function to interpolate between two hex colors
+function interpolateColor(color1, color2, factor) {
+	const c1 = parseInt(color1.slice(1), 16);
+	const c2 = parseInt(color2.slice(1), 16);
+	
+	const r1 = (c1 >> 16) & 255;
+	const g1 = (c1 >> 8) & 255;
+	const b1 = c1 & 255;
+	
+	const r2 = (c2 >> 16) & 255;
+	const g2 = (c2 >> 8) & 255;
+	const b2 = c2 & 255;
+	
+	const r = Math.round(r1 + (r2 - r1) * factor);
+	const g = Math.round(g1 + (g2 - g1) * factor);
+	const b = Math.round(b1 + (b2 - b1) * factor);
+	
+	return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, '0')}`;
+}
+
 // Main function to draw the entire track, points, and current position icon
 export function drawCycloneTrack(L, layerGroup, cycloneData) {
 	console.log('[drawCycloneTrack] Function called with data:', cycloneData);
@@ -289,22 +309,47 @@ export function drawCycloneTrack(L, layerGroup, cycloneData) {
 
 	const stormName = cycloneData.storm_name || 'Unknown';
 	const forecastTrack = cycloneData.forecast_track;
-	const latLngs = forecastTrack.map((p) => [p.lat, p.lon]);
 
-	// Draw the forecast path line
-	const pathLine = L.polyline(latLngs, { color: 'red', weight: 5, dashArray: '8, 12' });
-	layerGroup.addLayer(pathLine);
+	// Draw gradient path lines between consecutive points with multiple segments
+	for (let i = 0; i < forecastTrack.length - 1; i++) {
+		const point1 = forecastTrack[i];
+		const point2 = forecastTrack[i + 1];
+		const color1 = getCategoryColor(point1.category);
+		const color2 = getCategoryColor(point2.category);
+		
+		// Create 5 sub-segments for smooth gradient transition
+		const segments = 5;
+		for (let s = 0; s < segments; s++) {
+			const factor1 = s / segments;
+			const factor2 = (s + 1) / segments;
+			
+			const lat1 = point1.lat + (point2.lat - point1.lat) * factor1;
+			const lon1 = point1.lon + (point2.lon - point1.lon) * factor1;
+			const lat2 = point1.lat + (point2.lat - point1.lat) * factor2;
+			const lon2 = point1.lon + (point2.lon - point1.lon) * factor2;
+			
+			const gradientColor = interpolateColor(color1, color2, factor1 + 0.1 / segments);
+			
+			const pathSegment = L.polyline([[lat1, lon1], [lat2, lon2]], {
+				color: gradientColor,
+				weight: 5,
+				opacity: 0.85
+			});
+			layerGroup.addLayer(pathSegment);
+		}
+	}
 
-	// Draw the forecast points
+	// Draw the forecast points (smaller circles with popups)
 	forecastTrack.forEach((point) => {
+		const categoryMeta = getCycloneCategoryMeta(point.category);
 		const circle = L.circleMarker([point.lat, point.lon], {
-			radius: 10,
+			radius: 5,
 			fillColor: getCategoryColor(point.category),
 			color: '#fff',
-			weight: 2,
+			weight: 1.5,
 			opacity: 1,
-			fillOpacity: 0.9
-		}).bindPopup(`<b>${stormName}</b><br>${createCyclonePopupContent(point)}`);
+			fillOpacity: 0.85
+		}).bindPopup(categoryMeta.label, { closeButton: true, autoPan: true });
 		layerGroup.addLayer(circle);
 	});
 
