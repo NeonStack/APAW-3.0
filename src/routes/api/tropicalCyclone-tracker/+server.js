@@ -101,26 +101,58 @@ export async function GET({ platform }) {
 		console.log('Cache is FRESH.');
 	}
 
-	const { data: activeStormsFromDB } = await supabase
+	const { data: bulletinRows } = await supabase
 		.from('pagasa_active_bulletins')
-		.select('forecast_data')
-		.eq('bulletin_type', 'ACTIVE_STORM');
+		.select('id, bulletin_type, cache_expiry_time, forecast_data');
 
-	if (!activeStormsFromDB) {
+	if (!bulletinRows) {
 		return json([]);
 	}
 
-	// Filter out storms whose entire forecast track is in the past.
-	const stillActiveStorms = activeStormsFromDB.filter((storm) => {
-		const track = storm.forecast_data?.forecast_track;
-		if (!track || track.length === 0) {
-			return false; // Discard if no track data
+	const normalizeStormName = (stormName) => {
+		const name = String(stormName || '').trim();
+		const internationalNameMatch = name.match(/\(([^)]+)\)/);
+		if (internationalNameMatch) {
+			return internationalNameMatch[1].trim().toUpperCase();
 		}
-		const lastPointTime = new Date(track[track.length - 1].date_time);
-		return lastPointTime >= now; // Keep if the storm's forecast is not yet over
-	});
+		return name.toUpperCase();
+	};
 
-	return json(stillActiveStorms ? stillActiveStorms.map((storm) => storm.forecast_data) : []);
+	const dedupeStormRows = (stormRows) => {
+		const latestByName = new Map();
+
+		for (const row of stormRows) {
+			const storm = row?.forecast_data;
+			const track = storm?.forecast_track;
+			if (!storm || !track || track.length === 0) {
+				continue;
+			}
+
+			const lastPointTime = new Date(track[track.length - 1].date_time);
+			if (lastPointTime < now) {
+				continue;
+			}
+
+			const stormKey = normalizeStormName(storm.storm_name);
+			const existing = latestByName.get(stormKey);
+			const currentIssuedAt = new Date(storm.issued_at || 0).getTime();
+			const existingIssuedAt = existing
+				? new Date(existing.forecast_data?.issued_at || 0).getTime()
+				: -1;
+
+			if (!existing || currentIssuedAt > existingIssuedAt || Number(row.id || 0) > Number(existing.id || 0)) {
+				latestByName.set(stormKey, row);
+			}
+		}
+
+		return [...latestByName.values()].map((row) => row.forecast_data);
+	};
+
+	const activeStormRows = bulletinRows
+		.filter((row) => row?.bulletin_type === 'ACTIVE_STORM')
+		.sort((a, b) => Number(b.id || 0) - Number(a.id || 0));
+
+	return json(dedupeStormRows(activeStormRows));
 }
 
 // ===================================================================
@@ -129,7 +161,8 @@ export async function GET({ platform }) {
 
 async function doBackgroundFetch(currentDate, supabase) {
 	console.log('BACKGROUND: Starting fetch...');
-	const newBulletinRows = [];
+	const activeStormRows = [];
+	let emptyCacheRow = null;
 
 	try {
 		const bulletinsToFetch = await getLatestBulletinsFromPAGASA();
@@ -141,10 +174,10 @@ async function doBackgroundFetch(currentDate, supabase) {
 				currentDate.getTime() + CONFIG.CACHE_HOURS_NO_STORM * 60 * 60 * 1000
 			);
 
-			newBulletinRows.push({
+			emptyCacheRow = {
 				bulletin_type: 'EMPTY_CACHE',
 				cache_expiry_time: cacheExpiry.toISOString()
-			});
+			};
 		} else {
 			console.log(`BACKGROUND: Found ${bulletinsToFetch.length} potential bulletin(s) to process.`);
 			const processedStorms = new Map();
@@ -229,52 +262,47 @@ async function doBackgroundFetch(currentDate, supabase) {
 						shortestCacheTime = cacheExpiry;
 					}
 
-					newBulletinRows.push({
+					activeStormRows.push({
 						bulletin_type: 'ACTIVE_STORM',
 						forecast_data: aiResponse,
 						cache_expiry_time: cacheExpiry.toISOString()
 					});
 				}
-			}
 
-			if (shortestCacheTime) {
-				newBulletinRows.push({
+				emptyCacheRow = {
 					bulletin_type: 'EMPTY_CACHE',
 					cache_expiry_time: shortestCacheTime.toISOString()
-				});
-			} else if (newBulletinRows.length === 0) {
+				};
+			}
+
+			if (!shortestCacheTime && activeStormRows.length === 0) {
 				console.log(
 					'BACKGROUND: All found bulletins were outdated or invalid. Creating negative cache.'
 				);
 				const cacheExpiry = new Date(
 					currentDate.getTime() + CONFIG.CACHE_HOURS_NO_STORM * 60 * 60 * 1000
 				);
-				newBulletinRows.push({
+				emptyCacheRow = {
 					bulletin_type: 'EMPTY_CACHE',
 					cache_expiry_time: cacheExpiry.toISOString()
-				});
+				};
 			}
 		}
 
-		console.log('BACKGROUND: New data successfully processed. Swapping cache...');
-		await supabase.from('pagasa_active_bulletins').delete().neq('id', -1);
-		await supabase.from('pagasa_active_bulletins').insert(newBulletinRows);
+		const rowsToWrite = [];
+		if (emptyCacheRow) {
+			rowsToWrite.push(emptyCacheRow);
+		}
+		rowsToWrite.push(...activeStormRows);
+
+		console.log('BACKGROUND: New data successfully processed. Appending latest cache batch...');
+		if (rowsToWrite.length > 0) {
+			await supabase.from('pagasa_active_bulletins').insert(rowsToWrite);
+		}
 		console.log('BACKGROUND: Fetch complete. Database updated.');
 	} catch (error) {
 		console.error('BACKGROUND: Error during background fetch:', error);
-		const snoozeTime = new Date(currentDate.getTime() + CONFIG.CACHE_MINS_ON_ERROR * 60 * 1000);
-
-		await supabase.from('pagasa_active_bulletins').upsert(
-			{
-				bulletin_type: 'EMPTY_CACHE',
-				cache_expiry_time: snoozeTime.toISOString()
-			},
-			{ onConflict: 'bulletin_type' }
-		);
-
-		console.log(
-			`BACKGROUND: Error handled. Snoozing cache for ${CONFIG.CACHE_MINS_ON_ERROR} minutes.`
-		);
+		console.log('BACKGROUND: Error handled. Preserving existing cyclone data and retrying later.');
 	}
 }
 
