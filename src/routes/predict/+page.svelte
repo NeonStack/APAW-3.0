@@ -216,12 +216,19 @@
 	async function refreshTropicalCycloneSource(reason = 'interval') {
 		await runSourceRefresh(PREDICT_SOURCE_KEYS.TROPICAL_CYCLONE, async () => {
 			try {
+				tropicalCycloneTrackerStore.update((store) => ({
+					...store,
+					loading: true,
+					error: null
+				}));
+
 				const payload = await fetchPredictJson('/api/tropicalCyclone-tracker');
-				tropicalCycloneTrackerStore.set({
+				tropicalCycloneTrackerStore.update((store) => ({
+					...store,
 					loading: false,
 					data: Array.isArray(payload) ? payload : [],
 					error: null
-				});
+				}));
 				markSourceRefreshed(PREDICT_SOURCE_KEYS.TROPICAL_CYCLONE);
 			} catch (error) {
 				console.warn(
