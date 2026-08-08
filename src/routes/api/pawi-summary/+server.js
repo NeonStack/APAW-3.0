@@ -235,9 +235,7 @@ async function callGroq(digest, uiRiskLabels = []) {
 				);
 
 				if (rateLimited && nextModel) {
-					console.warn(
-						`[pawi] rate-limited on model=${model}; retrying with model=${nextModel}`
-					);
+					console.warn(`[pawi] rate-limited on model=${model}; retrying with model=${nextModel}`);
 					continue;
 				}
 

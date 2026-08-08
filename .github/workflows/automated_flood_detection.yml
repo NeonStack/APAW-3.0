@@ -3,9 +3,9 @@ name: Scheduled Automated Flood Detection
 on:
   workflow_dispatch:
   schedule:
-    - cron: '30 23 * * *'  # 7:30 AM PH
-    - cron: '30 5 * * *'   # 1:30 PM PH
-    - cron: '30 11 * * *'  # 7:30 PM PH
+    - cron: '30 23 * * *' # 7:30 AM PH
+    - cron: '30 5 * * *' # 1:30 PM PH
+    - cron: '30 11 * * *' # 7:30 PM PH
 
 jobs:
   trigger-automated-flood-detection:

@@ -140,7 +140,11 @@ export async function GET({ platform }) {
 				? new Date(existing.forecast_data?.issued_at || 0).getTime()
 				: -1;
 
-			if (!existing || currentIssuedAt > existingIssuedAt || Number(row.id || 0) > Number(existing.id || 0)) {
+			if (
+				!existing ||
+				currentIssuedAt > existingIssuedAt ||
+				Number(row.id || 0) > Number(existing.id || 0)
+			) {
 				latestByName.set(stormKey, row);
 			}
 		}

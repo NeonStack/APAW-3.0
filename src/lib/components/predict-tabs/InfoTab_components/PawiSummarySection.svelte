@@ -241,7 +241,15 @@
 							stroke-width="3"
 							opacity="0.6"
 						/>
-						<line x1="200" y1="25" x2="200" y2="110" stroke="#1D3557" stroke-width="3" opacity="0.6" />
+						<line
+							x1="200"
+							y1="25"
+							x2="200"
+							y2="110"
+							stroke="#1D3557"
+							stroke-width="3"
+							opacity="0.6"
+						/>
 					</g>
 				</svg>
 			{:else}
@@ -420,7 +428,15 @@
 							stroke-width="3"
 							opacity="0.6"
 						/>
-						<line x1="200" y1="25" x2="200" y2="110" stroke="#1D3557" stroke-width="3" opacity="0.6" />
+						<line
+							x1="200"
+							y1="25"
+							x2="200"
+							y2="110"
+							stroke="#1D3557"
+							stroke-width="3"
+							opacity="0.6"
+						/>
 					</g>
 				</svg>
 			{/if}

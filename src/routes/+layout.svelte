@@ -5,7 +5,7 @@
 	import { Toaster } from 'svelte-sonner';
 	import { fly, fade } from 'svelte/transition';
 	import { browser } from '$app/environment';
-	import { injectAnalytics } from '@vercel/analytics/sveltekit'
+	import { injectAnalytics } from '@vercel/analytics/sveltekit';
 
 	let { children } = $props();
 

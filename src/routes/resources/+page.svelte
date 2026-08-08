@@ -13,13 +13,11 @@
 </svelte:head>
 
 <section
-	class="relative flex flex-col overflow-hidden bg-gradient-to-b from-primary-light/25 via-white to-slate-100 pt-20 pb-20"
+	class="from-primary-light/25 relative flex flex-col overflow-hidden bg-gradient-to-b via-white to-slate-100 pt-20 pb-20"
 >
 	<div class="relative z-10 container mx-auto px-6">
 		<div class="mx-auto max-w-5xl text-center">
-			<h1 class="mb-8 text-primary font-black text-5xl md:text-6xl lg:text-7xl">
-				Resources
-			</h1>
+			<h1 class="text-primary mb-8 text-5xl font-black md:text-6xl lg:text-7xl">Resources</h1>
 
 			<p
 				class="mx-auto max-w-3xl text-lg leading-relaxed font-light text-gray-600 md:text-xl lg:text-2xl"

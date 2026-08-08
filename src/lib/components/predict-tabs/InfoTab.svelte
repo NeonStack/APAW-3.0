@@ -834,7 +834,9 @@
 					</div>
 				{/if}
 				<div class="min-w-0">
-					<h3 class="flex flex-wrap items-center gap-1 text-sm font-bold tracking-tight text-gray-800">
+					<h3
+						class="flex flex-wrap items-center gap-1 text-sm font-bold tracking-tight text-gray-800"
+					>
 						<span>Alerts & Data Status</span>
 						{#if hasStatusIssues}
 							<span class="text-gray-400">-</span>

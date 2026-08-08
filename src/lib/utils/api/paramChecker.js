@@ -1,10 +1,9 @@
 import { error } from '@sveltejs/kit';
 
 export function paramChecker(url, allowedParams = []) {
-
-    if (allowedParams === undefined){
-        return null;
-    }
+	if (allowedParams === undefined) {
+		return null;
+	}
 
 	for (const key of url.searchParams.keys()) {
 		if (!allowedParams.includes(key)) {
@@ -12,5 +11,5 @@ export function paramChecker(url, allowedParams = []) {
 		}
 	}
 
-    return null;
+	return null;
 }

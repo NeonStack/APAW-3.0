@@ -7,18 +7,21 @@ APAW is an innovative flood prediction platform that uses machine learning to pr
 ## 🌊 Features
 
 ### Core Functionality
+
 - **5-Day Hourly Flood Forecasts** - Machine learning-based predictions for any location in Metro Manila
 - **Interactive Map Interface** - Click anywhere on the map to get location-specific flood predictions
 - **Flood Probability & Depth Prediction** - Dual-model approach using Random Forest (classification) and LSTM (regression)
 - **Real-time Weather Integration** - Live weather data display for selected locations
 
 ### Data Sources & Alerts
+
 - **Tropical Cyclone Tracker** - Real-time tracking of active tropical cyclones from PAGASA
 - **General Flood Advisory** - Live flood advisories from PAGASA CAP feeds
 - **Water Station Monitoring** - Real-time water level data from PAGASA monitoring stations
 - **Flood Hazard Maps** - 5-year flood hazard overlay from official government data
 
 ### Map Layers
+
 - **Multiple Basemaps** - OpenStreetMap, Satellite, CartoDB Positron/Dark Matter, ESRI imagery
 - **Facilities Layer** - Emergency facilities, hospitals, evacuation centers
 - **Waterways Layer** - Rivers, streams, and water bodies
@@ -27,60 +30,66 @@ APAW is an innovative flood prediction platform that uses machine learning to pr
 ## 🛠️ Tech Stack
 
 ### Frontend
-| Technology | Purpose |
-|------------|---------|
-| [SvelteKit](https://kit.svelte.dev/) | Full-stack web framework |
-| [Svelte 5](https://svelte.dev/) | UI component framework with runes |
-| [Tailwind CSS v4](https://tailwindcss.com/) | Utility-first CSS framework |
-| [Leaflet.js](https://leafletjs.com/) | Interactive map library |
-| [Iconify/Svelte](https://iconify.design/) | Icon library |
-| [Moment.js](https://momentjs.com/) | Date/time formatting |
-| [svelte-sonner](https://github.com/wobsoriano/svelte-sonner) | Toast notifications |
+
+| Technology                                                   | Purpose                           |
+| ------------------------------------------------------------ | --------------------------------- |
+| [SvelteKit](https://kit.svelte.dev/)                         | Full-stack web framework          |
+| [Svelte 5](https://svelte.dev/)                              | UI component framework with runes |
+| [Tailwind CSS v4](https://tailwindcss.com/)                  | Utility-first CSS framework       |
+| [Leaflet.js](https://leafletjs.com/)                         | Interactive map library           |
+| [Iconify/Svelte](https://iconify.design/)                    | Icon library                      |
+| [Moment.js](https://momentjs.com/)                           | Date/time formatting              |
+| [svelte-sonner](https://github.com/wobsoriano/svelte-sonner) | Toast notifications               |
 
 ### Backend & APIs
-| Technology | Purpose |
-|------------|---------|
-| [Supabase](https://supabase.com/) | PostgreSQL database & backend services |
-| [Hugging Face Spaces](https://huggingface.co/spaces) | ML model hosting (Gradio API) |
+
+| Technology                                                 | Purpose                                  |
+| ---------------------------------------------------------- | ---------------------------------------- |
+| [Supabase](https://supabase.com/)                          | PostgreSQL database & backend services   |
+| [Hugging Face Spaces](https://huggingface.co/spaces)       | ML model hosting (Gradio API)            |
 | [Google Gemini AI](https://deepmind.google/models/gemini/) | PDF parsing for PAGASA cyclone bulletins |
-| [Visual Crossing Weather](https://www.visualcrossing.com/) | Weather forecast data |
-| [Open-Meteo](https://open-meteo.com/) | Elevation data API |
+| [Visual Crossing Weather](https://www.visualcrossing.com/) | Weather forecast data                    |
+| [Open-Meteo](https://open-meteo.com/)                      | Elevation data API                       |
 
 ### Machine Learning Stack (Backend)
-| Technology | Purpose |
-|------------|---------|
-| Random Forest | Flood/no-flood classification (88% accuracy) |
-| LSTM Neural Networks | Flood depth regression (8.07cm MAE) |
-| TensorFlow/Keras | Deep learning framework |
-| Scikit-learn | ML algorithms & evaluation |
-| Pandas | Data manipulation |
-| NumPy | Numerical computing |
-| GeoPandas | Geospatial data processing |
-| Shapely | Geometric operations |
+
+| Technology           | Purpose                                      |
+| -------------------- | -------------------------------------------- |
+| Random Forest        | Flood/no-flood classification (88% accuracy) |
+| LSTM Neural Networks | Flood depth regression (8.07cm MAE)          |
+| TensorFlow/Keras     | Deep learning framework                      |
+| Scikit-learn         | ML algorithms & evaluation                   |
+| Pandas               | Data manipulation                            |
+| NumPy                | Numerical computing                          |
+| GeoPandas            | Geospatial data processing                   |
+| Shapely              | Geometric operations                         |
 
 ### Data Sources
-| Source | Data Provided |
-|--------|---------------|
-| [PAGASA](https://www.pagasa.dost.gov.ph/) | Water levels, cyclone data, flood advisories |
-| [Visual Crossing](https://www.visualcrossing.com/) | Weather forecasts |
-| [Open-Meteo](https://open-meteo.com/) | Elevation data |
-| [OpenStreetMap](https://www.openstreetmap.org/) | Geographic features, waterways |
-| [Open Topo Data](https://www.opentopodata.org/) | SRTM30m elevation data |
+
+| Source                                             | Data Provided                                |
+| -------------------------------------------------- | -------------------------------------------- |
+| [PAGASA](https://www.pagasa.dost.gov.ph/)          | Water levels, cyclone data, flood advisories |
+| [Visual Crossing](https://www.visualcrossing.com/) | Weather forecasts                            |
+| [Open-Meteo](https://open-meteo.com/)              | Elevation data                               |
+| [OpenStreetMap](https://www.openstreetmap.org/)    | Geographic features, waterways               |
+| [Open Topo Data](https://www.opentopodata.org/)    | SRTM30m elevation data                       |
 
 ### Development & Deployment
-| Tool | Purpose |
-|------|---------|
-| [Vercel](https://vercel.com/) | Frontend hosting & serverless functions |
-| [GitHub Actions](https://github.com/features/actions) | Automated weather data updates |
-| [Vite](https://vitejs.dev/) | Build tool & dev server |
-| [Prettier](https://prettier.io/) | Code formatting |
-| [Terser](https://terser.org/) | JavaScript minification |
+
+| Tool                                                  | Purpose                                 |
+| ----------------------------------------------------- | --------------------------------------- |
+| [Vercel](https://vercel.com/)                         | Frontend hosting & serverless functions |
+| [GitHub Actions](https://github.com/features/actions) | Automated weather data updates          |
+| [Vite](https://vitejs.dev/)                           | Build tool & dev server                 |
+| [Prettier](https://prettier.io/)                      | Code formatting                         |
+| [Terser](https://terser.org/)                         | JavaScript minification                 |
 
 ### Geocoding Services
-| Service | Purpose |
-|---------|---------|
+
+| Service                             | Purpose                    |
+| ----------------------------------- | -------------------------- |
 | [Nominatim](https://nominatim.org/) | Address search & geocoding |
-| [Photon](https://photon.komoot.io/) | Alternative geocoding API |
+| [Photon](https://photon.komoot.io/) | Alternative geocoding API  |
 
 ## 📁 Project Structure
 
@@ -119,6 +128,7 @@ src/
 ## 🚀 Getting Started
 
 ### Prerequisites
+
 - Node.js 18+
 - npm or pnpm
 
@@ -176,16 +186,17 @@ npm run format
 
 ## 📊 Model Performance
 
-| Metric | Value |
-|--------|-------|
-| Classification Accuracy | 88% |
-| Flood Event Recall | 73% |
-| Depth Prediction MAE | 8.07 cm |
-| Response Time | 5-15 seconds |
+| Metric                  | Value        |
+| ----------------------- | ------------ |
+| Classification Accuracy | 88%          |
+| Flood Event Recall      | 73%          |
+| Depth Prediction MAE    | 8.07 cm      |
+| Response Time           | 5-15 seconds |
 
 ## 🗺️ Coverage Area
 
 The system currently supports flood predictions for **Metro Manila (NCR)**, Philippines, including:
+
 - Manila, Quezon City, Makati, Pasig, Taguig
 - Mandaluyong, San Juan, Marikina, Pasay
 - Parañaque, Las Piñas, Muntinlupa, Valenzuela
@@ -206,4 +217,4 @@ This project is private and developed for academic purposes.
 
 ---
 
-**APAW** - *Accuracy • Preparedness • Accessibility • Wisdom*
+**APAW** - _Accuracy • Preparedness • Accessibility • Wisdom_
