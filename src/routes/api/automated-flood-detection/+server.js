@@ -1,4 +1,5 @@
 import { json } from '@sveltejs/kit';
+import https from 'node:https';
 import { getSupabaseServiceClient } from '$lib/server/supabaseClient.js';
 
 import {
@@ -139,12 +140,29 @@ async function writeSuccessCache(supabase, stations, now = new Date()) {
 	}
 }
 
+function fetchPagasaJson(url) {
+	return new Promise((resolve, reject) => {
+		https
+			.get(url, { rejectUnauthorized: false }, (res) => {
+				if (res.statusCode < 200 || res.statusCode >= 300) {
+					return reject(new Error(`PAGASA request failed with status ${res.statusCode}`));
+				}
+				let data = '';
+				res.on('data', (chunk) => (data += chunk));
+				res.on('end', () => {
+					try {
+						resolve(JSON.parse(data));
+					} catch (err) {
+						reject(err);
+					}
+				});
+			})
+			.on('error', reject);
+	});
+}
+
 async function fetchLiveStationsFromPagasa() {
-	const response = await fetch(WATER_STATIONS_API_URL);
-	if (!response.ok) {
-		throw new Error(`Water stations API failed with status ${response.status}`);
-	}
-	const data = await response.json();
+	const data = await fetchPagasaJson(WATER_STATIONS_API_URL);
 	return normalizeStations(data);
 }
 
@@ -284,10 +302,7 @@ async function fetchWaterStationsWithFallback() {
 			try {
 				await writeSuccessCache(supabase, liveStations, now);
 			} catch (error) {
-				console.warn(
-					'[automated-flood-detection] Water stations cache write failed:',
-					error
-				);
+				console.warn('[automated-flood-detection] Water stations cache write failed:', error);
 			}
 			return {
 				stations: liveStations,
@@ -299,10 +314,7 @@ async function fetchWaterStationsWithFallback() {
 			};
 		}
 	} catch (error) {
-		console.warn(
-			'[automated-flood-detection] Water stations live fetch failed:',
-			error
-		);
+		console.warn('[automated-flood-detection] Water stations live fetch failed:', error);
 	}
 
 	if (cachedStations.length > 0) {

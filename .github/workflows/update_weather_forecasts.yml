@@ -8,11 +8,11 @@ on:
 
   # Runs the job on a schedule (times are in UTC)
   schedule:
-    - cron: '0 16 * * *'   # 12:00 AM PH
-    - cron: '5 5 * * *'    # 1:05 PM PH
-    - cron: '5 11 * * *'   # 7:05 PM PH
-    - cron: '5 17 * * *'   # 1:05 AM PH
-    - cron: '5 23 * * *'   # 7:05 AM PH
+    - cron: '0 16 * * *' # 12:00 AM PH
+    - cron: '5 5 * * *' # 1:05 PM PH
+    - cron: '5 11 * * *' # 7:05 PM PH
+    - cron: '5 17 * * *' # 1:05 AM PH
+    - cron: '5 23 * * *' # 7:05 AM PH
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
@@ -30,4 +30,3 @@ jobs:
           -H "Authorization: Bearer ${{ secrets.JOB_TRIGGER_SECRET }}" \
           -H "Content-Type: application/json" \
           "${{ secrets.WEBHOOK_URL }}"
-

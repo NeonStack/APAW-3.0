@@ -127,15 +127,11 @@
 </svelte:head>
 
 <section
-	class="relative flex flex-col overflow-hidden bg-gradient-to-b from-primary-light/25 via-white to-slate-100 pt-20 pb-20"
+	class="from-primary-light/25 relative flex flex-col overflow-hidden bg-gradient-to-b via-white to-slate-100 pt-20 pb-20"
 >
-
-
 	<div class="relative z-10 container mx-auto px-6">
 		<div class="mx-auto max-w-5xl text-center">
-			<h1 class="mb-8 text-primary font-black text-5xl md:text-6xl lg:text-7xl">
-				About Us
-			</h1>
+			<h1 class="text-primary mb-8 text-5xl font-black md:text-6xl lg:text-7xl">About Us</h1>
 
 			<p
 				class="mx-auto max-w-3xl text-lg leading-relaxed font-light text-gray-600 md:text-xl lg:text-2xl"
@@ -167,11 +163,11 @@
 				</div>
 				<div class="relative z-10">
 					<h2 class="mb-6 text-4xl leading-tight font-extrabold text-slate-800">
-					What is <img
-						src="/APAW_TRANSPARENT.webp"
-						alt="APAW"
-						class="inline-block h-10 w-auto drop-shadow-md align-middle"
-					/>?
+						What is <img
+							src="/APAW_TRANSPARENT.webp"
+							alt="APAW"
+							class="inline-block h-10 w-auto align-middle drop-shadow-md"
+						/>?
 					</h2>
 					<p class="mb-6 text-lg leading-relaxed text-gray-600">
 						APAW (Advanced Predictive Analysis of Water-related Flood Risk) is a machine
@@ -407,7 +403,7 @@
 					<img
 						src="/APAW_SHORT_TRANSPARENT.webp"
 						alt="APAW logo"
-						class="inline-block h-7 w-auto drop-shadow-md align-middle"
+						class="inline-block h-7 w-auto align-middle drop-shadow-md"
 					/> APAW Architecture
 				</h3>
 				<ul class="space-y-6">

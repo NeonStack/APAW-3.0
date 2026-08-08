@@ -174,7 +174,7 @@
 				</div>
 
 				<h1
-					class="text-[clamp(1.8em,5vw,3.5rem)] line-clamp-4 mt-2 font-extrabold tracking-tight md:leading-tight"
+					class="mt-2 line-clamp-4 text-[clamp(1.8em,5vw,3.5rem)] font-extrabold tracking-tight md:leading-tight"
 				>
 					<span class="text-primary tracking-tight">
 						Advanced AI-Powered
@@ -199,7 +199,10 @@
 				<p
 					class="lg:text-md mx-auto mt-8 max-w-xl text-lg leading-relaxed font-light text-gray-600 lg:mx-0 xl:text-xl"
 				>
-					Experience <strong class="font-semibold text-gray-800">up to 5 days</strong> of early warning for flood risks in Metro Manila. <span class="hidden md:inline lg:inline">Actionable, intuitive, and completely free.</span>
+					Experience <strong class="font-semibold text-gray-800">up to 5 days</strong> of early
+					warning for flood risks in Metro Manila.
+					<span class="hidden md:inline lg:inline">Actionable, intuitive, and completely free.</span
+					>
 				</p>
 
 				<!-- CTA Buttons -->
@@ -505,7 +508,8 @@
 						Your Playful Flood Guide
 					</h3>
 					<p class="mt-1 max-w-3xl text-sm leading-relaxed text-blue-100 sm:text-base">
-						PAWI summarizes flood predictions in a clear and friendly way, so you can easily understand them.
+						PAWI summarizes flood predictions in a clear and friendly way, so you can easily
+						understand them.
 					</p>
 				</div>
 			</div>
@@ -560,7 +564,9 @@
 			<div
 				class="bg-primary-light absolute -top-10 -right-10 h-40 w-40 rounded-full blur-[90px]"
 			></div>
-			<div class="bg-primary-light absolute -bottom-10 -left-10 h-40 w-40 rounded-full blur-[90px]"></div>
+			<div
+				class="bg-primary-light absolute -bottom-10 -left-10 h-40 w-40 rounded-full blur-[90px]"
+			></div>
 
 			<h2 class="mb-6 text-[clamp(2rem,5vw,3.5rem)] leading-tight font-black text-gray-900">
 				Ready to explore <span class="text-primary-light">APAW's</span> flood risk predictions?

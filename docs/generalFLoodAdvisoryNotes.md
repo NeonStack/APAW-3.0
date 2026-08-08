@@ -1,4 +1,5 @@
 //this is what https://publicalert.pagasa.dost.gov.ph/feeds/ looks like:
+
 <?xml version = '1.0' encoding = 'UTF-8' standalone = 'yes'?>
 <feed xmlns="http://www.w3.org/2005/Atom">
 <id>http://www.pagasa.dost.gov.ph/</id>
@@ -362,7 +363,6 @@
   <link type="application/cap+xml" href="https://publicalert.pagasa.dost.gov.ph/output/gfa/675dab13-543f-4580-8844-7609f5a6878c.cap"/>
 </entry>
 </feed>
-
 
 //this is what we want... sample NCR cap:
 <alert xmlns="urn:oasis:names:tc:emergency:cap:1.2">

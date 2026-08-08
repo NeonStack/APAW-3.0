@@ -28,7 +28,9 @@
 </script>
 
 {#if isPredicting}
-	<div class="overflow-hidden rounded-xl border border-blue-200 bg-white shadow-sm ring-1 ring-blue-50">
+	<div
+		class="overflow-hidden rounded-xl border border-blue-200 bg-white shadow-sm ring-1 ring-blue-50"
+	>
 		<div class="bg-blue-50/50 p-3.5">
 			<div class="mb-3 flex items-center justify-between">
 				<div class="flex items-center gap-2.5">
@@ -64,7 +66,9 @@
 			</div>
 
 			<div class="rounded-lg border border-white bg-white/80 px-2.5 py-1.5 shadow-sm">
-				<p class="flex items-center text-[10px] font-semibold tracking-wider text-slate-500 uppercase">
+				<p
+					class="flex items-center text-[10px] font-semibold tracking-wider text-slate-500 uppercase"
+				>
 					<Icon icon="mdi:cogs" class="mr-1.5 text-blue-500" width="14" />
 					{#if fakeProgress < 30}
 						Gathering environmental data...

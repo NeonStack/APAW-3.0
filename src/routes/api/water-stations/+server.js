@@ -1,5 +1,6 @@
 import { json } from '@sveltejs/kit';
 import moment from 'moment';
+import https from 'node:https';
 import { getSupabaseServiceClient } from '$lib/server/supabaseClient.js';
 import { consumeRequestRateLimit } from '$lib/utils/api/requestRateLimiter.js';
 import { createRateLimitResponse } from '$lib/utils/api/rateLimitResponse.js';
@@ -11,6 +12,27 @@ const SUCCESS_CACHE_MINS = 10;
 const ERROR_RETRY_MINS = 5;
 
 let refreshInFlight = null;
+
+function fetchPagasaJson(url) {
+	return new Promise((resolve, reject) => {
+		https
+			.get(url, { rejectUnauthorized: false }, (res) => {
+				if (res.statusCode < 200 || res.statusCode >= 300) {
+					return reject(new Error(`PAGASA request failed with status ${res.statusCode}`));
+				}
+				let data = '';
+				res.on('data', (chunk) => (data += chunk));
+				res.on('end', () => {
+					try {
+						resolve(JSON.parse(data));
+					} catch (err) {
+						reject(err);
+					}
+				});
+			})
+			.on('error', reject);
+	});
+}
 
 // Helper function to clean water level string
 function cleanWaterLevel(wl) {
@@ -122,12 +144,7 @@ async function writeErrorSnooze(supabase, now = new Date()) {
 }
 
 async function fetchLiveStationsFromPagasa() {
-	const response = await fetch(PAGASA_API_URL);
-	if (!response.ok) {
-		throw new Error(`PAGASA request failed with status ${response.status}`);
-	}
-
-	const payload = await response.json();
+	const payload = await fetchPagasaJson(PAGASA_API_URL);
 	return normalizeStations(payload);
 }
 

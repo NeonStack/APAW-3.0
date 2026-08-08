@@ -106,7 +106,9 @@
 				</div>
 			</div>
 		{:else if !selectedLocation?.lat}
-			<div class="flex items-center rounded border-2 border-dashed border-yellow-300 bg-yellow-50 p-3">
+			<div
+				class="flex items-center rounded border-2 border-dashed border-yellow-300 bg-yellow-50 p-3"
+			>
 				<Icon icon="mdi:gesture-tap" class="mr-2 flex-shrink-0 text-yellow-600" width="20" />
 				<div>
 					<p class="text-sm font-semibold text-gray-800">No Location Selected</p>
@@ -117,7 +119,9 @@
 			<div class="space-y-3">
 				{#if selectedLocation.locationName}
 					<div class="rounded bg-gray-50 p-2">
-						<p class="text-xs font-semibold tracking-wide text-gray-500 uppercase">Selected Location</p>
+						<p class="text-xs font-semibold tracking-wide text-gray-500 uppercase">
+							Selected Location
+						</p>
 						<p class="text-sm font-bold text-gray-800">{selectedLocation.locationName}</p>
 					</div>
 				{/if}
@@ -160,7 +164,9 @@
 			Nearby Facilities
 		</h4>
 		{#if !facilitiesLayerActive}
-			<div class="flex items-center rounded border-2 border-dashed border-yellow-300 bg-yellow-50 p-3">
+			<div
+				class="flex items-center rounded border-2 border-dashed border-yellow-300 bg-yellow-50 p-3"
+			>
 				<Icon icon="mdi:layers-off" class="mr-2 flex-shrink-0 text-yellow-600" width="20" />
 				<div>
 					<p class="text-sm font-semibold text-gray-800">"Nearby Facilities" Is Disabled</p>
