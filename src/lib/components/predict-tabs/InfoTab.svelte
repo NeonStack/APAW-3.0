@@ -750,23 +750,40 @@
 		return {};
 	}
 
+	function fmtHour(h) {
+		const hour = ((Math.floor(h) % 24) + 24) % 24;
+		const period = hour >= 12 ? 'pm' : 'am';
+		const display = hour % 12 === 0 ? 12 : hour % 12;
+		return `${display}${period}`;
+	}
+
 	function formatFloodAroundTimes(hourList) {
-		if (!Array.isArray(hourList) || hourList.length === 0) return 'No flooded-hour timing data';
+		if (!Array.isArray(hourList) || hourList.length === 0) return 'No timing data';
 
 		const normalized = [
 			...new Set(hourList.map((h) => Number(h)).filter((h) => Number.isFinite(h)))
 		].sort((a, b) => a - b);
 
-		if (normalized.length === 0) return 'No flooded-hour timing data';
+		if (normalized.length === 0) return 'No timing data';
 
-		const labels = normalized.map((h) => {
-			const hour = ((Math.floor(h) % 24) + 24) % 24;
-			const period = hour >= 12 ? 'pm' : 'am';
-			const display = hour % 12 === 0 ? 12 : hour % 12;
-			return `${display}${period}`;
-		});
+		// Group into consecutive runs
+		const runs = [];
+		let runStart = normalized[0];
+		let runEnd = normalized[0];
+		for (let i = 1; i < normalized.length; i++) {
+			if (normalized[i] === runEnd + 1) {
+				runEnd = normalized[i];
+			} else {
+				runs.push([runStart, runEnd]);
+				runStart = normalized[i];
+				runEnd = normalized[i];
+			}
+		}
+		runs.push([runStart, runEnd]);
 
-		return labels.join(', ');
+		return runs
+			.map(([s, e]) => (s === e ? fmtHour(s) : `${fmtHour(s)}–${fmtHour(e)}`))
+			.join(', ');
 	}
 
 	function focusAutomatedAlert(item) {
@@ -1047,172 +1064,133 @@
 							</div>
 						</div>
 					{:else if activeAlertsTab === 'automated'}
-						<div class="space-y-3">
-							<div
-								class="rounded-xl border border-sky-200 bg-gradient-to-br from-sky-50 via-white to-blue-50 p-4 shadow-sm"
-							>
-								<div class="mb-2 flex items-center gap-2">
-									<span
-										class="flex h-7 w-7 items-center justify-center rounded-lg bg-white/80 text-sky-700 ring-1 ring-sky-200"
-									>
-										<Icon icon="mdi:brain" width="16" />
-									</span>
-									<p class="text-base font-bold tracking-tight text-[#0c3143]">
-										APAW AI Watch - Automated Prediction
-									</p>
-								</div>
-								<p class="mt-1 text-xs leading-relaxed text-gray-600">
-									APAW automatically predicts flood risk in predefined flood-prone areas using
-									real-time data.
+				<div class="space-y-2.5">
+					<!-- Compact Header Bar -->
+					<div class="flex items-center gap-2 rounded-lg border border-sky-100 bg-sky-50/60 px-3 py-2">
+						<span class="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-md bg-sky-100 text-sky-700">
+							<Icon icon="mdi:brain" width="14" />
+						</span>
+						<div class="min-w-0 flex-1">
+							<p class="text-xs font-bold text-sky-900">APAW AI Watch</p>
+							<p class="truncate text-[10px] text-sky-700/80">Auto-predicts flood risk in flood-prone areas</p>
+							{#if $automatedFloodAlerts.meta?.generated_at}
+								<p class="mt-0.5 text-[10px] text-sky-600/70">
+									Generated {moment($automatedFloodAlerts.meta.generated_at).format('MMM D, h:mm A')}
 								</p>
-							</div>
-
-							<div class="grid grid-cols-2 gap-2">
-								<button
-									type="button"
-									onclick={refreshAutomatedAlerts}
-									class="flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50"
-								>
-									<span class="rounded-md bg-slate-100 p-1 text-slate-600">
-										<Icon icon="mdi:refresh" width="12" />
-									</span>
-									Update
-								</button>
-								<button
-									type="button"
-									onclick={() => setAutomatedAlertsMapVisibility(!$automatedFloodAlerts.showOnMap)}
-									class="flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50"
-								>
-									<span class="rounded-md bg-slate-100 p-1 text-slate-600">
-										<Icon
-											icon={$automatedFloodAlerts.showOnMap ? 'mdi:eye' : 'mdi:eye-off'}
-											width="12"
-										/>
-									</span>
-									{$automatedFloodAlerts.showOnMap ? 'Show on map: On' : 'Show on map: Off'}
-								</button>
-							</div>
-
-							<div class="rounded-lg border border-gray-200 bg-white p-2.5">
-								<label
-									for="automated-forecast-date"
-									class="mb-1 block text-[11px] font-semibold text-gray-600">Prediction date</label
-								>
-								<select
-									id="automated-forecast-date"
-									class="w-full cursor-pointer rounded-md border border-gray-300 bg-white px-2 py-2 text-xs text-gray-700"
-									value={selectedAutomatedIndex}
-									onchange={(event) =>
-										setAutomatedAlertsForecastIndex(Number(event.currentTarget.value))}
-								>
-									{#each automatedDateChoices as chip}
-										<option value={chip.index}
-											>{chip.label} ({automatedCountByIndex.get(chip.index) || 0})</option
-										>
-									{/each}
-								</select>
-							</div>
-
-							{#if $automatedFloodAlerts.loading}
-								<div class="rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm text-blue-700">
-									Loading automated predictions...
-								</div>
-							{:else if $automatedFloodAlerts.error}
-								<div class="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-									{$automatedFloodAlerts.error}
-								</div>
-							{:else if automatedVisibleAlerts.length === 0}
-								<div class="rounded-lg border border-gray-200 bg-white p-5 text-center">
-									<p class="text-sm font-semibold text-gray-800">
-										No flood-prone areas were predicted to be flooded by the automated prediction
-										for this day.
-									</p>
-									<p class="mt-1 text-xs text-gray-500">
-										Try another forecast date or click on the map to explore flood probabilities for
-										specific locations.
-									</p>
-								</div>
-							{:else}
-								<div class="space-y-2">
-									{#each automatedVisibleAlerts as item (item.id)}
-										{@const payload = getAutomatedForecastPayload(item)}
-										{@const floodHourIndices = Array.isArray(payload?.flood_hour_indices)
-											? payload.flood_hour_indices
-											: Array.isArray(payload?.flooded_hours_list)
-												? payload.flooded_hours_list
-												: []}
-										{@const maxHeight =
-											payload?.max_predicted_height_cm !== undefined &&
-											payload?.max_predicted_height_cm !== null
-												? Number(payload.max_predicted_height_cm)
-												: null}
-										<div
-											class="rounded-xl border border-gray-200 bg-white p-3 shadow-sm transition-shadow hover:shadow-md"
-										>
-											<div class="mb-2 flex items-center justify-between gap-2">
-												<p class="text-sm font-bold text-gray-800">{item.location_name}</p>
-												<span
-													class="rounded-full border px-2 py-0.5 text-xs font-bold {getAutomatedRiskClass(
-														item.risk_level,
-														item.flood_probability
-													)}"
-												>
-													{getAutomatedRiskLabel(item)}
-												</span>
-											</div>
-											<div
-												class="grid grid-cols-2 gap-2 rounded-lg border border-slate-200 bg-slate-50 p-2.5"
-											>
-												<div>
-													<p class="text-[11px] text-gray-500">Flood chance</p>
-													<p class="text-sm font-bold text-gray-900">
-														{getAutomatedChanceText(item.flood_probability)}
-													</p>
-												</div>
-												<div>
-													<p class="text-[11px] text-gray-500">Day</p>
-													<p class="text-sm font-semibold text-gray-800">
-														{formatFriendlyForecastDate(item.forecast_date)}
-													</p>
-												</div>
-												<div>
-													<p class="text-[11px] text-gray-500">Peak depth</p>
-													<p class="text-sm font-semibold text-gray-800">
-														{#if maxHeight !== null && Number.isFinite(maxHeight)}
-															{maxHeight.toFixed(1)} cm
-														{:else}
-															No data
-														{/if}
-													</p>
-												</div>
-											</div>
-											<div class="mt-2 rounded-lg border border-slate-200 bg-slate-50 p-2.5">
-												<p class="flex items-center gap-1 text-[11px] text-gray-500">
-													<Icon icon="mdi:clock-alert-outline" width="13" class="text-slate-500" />
-													Flood around
-												</p>
-												<p class="mt-0.5 text-sm font-semibold text-gray-800">
-													{formatFloodAroundTimes(floodHourIndices)}
-												</p>
-											</div>
-											<p class="mt-2 text-xs text-gray-600">
-												Use this as an early heads-up and follow official advisories for final
-												safety decisions.
-											</p>
-											<div class="mt-2 flex justify-end">
-												<button
-													type="button"
-													onclick={() => focusAutomatedAlert(item)}
-													class="flex cursor-pointer items-center gap-1 rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 hover:bg-blue-100"
-												>
-													<Icon icon="mdi:crosshairs-gps" width="12" /> Go to location on map
-												</button>
-											</div>
-										</div>
-									{/each}
-								</div>
 							{/if}
 						</div>
+					</div>
+
+					<!-- Controls Row: date picker + buttons inline -->
+					<div class="flex items-center gap-1.5">
+						<select
+							id="automated-forecast-date"
+							class="min-w-0 flex-1 cursor-pointer rounded-md border border-gray-200 bg-white px-2 py-1.5 text-[11px] text-gray-700 shadow-sm focus:outline-none"
+							value={selectedAutomatedIndex}
+							onchange={(event) =>
+								setAutomatedAlertsForecastIndex(Number(event.currentTarget.value))}
+						>
+							{#each automatedDateChoices as chip}
+								<option value={chip.index}>{chip.label} ({automatedCountByIndex.get(chip.index) || 0})</option>
+							{/each}
+						</select>
+						<button
+							type="button"
+							onclick={refreshAutomatedAlerts}
+							title="Refresh predictions"
+							class="flex flex-shrink-0 cursor-pointer items-center justify-center rounded-md border border-gray-200 bg-white p-1.5 text-gray-500 shadow-sm transition-colors hover:bg-gray-50 hover:text-gray-700"
+						>
+							<Icon icon="mdi:refresh" width="14" />
+						</button>
+						<button
+							type="button"
+							onclick={() => setAutomatedAlertsMapVisibility(!$automatedFloodAlerts.showOnMap)}
+							title={$automatedFloodAlerts.showOnMap ? 'Hide from map' : 'Show on map'}
+							class="flex flex-shrink-0 cursor-pointer items-center justify-center rounded-md border p-1.5 shadow-sm transition-colors"
+							class:border-sky-300={$automatedFloodAlerts.showOnMap}
+							class:bg-sky-50={$automatedFloodAlerts.showOnMap}
+							class:text-sky-600={$automatedFloodAlerts.showOnMap}
+							class:border-gray-200={!$automatedFloodAlerts.showOnMap}
+							class:bg-white={!$automatedFloodAlerts.showOnMap}
+							class:text-gray-400={!$automatedFloodAlerts.showOnMap}
+						>
+							<Icon icon={$automatedFloodAlerts.showOnMap ? 'mdi:eye' : 'mdi:eye-off'} width="14" />
+						</button>
+					</div>
+
+					{#if $automatedFloodAlerts.loading}
+						<div class="flex items-center gap-2 rounded-lg border border-blue-100 bg-blue-50 px-3 py-2.5 text-xs text-blue-700">
+							<Icon icon="mdi:loading" width="14" class="animate-spin" />
+							Loading automated predictions…
+						</div>
+					{:else if $automatedFloodAlerts.error}
+						<div class="flex items-start gap-2 rounded-lg border border-red-100 bg-red-50 px-3 py-2.5 text-xs text-red-700">
+							<Icon icon="mdi:alert-circle" width="14" class="mt-0.5 flex-shrink-0" />
+							{$automatedFloodAlerts.error}
+						</div>
+					{:else if automatedVisibleAlerts.length === 0}
+						<div class="rounded-lg border border-gray-200 bg-white px-4 py-5 text-center">
+							<Icon icon="mdi:check-circle-outline" width="28" class="mx-auto mb-1.5 text-green-400" />
+							<p class="text-xs font-semibold text-gray-700">No flood-risk areas for this date</p>
+							<p class="mt-0.5 text-[10px] text-gray-400">Try another forecast date or click the map.</p>
+						</div>
+					{:else}
+						<div class="space-y-1.5">
+							{#each automatedVisibleAlerts as item (item.id)}
+								{@const payload = getAutomatedForecastPayload(item)}
+								{@const floodHourIndices = Array.isArray(payload?.flood_hour_indices)
+									? payload.flood_hour_indices
+									: Array.isArray(payload?.flooded_hours_list)
+										? payload.flooded_hours_list
+										: []}
+								{@const maxHeight =
+									payload?.max_predicted_height_cm !== undefined &&
+									payload?.max_predicted_height_cm !== null
+										? Number(payload.max_predicted_height_cm)
+										: null}
+								<div class="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm transition-shadow hover:shadow-md">
+									<!-- Card Header -->
+									<div class="px-3 py-2">
+										<div class="flex items-start justify-between gap-2">
+											<p class="text-xs font-bold leading-snug text-gray-800">{item.location_name}</p>
+											<span class="mt-0.5 flex-shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-bold {getAutomatedRiskClass(item.risk_level, item.flood_probability)}">
+												{getAutomatedRiskLabel(item)}
+											</span>
+										</div>
+									</div>
+									<!-- Stats Strip -->
+									<div class="flex items-center gap-0 divide-x divide-gray-100 border-t border-gray-100 bg-slate-50">
+										<div class="flex-1 px-2.5 py-2">
+											<p class="text-[10px] text-gray-400">Chance</p>
+											<p class="text-xs font-bold text-gray-800">{(Number(item.flood_probability) * 100).toFixed(1)}%</p>
+										</div>
+										<div class="flex-1 px-2.5 py-2">
+											<p class="text-[10px] text-gray-400">Peak depth</p>
+											<p class="text-xs font-semibold text-gray-800">
+												{#if maxHeight !== null && Number.isFinite(maxHeight)}{maxHeight.toFixed(1)} cm{:else}—{/if}
+											</p>
+										</div>
+										<div class="flex-1 px-2.5 py-2">
+											<p class="text-[10px] text-gray-400">Flood around</p>
+											<p class="text-xs font-semibold leading-snug text-gray-800">{formatFloodAroundTimes(floodHourIndices)}</p>
+										</div>
+									</div>
+									<!-- Footer -->
+									<div class="flex items-center justify-between gap-2 border-t border-gray-100 px-3 py-1.5">
+										<p class="text-[10px] text-gray-400">Use as early heads-up only.</p>
+										<button
+											type="button"
+											onclick={() => focusAutomatedAlert(item)}
+											class="flex flex-shrink-0 cursor-pointer items-center gap-1 rounded-md bg-sky-50 px-2 py-0.5 text-[10px] font-semibold text-sky-700 transition-colors hover:bg-sky-100"
+										>
+											<Icon icon="mdi:crosshairs-gps" width="11" /> View on map
+										</button>
+									</div>
+								</div>
+							{/each}
+						</div>
+					{/if}
+				</div>
 					{:else if activeAlertsTab === 'cyclone'}
 						<!-- Tropical Cyclone Content -->
 						<div class="space-y-3">

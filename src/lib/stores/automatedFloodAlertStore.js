@@ -73,7 +73,14 @@ export async function fetchAutomatedFloodAlerts({
 						? payload.meta.min_probability
 						: minProbability,
 				count: Number(payload?.meta?.count ?? 0),
-				next_refresh_at: payload?.meta?.next_refresh_at || null
+				next_refresh_at: payload?.meta?.next_refresh_at || null,
+				// Use triggered_at from any data row — all rows in a run share the same triggered_at
+				generated_at:
+					(Array.isArray(payload?.data) && payload.data.length > 0
+						? payload.data[0].triggered_at
+						: null) ||
+					payload?.meta?.generated_at ||
+					null
 			}
 		}));
 	} catch (error) {
