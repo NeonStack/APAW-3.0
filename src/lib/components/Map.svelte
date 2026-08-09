@@ -106,8 +106,40 @@
 	let waterStationLegendEntries = [];
 	let isLegendExpanded = false;
 
-	$: hasIconLegend = waterStationLegendEntries.length > 0 || activeCycloneLegendEntries.length > 0;
+	$: hasIconLegend =
+		waterStationLegendEntries.length > 0 ||
+		activeCycloneLegendEntries.length > 0 ||
+		aiWatchLegendEntries.length > 0;
 	$: if (!hasIconLegend) isLegendExpanded = false;
+
+	// AI Watch legend — derived from currently visible alerts on the map
+	const AI_WATCH_RISK_LEVELS = [
+		{ key: 'very_high', label: 'Very High Flood Risk', color: '#dc2626' },
+		{ key: 'high',      label: 'High Flood Risk',      color: '#ea580c' },
+		{ key: 'moderate',  label: 'Moderate Flood Risk',  color: '#ca8a04' },
+		{ key: 'low',       label: 'Low Flood Risk',       color: '#16a34a' }
+	];
+
+	function getAlertRiskKey(item) {
+		const level = String(item?.risk_level || '').toLowerCase();
+		if (level.includes('very high')) return 'very_high';
+		if (level.includes('high'))      return 'high';
+		if (level.includes('moderate'))  return 'moderate';
+		return 'low';
+	}
+
+	$: aiWatchLegendEntries = (() => {
+		const alertState = $automatedFloodAlerts;
+		if (!alertState?.showOnMap || alertState.loading || !Array.isArray(alertState.data)) return [];
+		const activeForecastIndex = Number(alertState.selectedForecastIndex ?? 0);
+		const minProbability = Number(alertState?.meta?.min_probability ?? 0.5);
+		const presentKeys = new Set(
+			alertState.data
+				.filter(r => Number(r.forecast_index) === activeForecastIndex && Number(r.flood_probability) >= minProbability)
+				.map(r => getAlertRiskKey(r))
+		);
+		return AI_WATCH_RISK_LEVELS.filter(l => presentKeys.has(l.key));
+	})();
 
 	function updateCycloneLegend() {
 		if (!isTropicalCycloneLayerActive) {
@@ -418,23 +450,40 @@
 		return {};
 	}
 
+	function fmtHour(h) {
+		const hour = ((Math.floor(h) % 24) + 24) % 24;
+		const period = hour >= 12 ? 'pm' : 'am';
+		const display = hour % 12 === 0 ? 12 : hour % 12;
+		return `${display}${period}`;
+	}
+
 	function formatFloodAroundTimes(hourList) {
-		if (!Array.isArray(hourList) || hourList.length === 0) return 'No flooded-hour timing data';
+		if (!Array.isArray(hourList) || hourList.length === 0) return 'No timing data';
 
 		const normalized = [
 			...new Set(hourList.map((h) => Number(h)).filter((h) => Number.isFinite(h)))
 		].sort((a, b) => a - b);
 
-		if (normalized.length === 0) return 'No flooded-hour timing data';
+		if (normalized.length === 0) return 'No timing data';
 
-		const labels = normalized.map((h) => {
-			const hour = ((Math.floor(h) % 24) + 24) % 24;
-			const period = hour >= 12 ? 'pm' : 'am';
-			const display = hour % 12 === 0 ? 12 : hour % 12;
-			return `${display}${period}`;
-		});
+		// Group into consecutive runs
+		const runs = [];
+		let runStart = normalized[0];
+		let runEnd = normalized[0];
+		for (let i = 1; i < normalized.length; i++) {
+			if (normalized[i] === runEnd + 1) {
+				runEnd = normalized[i];
+			} else {
+				runs.push([runStart, runEnd]);
+				runStart = normalized[i];
+				runEnd = normalized[i];
+			}
+		}
+		runs.push([runStart, runEnd]);
 
-		return labels.join(', ');
+		return runs
+			.map(([s, e]) => (s === e ? fmtHour(s) : `${fmtHour(s)}–${fmtHour(e)}`))
+			.join(', ');
 	}
 
 	function getAutomatedAlertSeverity(riskLevel, probability) {
@@ -548,33 +597,19 @@
 
 				marker.bindPopup(
 					'<div class="automated-alert-popup-card">' +
-						'<div class="automated-alert-popup-head">' +
-						'<p class="automated-alert-popup-title">' +
-						row.location_name +
-						'</p>' +
-						'<span class="automated-alert-popup-badge" style="border-color:' +
-						color +
-						';color:' +
-						color +
-						';">' +
+						'<div class="automated-alert-popup-head" style="border-left:3px solid ' + color + ';">' +
+						'<div class="automated-alert-popup-head-inner">' +
+						'<p class="automated-alert-popup-title">' + row.location_name + '</p>' +
+						'<p class="automated-alert-popup-date">' + formatForecastDateLabel(row.forecast_date) + '</p>' +
+						'</div>' +
+						'<span class="automated-alert-popup-badge" style="border-color:' + color + ';color:' + color + ';background:' + color + '18;">' +
 						popupRiskLabel +
 						'</span>' +
 						'</div>' +
-						'<p class="automated-alert-popup-date"><span>Forecast</span><strong>' +
-						formatForecastDateLabel(row.forecast_date) +
-						'</strong></p>' +
-						'<div class="automated-alert-popup-grid">' +
-						'<div><span class="k">Flood chance</span><span class="v">' +
-						probabilityPct +
-						'%</span></div>' +
-						'<div><span class="k">Peak depth</span><span class="v">' +
-						maxHeightLabel +
-						'</span></div>' +
-						'</div>' +
-						'<div class="automated-alert-popup-times">' +
-						'<span class="k">Flood around</span><span class="v">' +
-						floodAroundLabel +
-						'</span>' +
+						'<div class="automated-alert-popup-strip">' +
+						'<div class="automated-alert-popup-stat"><span class="k">Chance</span><span class="v">' + probabilityPct + '%</span></div>' +
+						'<div class="automated-alert-popup-stat aap-divider"><span class="k">Peak depth</span><span class="v">' + maxHeightLabel + '</span></div>' +
+						'<div class="automated-alert-popup-stat aap-divider"><span class="k">Around</span><span class="v aap-times">' + floodAroundLabel + '</span></div>' +
 						'</div>' +
 						'</div>',
 					{ className: 'automated-alert-popup' }
@@ -1068,6 +1103,21 @@
 						</div>
 					</div>
 				{/if}
+
+				{#if aiWatchLegendEntries.length > 0}
+					<div class="legend-section">
+						<p class="legend-title">AI Watch — Flood Risk</p>
+						<div class="legend-items">
+							{#each aiWatchLegendEntries as entry}
+								<div class="legend-item">
+									<span class="legend-ai-dot" style="background:{entry.color};box-shadow:0 0 0 2px {entry.color}30;" aria-hidden="true"></span>
+									<span>{entry.label}</span>
+								</div>
+							{/each}
+						</div>
+					</div>
+				{/if}
+
 			</div>
 		</div>
 	{/if}
@@ -1185,118 +1235,104 @@
 	}
 
 	:global(.automated-alert-popup .leaflet-popup-content-wrapper) {
-		border-radius: 14px;
+		border-radius: 12px;
 		padding: 0;
 		overflow: hidden;
-		box-shadow: 0 10px 28px rgba(15, 23, 42, 0.16);
+		box-shadow: 0 8px 24px rgba(15, 23, 42, 0.18), 0 2px 6px rgba(15, 23, 42, 0.08);
+		border: 1px solid #e2e8f0;
 	}
 
 	:global(.automated-alert-popup .leaflet-popup-content) {
 		margin: 0;
-		min-width: 250px;
+		min-width: 230px;
+		max-width: 280px;
 	}
 
+	:global(.automated-alert-popup .leaflet-popup-tip) {
+		background: #fff;
+	}
+
+	/* Card container */
 	:global(.automated-alert-popup-card) {
-		padding: 12px;
-		background: linear-gradient(180deg, #f8fafc 0%, #ffffff 100%);
+		background: #ffffff;
+		overflow: hidden;
 	}
 
+	/* Header: left accent bar + name + date + badge */
 	:global(.automated-alert-popup-head) {
 		display: flex;
+		align-items: center;
 		justify-content: space-between;
-		align-items: flex-start;
 		gap: 10px;
+		padding: 10px 12px;
+		background: #f8fafc;
+		border-bottom: 1px solid #e2e8f0;
+		padding-left: 11px; /* 3px border eats 1px, add offset */
+	}
+
+	:global(.automated-alert-popup-head-inner) {
+		min-width: 0;
+		flex: 1;
 	}
 
 	:global(.automated-alert-popup-title) {
 		margin: 0;
-		font-size: 13px;
+		font-size: 12px;
 		font-weight: 700;
 		color: #0f172a;
-		line-height: 1.25;
+		line-height: 1.3;
+	}
+
+	:global(.automated-alert-popup-date) {
+		margin: 1px 0 0;
+		font-size: 10px;
+		color: #64748b;
 	}
 
 	:global(.automated-alert-popup-badge) {
 		border: 1px solid;
 		border-radius: 999px;
-		padding: 2px 8px;
-		font-size: 10px;
+		padding: 2px 7px;
+		font-size: 9.5px;
 		font-weight: 700;
-		background: rgba(255, 255, 255, 0.94);
 		white-space: nowrap;
+		flex-shrink: 0;
 	}
 
-	:global(.automated-alert-popup-date) {
-		margin: 8px 0 10px;
-		font-size: 11px;
-		color: #475569;
+	/* Stats strip: 3 columns divided by vertical lines */
+	:global(.automated-alert-popup-strip) {
 		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		gap: 8px;
-		padding: 7px 8px;
-		border: 1px solid #e2e8f0;
-		border-radius: 8px;
-		background: #ffffff;
+		align-items: stretch;
 	}
 
-	:global(.automated-alert-popup-date span) {
-		color: #64748b;
-	}
-
-	:global(.automated-alert-popup-date strong) {
-		font-weight: 700;
-		color: #0f172a;
-	}
-
-	:global(.automated-alert-popup-grid) {
-		display: grid;
-		grid-template-columns: 1fr 1fr;
-		gap: 8px;
-	}
-
-	:global(.automated-alert-popup-grid > div) {
+	:global(.automated-alert-popup-stat) {
+		flex: 1;
 		display: flex;
 		flex-direction: column;
-		gap: 3px;
-		padding: 8px;
-		border: 1px solid #e2e8f0;
-		border-radius: 8px;
-		background: #fff;
+		gap: 2px;
+		padding: 8px 10px;
 	}
 
-	:global(.automated-alert-popup-grid .k) {
-		font-size: 10px;
-		color: #64748b;
+	:global(.automated-alert-popup-stat.aap-divider) {
+		border-left: 1px solid #e2e8f0;
 	}
 
-	:global(.automated-alert-popup-grid .v) {
+	:global(.automated-alert-popup-stat .k) {
+		font-size: 9.5px;
+		color: #94a3b8;
+		text-transform: uppercase;
+		letter-spacing: 0.03em;
+	}
+
+	:global(.automated-alert-popup-stat .v) {
 		font-size: 12px;
 		font-weight: 700;
 		color: #0f172a;
+		line-height: 1.2;
 	}
 
-	:global(.automated-alert-popup-times) {
-		margin-top: 8px;
-		padding: 9px;
-		border: 1px solid #e2e8f0;
-		border-radius: 8px;
-		background: #fff;
-		display: flex;
-		flex-direction: column;
-		gap: 4px;
-	}
-
-	:global(.automated-alert-popup-times .k) {
-		font-size: 10px;
-		color: #64748b;
-	}
-
-	:global(.automated-alert-popup-times .v) {
+	:global(.automated-alert-popup-stat .aap-times) {
 		font-size: 11px;
-		font-weight: 700;
-		color: #0f172a;
-		line-height: 1.35;
 	}
 
 	:global(.water-station-icon) {
@@ -1672,6 +1708,14 @@
 		justify-content: center;
 		width: 22px;
 		height: 22px;
+		flex-shrink: 0;
+	}
+
+	.legend-ai-dot {
+		display: inline-block;
+		width: 12px;
+		height: 12px;
+		border-radius: 50%;
 		flex-shrink: 0;
 	}
 
