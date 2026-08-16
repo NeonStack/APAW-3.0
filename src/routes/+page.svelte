@@ -154,8 +154,8 @@
 			></div>
 		{/each}
 	</div>
-
-	<div class="relative z-10 container mx-auto flex justify-center px-6 pt-2 pb-12 lg:py-20">
+	
+	<div class="relative z-10 container mx-auto flex justify-center px-6 pt-2 pb-12 lg:py-12">
 		<!-- Content with enhanced layout -->
 		<div
 			class="relative mx-auto grid max-w-7xl grid-cols-1 items-center gap-12 lg:grid-cols-12 lg:gap-12"

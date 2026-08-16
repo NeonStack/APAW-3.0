@@ -339,9 +339,9 @@
 				</div>
 
 				<!-- Public Advisory / Disclaimer Column -->
-				<div class="md:col-span-5 lg:col-span-5">
+				<div class="md:col-span-5 lg:col-span-4">
 					<h3 class="mb-4 text-base font-bold text-white">Public Advisory</h3>
-					<p class="text-xs leading-relaxed text-blue-100/90">
+					<p class="text-sm leading-relaxed text-blue-100/90">
 						Predictions are AI estimates for flood awareness and preparedness. For official weather bulletins and emergency alerts, always rely on <strong>DOST-PAGASA</strong> and the <strong>NDRRMC</strong>.
 					</p>
 				</div>
@@ -352,7 +352,7 @@
 				<p class="text-xs text-blue-100">
 					© {new Date().getFullYear()} APAW. All rights reserved.
 				</p>
-				<p class="text-xs text-blue-200/80">
+				<p class="text-xs text-blue-100">
 					Inquiries: <a href="mailto:apaw.olfu@gmail.com" class="underline hover:text-white transition-colors">apaw.olfu@gmail.com</a>
 				</p>
 			</div>
