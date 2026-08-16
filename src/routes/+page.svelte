@@ -1,10 +1,6 @@
 <script>
-	import { onMount } from 'svelte';
-	import { fade } from 'svelte/transition';
 	import Icon from '@iconify/svelte';
 	import ButtonLink from '$lib/components/ButtonLink.svelte';
-	import { tweened } from 'svelte/motion';
-	import { cubicInOut } from 'svelte/easing';
 
 	const features = [
 		{
@@ -43,80 +39,6 @@
 		}
 	];
 
-	let precip = tweened(45, {
-		duration: 1500,
-		easing: cubicInOut
-	});
-	let heights = [30, 45, 75, 100, 60];
-
-	$: averageRisk = heights.reduce((a, b) => a + b, 0) / heights.length;
-	$: riskLevelText =
-		averageRisk <= 50
-			? 'Low Flood Risk'
-			: averageRisk <= 60
-				? 'Moderate Flood Risk'
-				: averageRisk <= 80
-					? 'High Flood Risk'
-					: 'Very High Flood Risk';
-	$: riskLevelStatus =
-		averageRisk <= 50
-			? 'LOW'
-			: averageRisk <= 60
-				? 'MODERATE'
-				: averageRisk <= 80
-					? 'HIGH'
-					: 'VERY HIGH';
-	$: riskColorClasses =
-		averageRisk <= 50
-			? 'text-emerald-700 bg-emerald-100'
-			: averageRisk <= 60
-				? 'text-yellow-600 bg-yellow-100'
-				: averageRisk <= 80
-					? 'text-orange-600 bg-orange-100'
-					: 'text-red-600 bg-red-100';
-	$: riskIcon =
-		averageRisk <= 50
-			? 'mdi:check-circle-outline'
-			: averageRisk <= 80
-				? 'mdi:alert-circle-outline'
-				: 'mdi:alert-decagram-outline';
-
-	const scanningTexts = [
-		'Estimating AI risk...',
-		'Analyzing weather patterns...',
-		'Fetching geographic data...',
-		'Calculating risk trajectories...',
-		'Predicting flood levels...',
-		'Updating live datasets...'
-	];
-	let currentScanIndex = 0;
-
-	onMount(() => {
-		const precipInterval = setInterval(() => {
-			precip.set(Math.floor(Math.random() * (55 - 15 + 1)) + 15);
-		}, 3000);
-
-		const timelineInterval = setInterval(() => {
-			// dynamically fluctuate heights randomly drastically
-			heights = heights.map((h) => {
-				const operator = Math.random() > 0.5 ? 1 : -1;
-				const randomVal = Math.floor(Math.random() * 60) + 10;
-				let newH = h + operator * randomVal;
-				return Math.max(5, Math.min(100, newH));
-			});
-		}, 2000);
-
-		const scanningInterval = setInterval(() => {
-			currentScanIndex = (currentScanIndex + 1) % scanningTexts.length;
-		}, 2500);
-
-		return () => {
-			clearInterval(precipInterval);
-			clearInterval(timelineInterval);
-			clearInterval(scanningInterval);
-		};
-	});
-
 	// Generate raindrops with random properties
 	const raindrops = Array(100)
 		.fill()
@@ -137,7 +59,7 @@
 	/>
 </svelte:head>
 
-<section class="relative flex overflow-hidden bg-[oklch(0.984_0.003_247.858)] pt-12 lg:py-4">
+<section class="hero-section relative flex flex-col overflow-hidden bg-[oklch(0.984_0.003_247.858)]">
 	<!-- Rain Effect -->
 	<div class="raindrops-container">
 		{#each raindrops as raindrop}
@@ -155,226 +77,76 @@
 		{/each}
 	</div>
 
-	<div class="relative z-10 container mx-auto flex justify-center px-6 pt-2 pb-12 lg:py-20">
-		<!-- Content with enhanced layout -->
-		<div
-			class="relative mx-auto grid max-w-7xl grid-cols-1 items-center gap-12 lg:grid-cols-12 lg:gap-12"
-		>
-			<!-- Left Column (Text & CTAs) -->
-			<div
-				class="relative z-10 flex flex-col items-center justify-center text-center lg:col-span-6 lg:items-start lg:text-left"
+	<!-- Background Dot Pattern & Ambient Glows -->
+	<div class="pointer-events-none absolute inset-0 z-0 overflow-hidden">
+		<!-- Vibrant glowing aura behind text -->
+		<div class="hero-center-aura"></div>
+		<!-- High-tech dot and grid pattern -->
+		<div class="hero-dots-pattern absolute inset-0"></div>
+		<!-- Ambient corner atmospheric blooms -->
+		<div class="absolute -top-20 -left-20 h-80 w-80 rounded-full bg-cyan-300/35 blur-3xl"></div>
+		<div class="absolute top-12 -right-24 h-96 w-96 rounded-full bg-sky-300/30 blur-3xl"></div>
+	</div>
+
+	<!-- Hero content -->
+	<div class="hero-content relative z-10 mx-auto flex w-full max-w-4xl flex-1 flex-col items-center justify-center px-6 text-center">
+
+		<!-- Status pill badge -->
+		<div class="hero-badge mb-3 inline-flex items-center gap-2 rounded-full border border-sky-300/80 bg-white/90 px-3.5 py-1.5 shadow-sm backdrop-blur-md sm:mb-4">
+			<span class="relative flex h-2 w-2">
+				<span class="bg-primary absolute inline-flex h-full w-full animate-ping rounded-full opacity-75"></span>
+				<span class="bg-primary relative inline-flex h-2 w-2 rounded-full"></span>
+			</span>
+			<span class="text-primary text-[11px] font-semibold tracking-wider uppercase sm:text-xs">Metro Manila · APAW</span>
+		</div>
+		<!-- Headline -->
+		<h1 class="hero-headline mx-auto max-w-3xl text-3xl font-extrabold leading-[1.12] tracking-tight text-slate-900 sm:text-5xl md:text-6xl">
+			Advanced AI-Powered
+			<span class="hero-gradient-text mt-1 block">Flood Risk Prediction</span>
+		</h1>
+
+		<!-- Subheading (matching max-w-xs with buttons on mobile) -->
+		<div class="mt-4 w-full max-w-xs text-base leading-relaxed font-normal text-slate-600 sm:mt-5 sm:max-w-xl sm:text-lg md:text-xl">
+			<p>
+				Experience <strong class="font-semibold text-slate-800">up to 5 days</strong> of early warning for flood risks in Metro Manila. Actionable, intuitive, and completely free.
+			</p>
+		</div>
+
+		<!-- CTA Buttons (matching max-w-xs with subheading on mobile) -->
+		<div class="mt-6 flex w-full max-w-xs flex-col items-center justify-center gap-3 sm:max-w-none sm:flex-row sm:gap-4">
+			<ButtonLink
+				href="/predict"
+				className="group relative border-none bg-primary text-white shadow-md shadow-primary/30 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-primary/45 rounded-xl text-base"
+				width="w-full sm:w-auto"
+				nowrap
 			>
-				<!-- Logo instead of text -->
-				<div class="group relative cursor-default">
-					<img
-						src="/APAW_TRANSPARENT.webp"
-						alt="APAW Logo"
-						class="relative z-10 mb-4 h-24 object-contain drop-shadow-[0_10px_20px_rgba(59,166,208,0.2)] transition-all duration-500 group-hover:scale-105 md:h-30 lg:mb-0 lg:h-24"
+				<div class="relative z-10 flex items-center justify-center gap-2 px-2 py-0.5 font-semibold">
+					<Icon icon="mdi:map-search-outline" class="text-lg" />
+					<span>Launch Application</span>
+					<Icon
+						icon="mdi:arrow-right"
+						class="text-lg transition-transform duration-200 group-hover:translate-x-1"
 					/>
 				</div>
+			</ButtonLink>
 
-				<h1
-					class="mt-2 line-clamp-4 text-[clamp(1.8em,5vw,3.5rem)] font-extrabold tracking-tight md:leading-tight"
-				>
-					<span class="text-primary tracking-tight">
-						Advanced AI-Powered
-						<span class="text-primary-light block">Flood Risk Prediction</span>
-					</span>
-				</h1>
-
-				<!-- Decorative element -->
-				<div class="mt-6 flex w-full items-center justify-center gap-3 lg:justify-start">
-					<div
-						class="to-primary/40 h-[2px] w-full rounded-full bg-gradient-to-r from-transparent lg:hidden lg:w-20"
-					></div>
-					<div
-						class="bg-primary h-2 w-5 rounded-full shadow-[0_0_10px_rgba(59,166,208,0.8)] lg:w-2"
-					></div>
-					<div
-						class="from-primary/40 h-[2px] w-full rounded-full bg-gradient-to-r to-transparent lg:w-32"
-					></div>
-				</div>
-
-				<!-- Improved subheading -->
-				<p
-					class="lg:text-md mx-auto mt-8 max-w-xl text-lg leading-relaxed font-light text-gray-600 lg:mx-0 xl:text-xl"
-				>
-					Experience <strong class="font-semibold text-gray-800">up to 5 days</strong> of early
-					warning for flood risks in Metro Manila.
-					<span class="hidden md:inline lg:inline">Actionable, intuitive, and completely free.</span
-					>
-				</p>
-
-				<!-- CTA Buttons -->
-				<div
-					class="relative z-10 mt-8 flex w-full flex-col items-center justify-center gap-4 sm:flex-row lg:mt-10 lg:justify-start lg:gap-5"
-				>
-					<ButtonLink
-						href="/predict"
-						className="group relative border-none bg-primary text-white shadow-md transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg text-base md:text-lg rounded-xl"
-						width="w-full sm:w-auto"
-						nowrap
-					>
-						<div class="relative z-10 flex items-center justify-center gap-2 px-2 font-semibold">
-							Launch Application
-							<Icon
-								icon="mdi:arrow-right"
-								class="text-xl transition-transform group-hover:translate-x-1"
-							/>
-						</div>
-					</ButtonLink>
-
-					<ButtonLink
-						href="/about"
-						className="group border border-slate-200/80 bg-white/80 text-slate-700 backdrop-blur-md transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/30 hover:text-primary hover:shadow-md text-base md:text-lg rounded-xl"
-						width="w-full sm:w-auto"
-						nowrap
-						ariaLabel="Learn more about APAW"
-					>
-						<div class="flex items-center justify-center gap-2 px-2 font-medium">
-							Learn How It Works
-							<Icon
-								icon="mdi:chevron-right"
-								class="text-xl transition-transform group-hover:translate-x-1"
-							/>
-						</div>
-					</ButtonLink>
-				</div>
-			</div>
-
-			<!-- Right Column (Dashboard Composition) -->
-			<div
-				class="relative z-0 hidden h-[500px] w-full items-center justify-center lg:col-span-6 lg:flex"
+			<ButtonLink
+				href="/about"
+				className="group border border-slate-200/90 bg-white/95 text-slate-700 backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/40 hover:text-primary hover:bg-white hover:shadow-md rounded-xl text-base"
+				width="w-full sm:w-auto"
+				nowrap
+				ariaLabel="Learn more about APAW"
 			>
-				<!-- Giant backdrop glow for the UI -->
-				<div
-					class="bg-primary-light/20 pointer-events-none absolute top-1/2 left-1/2 h-[400px] w-[400px] -translate-x-1/2 -translate-y-1/2 rounded-full blur-[100px]"
-				></div>
-
-				<!-- Main central glass board (Map/Radar abstraction) -->
-				<div
-					class="absolute z-10 h-[360px] w-[360px] animate-[float_8s_ease-in-out_infinite] rounded-[2rem] border border-white/60 bg-gradient-to-br from-white/80 to-white/40 p-6 shadow-[0_30px_60px_rgba(12,49,67,0.1)] backdrop-blur-xl xl:w-[420px]"
-				>
-					<div class="mb-4 flex items-center justify-between">
-						<div class="flex items-center gap-2">
-							<Icon icon="mdi:map-marker-radius" class="text-primary-light text-xl" />
-							<div class="h-4 w-28 rounded-full bg-slate-200"></div>
-						</div>
-						<div
-							class="border-primary-light flex h-5 items-center justify-center gap-1.5 rounded-full border bg-gray-100 px-4"
-						>
-							<div class="bg-primary-light h-2 w-2 animate-pulse rounded-full"></div>
-							<p class="text-primary text-[10px] font-bold">LIVE</p>
-						</div>
-					</div>
-					<!-- Radar/Map Area -->
-					<div
-						class="to-primary/5 group relative mb-5 flex h-48 w-full items-center justify-center overflow-hidden rounded-2xl border border-white/50 bg-gradient-to-br from-blue-50"
-					>
-						<!-- Scanline effect correctly masked as a circle out to the 4th ring -->
-						<div class="absolute h-64 w-64 overflow-hidden rounded-full">
-							<div
-								class="absolute inset-0 animate-[spin_3s_linear_infinite]"
-								style="background: conic-gradient(from 0deg, transparent 270deg, rgba(59,166,208,0.4) 360deg);"
-							></div>
-						</div>
-						<!-- Target ring loops -->
-						<div class="border-primary-light/20 absolute h-64 w-64 rounded-full border"></div>
-						<div class="border-primary-light/30 absolute h-40 w-40 rounded-full border"></div>
-						<div
-							class="border-primary/40 bg-primary/5 absolute h-16 w-16 rounded-full border"
-						></div>
-						<!-- Marker ping -->
-						<div
-							class="bg-primary absolute h-3 w-3 rounded-full shadow-[0_0_15px_rgba(12,49,67,0.5)]"
-						>
-							<div class="bg-primary absolute inset-0 animate-ping rounded-full opacity-75"></div>
-						</div>
-					</div>
-					<!-- Stats bottom -->
-					<div class="flex w-full">
-						<div
-							class="relative flex h-12 w-full flex-col justify-center overflow-hidden rounded-xl border border-white/50 bg-white/60 px-3"
-						>
-							<div
-								class="text-primary-light relative z-10 mb-0.5 flex items-center justify-between text-sm font-black tracking-tight uppercase"
-							>
-								<span>System Status</span>
-								<div
-									class="text-primary flex animate-pulse items-center gap-1.5 text-[9px] font-bold"
-								>
-									<div class="bg-primary h-1.5 w-1.5 rounded-full"></div>
-									LIVE
-								</div>
-							</div>
-							<div class="relative h-[15px] w-full">
-								{#key currentScanIndex}
-									<div
-										in:fade={{ duration: 400, delay: 400 }}
-										out:fade={{ duration: 400 }}
-										class="absolute inset-0 flex items-center text-[9px] font-bold tracking-wider whitespace-nowrap text-slate-500 uppercase"
-									>
-										{scanningTexts[currentScanIndex]}
-									</div>
-								{/key}
-							</div>
-						</div>
-					</div>
+				<div class="flex items-center justify-center gap-2 px-2 py-0.5 font-medium">
+					<span>Learn How It Works</span>
+					<Icon
+						icon="mdi:chevron-right"
+						class="text-lg transition-transform duration-200 group-hover:translate-x-1"
+					/>
 				</div>
-
-				<!-- Floating Asset 1: Weather (Top left) -->
-				<div
-					class="absolute top-5 left-4 z-20 w-64 animate-[float_6s_ease-in-out_infinite_reverse] rounded-2xl border border-white/80 bg-white/90 p-4 shadow-[0_20px_40px_rgba(12,49,67,0.12)] backdrop-blur-md xl:left-[1rem]"
-				>
-					<div class="mb-3 flex items-center gap-3">
-						<div
-							class="bg-primary-light/10 text-primary-light flex h-12 w-12 items-center justify-center rounded-xl"
-						>
-							<Icon icon="mdi:weather-pouring" height="26" width="26" />
-						</div>
-						<div>
-							<div class="text-[10px] font-bold tracking-wider text-slate-400 uppercase">
-								Precipitation
-							</div>
-							<div class="text-primary text-lg font-black tracking-tight">
-								{Math.round($precip)} mm/hr
-							</div>
-						</div>
-					</div>
-				</div>
-
-				<!-- Floating Asset 2: Timeline (Bottom Right) -->
-				<div
-					class="absolute -right-12 bottom-10 z-20 w-72 animate-[float_7s_ease-in-out_infinite] rounded-2xl border border-white bg-white p-5 shadow-[0_25px_50px_rgba(12,49,67,0.15)] backdrop-blur-md xl:-right-5"
-				>
-					<div class="mb-7 flex items-center justify-between">
-						<div class="text-[10px] font-bold tracking-wider text-slate-400 uppercase">
-							Risk Level
-						</div>
-						<div
-							class="{riskColorClasses} flex items-center gap-1 rounded-md px-2 py-1 text-[10px] font-bold transition-colors duration-500"
-						>
-							<Icon icon={riskIcon} />
-							{riskLevelText}
-						</div>
-					</div>
-					<div class="flex h-16 items-end gap-2">
-						{#each heights as h, i}
-							<div
-								class="{i % 2 === 0
-									? 'bg-primary-light'
-									: 'bg-primary'} relative flex w-1/5 justify-center rounded-t-md transition-[height] duration-1000 ease-in-out"
-								style="height: {h}%"
-							>
-								<div class="absolute -top-5 text-[9px] font-bold text-slate-500">
-									Day {i + 1}
-								</div>
-							</div>
-						{/each}
-					</div>
-				</div>
-			</div>
+			</ButtonLink>
 		</div>
+
 	</div>
 
 	<!-- Enhanced Wave Animation -->
@@ -692,19 +464,93 @@
 		}
 	}
 
-	@keyframes shimmer {
+	/* Hero section — exactly one viewport tall below the sticky navbar (~60px) */
+	.hero-section {
+		height: calc(100dvh - 60px);
+		max-height: calc(100dvh - 60px);
+		min-height: unset;
+		overflow: hidden;
+		background: radial-gradient(120% 90% at 50% 5%, #dbeafe 0%, #e0f2fe 30%, #f0f9ff 65%, #f8fafc 100%);
+	}
+
+	/* Inner content: vertical padding clears the wave (bottom) and gives breathing room (top) */
+	.hero-content {
+		padding-top: clamp(1rem, 3vh, 3rem);
+		padding-bottom: clamp(5rem, 12vh, 10rem);
+		overflow: hidden;
+	}
+
+	/* Rich, crisp tech dot grid with fine mesh overlay */
+	.hero-dots-pattern {
+		background-image: 
+			radial-gradient(rgba(14, 165, 233, 0.38) 1.5px, transparent 1.5px),
+			linear-gradient(to right, rgba(59, 166, 208, 0.08) 1px, transparent 1px),
+			linear-gradient(to bottom, rgba(59, 166, 208, 0.08) 1px, transparent 1px);
+		background-size: 24px 24px, 48px 48px, 48px 48px;
+		mask-image: radial-gradient(ellipse 85% 75% at 50% 35%, black 45%, transparent 100%);
+		-webkit-mask-image: radial-gradient(ellipse 85% 75% at 50% 35%, black 45%, transparent 100%);
+	}
+
+	/* Glowing pulsating center aura behind the text */
+	.hero-center-aura {
+		position: absolute;
+		top: 10%;
+		left: 50%;
+		transform: translateX(-50%);
+		width: clamp(320px, 65vw, 750px);
+		height: clamp(220px, 45vh, 500px);
+		background: radial-gradient(circle, rgba(59, 166, 208, 0.4) 0%, rgba(129, 212, 250, 0.25) 45%, transparent 75%);
+		filter: blur(60px);
+		border-radius: 50%;
+		animation: aura-pulse 8s ease-in-out infinite alternate;
+	}
+
+	@keyframes aura-pulse {
+		0% {
+			transform: translateX(-50%) scale(0.95);
+			opacity: 0.75;
+		}
 		100% {
-			transform: translateX(100%);
+			transform: translateX(-50%) scale(1.1);
+			opacity: 1;
 		}
 	}
 
-	@keyframes float {
-		0%,
-		100% {
-			transform: translateY(0) rotate(var(--tw-rotate));
+	/* Hero section redesign */
+	.hero-gradient-text {
+		background: linear-gradient(135deg, #3ba6d0 0%, #217ba1 60%, #0f4c6b 100%);
+		-webkit-background-clip: text;
+		-webkit-text-fill-color: transparent;
+		background-clip: text;
+	}
+
+	.hero-badge {
+		animation: hero-badge-in 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+	}
+
+	.hero-headline {
+		animation: hero-fade-up 0.7s cubic-bezier(0.22, 1, 0.36, 1) 0.1s both;
+	}
+
+	@keyframes hero-badge-in {
+		from {
+			opacity: 0;
+			transform: translateY(-10px) scale(0.95);
 		}
-		50% {
-			transform: translateY(-20px) rotate(var(--tw-rotate));
+		to {
+			opacity: 1;
+			transform: translateY(0) scale(1);
+		}
+	}
+
+	@keyframes hero-fade-up {
+		from {
+			opacity: 0;
+			transform: translateY(20px);
+		}
+		to {
+			opacity: 1;
+			transform: translateY(0);
 		}
 	}
 

@@ -44,6 +44,17 @@
 					</div>
 				{/each}
 			</div>
+
+			<!-- Subtle safety notice -->
+			<div class="mt-3 rounded-lg border border-slate-200 bg-slate-50 p-2.5 text-slate-600">
+				<div class="flex items-center gap-1.5 text-xs font-semibold text-slate-800">
+					<Icon icon="mdi:shield-check-outline" class="text-primary" width="15" height="15" />
+					<span>Preparedness Advisory</span>
+				</div>
+				<p class="mt-1 text-[11px] leading-relaxed text-slate-500">
+					APAW is designed for situational awareness and early preparation. Always follow official flood warnings and emergency directives from <strong>DOST-PAGASA</strong> and your local <strong>DRRMO</strong>.
+				</p>
+			</div>
 		</div>
 	{/if}
 </div>

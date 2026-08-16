@@ -1,0 +1,6 @@
+allowBuilds:
+  '@google/genai': true
+  bufferutil: true
+  esbuild: true
+  msw: true
+  protobufjs: true

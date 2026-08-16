@@ -234,7 +234,14 @@
 			<div class="mt-auto pb-8">
 				<div class="border-t border-gray-200 pt-6">
 					<img src="/APAW_TRANSPARENT.webp" alt="APAW Logo" class="mb-3 h-8" />
-					<p class="text-xs text-gray-600">
+					<a
+						href="mailto:apaw.olfu@gmail.com"
+						class="hover:text-primary mb-2 flex items-center gap-1.5 text-xs text-gray-600 transition-colors"
+					>
+						<Icon icon="mdi:email-outline" width="14" height="14" />
+						apaw.olfu@gmail.com
+					</a>
+					<p class="text-xs text-gray-500">
 						© {new Date().getFullYear()} APAW
 					</p>
 				</div>
@@ -270,21 +277,28 @@
 
 		<div class="relative z-10 container mx-auto px-8 md:px-16">
 			<div class="mb-12 grid grid-cols-1 gap-10 md:grid-cols-12">
-				<!-- About Section -->
-				<div class="md:col-span-5 lg:col-span-5">
+				<!-- About & Contact Section -->
+				<div class="md:col-span-4 lg:col-span-4">
 					<div class="mb-4 inline-block rounded-lg bg-white p-3 shadow-lg">
 						<img src="/APAW_TRANSPARENT.webp" alt="APAW Logo" class="h-12" />
 					</div>
-					<p class="mb-5 max-w-md text-blue-100">
+					<p class="mb-4 text-sm leading-relaxed text-blue-100">
 						Applying supervised learning models to analyze integrated hydrometeorological data and
 						predict potential flood occurrences within Metro Manila, Philippines.
 					</p>
+					<a
+						href="mailto:apaw.olfu@gmail.com"
+						class="inline-flex items-center gap-2 text-xs font-medium text-blue-100 transition-colors hover:text-white"
+					>
+						<Icon icon="mdi:email-outline" width="16" height="16" />
+						apaw.olfu@gmail.com
+					</a>
 				</div>
 
 				<!-- Navigation Links -->
-				<div class="md:col-span-3 md:ml-auto lg:col-span-3">
-					<h3 class="mb-4 text-lg font-bold text-white">Navigation</h3>
-					<ul class="space-y-3">
+				<div class="md:col-span-3 lg:col-span-3 md:mx-auto">
+					<h3 class="mb-4 text-base font-bold text-white">Navigation</h3>
+					<ul class="space-y-2.5 text-sm">
 						<li>
 							<a
 								href="/"
@@ -323,12 +337,23 @@
 						</li>
 					</ul>
 				</div>
+
+				<!-- Public Advisory / Disclaimer Column -->
+				<div class="md:col-span-5 lg:col-span-4">
+					<h3 class="mb-4 text-base font-bold text-white">Public Advisory</h3>
+					<p class="text-sm leading-relaxed text-blue-100/90">
+						Predictions are AI estimates for flood awareness and preparedness. For official weather bulletins and emergency alerts, always rely on <strong>DOST-PAGASA</strong> and the <strong>NDRRMC</strong>.
+					</p>
+				</div>
 			</div>
 
-			<!-- Copyright -->
-			<div class="border-t border-blue-300/20 pt-8 text-center">
-				<p class="text-sm text-blue-100">
+			<!-- Copyright & Contact Row -->
+			<div class="flex flex-col items-center justify-between gap-4 border-t border-blue-300/20 pt-6 text-center md:flex-row md:text-left">
+				<p class="text-xs text-blue-100">
 					© {new Date().getFullYear()} APAW. All rights reserved.
+				</p>
+				<p class="text-xs text-blue-100">
+					Inquiries: <a href="mailto:apaw.olfu@gmail.com" class="underline hover:text-white transition-colors">apaw.olfu@gmail.com</a>
 				</p>
 			</div>
 		</div>

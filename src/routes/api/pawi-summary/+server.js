@@ -9,11 +9,7 @@ const CONFIG = {
 	REQUEST_TIMEOUT_MS: 60000,
 	CHAR_BUDGET: 12000,
 	MAX_SUMMARY_CHARS: 1200,
-	GROQ_MODELS: [
-		'qwen/qwen3-32b',
-		'llama-3.1-8b-instant',
-		'meta-llama/llama-4-scout-17b-16e-instruct'
-	]
+	GROQ_MODELS: ['qwen/qwen3.6-27b', 'llama-3.3-70b-versatile', 'llama-3.1-8b-instant']
 };
 
 function elapsedMs(start) {
@@ -176,8 +172,8 @@ function isRateLimitedResponse(status, bodyText = '') {
 }
 
 function getModelSourceTag(model) {
-	if (model === 'meta-llama/llama-4-scout-17b-16e-instruct') return 'scout';
-	if (model === 'qwen/qwen3-32b') return 'qwen';
+	if (model === 'qwen/qwen3.6-27b') return 'qwen';
+	if (model === 'llama-3.3-70b-versatile') return 'llama-70b';
 	if (model === 'llama-3.1-8b-instant') return 'instant';
 	return 'unknown';
 }
@@ -234,8 +230,8 @@ async function callGroq(digest, uiRiskLabels = []) {
 					`[pawi] groq error | model=${model} status=${response.status} rate_limited=${rateLimited} body=${errorText.slice(0, 400)}`
 				);
 
-				if (rateLimited && nextModel) {
-					console.warn(`[pawi] rate-limited on model=${model}; retrying with model=${nextModel}`);
+				if (nextModel) {
+					console.warn(`[pawi] failed on model=${model}; retrying with model=${nextModel}`);
 					continue;
 				}
 
@@ -251,11 +247,21 @@ async function callGroq(digest, uiRiskLabels = []) {
 			const content = raw?.choices?.[0]?.message?.content;
 
 			if (typeof content !== 'string' || content.trim().length === 0) {
+				if (nextModel) {
+					console.warn(`[pawi] empty content on model=${model}; retrying with model=${nextModel}`);
+					continue;
+				}
 				return { ok: false, reason: 'invalid_provider_response' };
 			}
 
 			const normalized = normalizeFinalOutput({ summary: content.trim() }, digest);
 			if (!validateSummaryShape(normalized)) {
+				if (nextModel) {
+					console.warn(
+						`[pawi] invalid summary shape on model=${model}; retrying with model=${nextModel}`
+					);
+					continue;
+				}
 				return { ok: false, reason: 'invalid_provider_response' };
 			}
 
@@ -265,6 +271,10 @@ async function callGroq(digest, uiRiskLabels = []) {
 			console.error(
 				`[pawi] provider call failed | model=${model} reason=${reason} details=${error?.message || 'unknown_error'}`
 			);
+			if (nextModel) {
+				console.warn(`[pawi] exception on model=${model}; retrying with model=${nextModel}`);
+				continue;
+			}
 			return { ok: false, reason, details: error?.message || 'unknown_error' };
 		} finally {
 			clearTimeout(timeout);
