@@ -52,7 +52,7 @@
 					<span>Preparedness Advisory</span>
 				</div>
 				<p class="mt-1 text-[11px] leading-relaxed text-slate-500">
-					APAW is designed for situational awareness and early preparation. Always follow official flood warnings and emergency directives from <strong>DOST-PAGASA</strong> and your local <strong>DRRMO</strong>.
+					APAW is designed for situational awareness and early preparation. Always follow official flood warnings, weather bulletins, and emergency directives from <strong>DOST-PAGASA</strong>, the <strong>NDRRMC</strong>, and your local <strong>DRRMO</strong>.
 				</p>
 			</div>
 		</div>
