@@ -1898,8 +1898,8 @@
 	<HowToUseSection />
 
 	<!-- Subtle Footer Note in Sidebar -->
-	<div class="pt-2 pb-1 text-center text-[10px] text-slate-400">
-		<p>AI estimates for preparedness only • Refer to DOST-PAGASA, NDRRMC & local DRRMO for official alerts</p>
+	<div class="w-[80%] mx-auto pt-2 pb-1 text-center text-xs text-slate-400">
+		<p>AI estimates for preparedness only. Refer to DOST-PAGASA, NDRRMC & local DRRMO for official alerts</p>
 		<p class="mt-0.5">
 			Contact: <a href="mailto:apaw.olfu@gmail.com" class="underline hover:text-slate-600 transition-colors">apaw.olfu@gmail.com</a>
 		</p>
