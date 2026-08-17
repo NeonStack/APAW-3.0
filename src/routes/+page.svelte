@@ -116,7 +116,7 @@
 		<div class="mt-6 flex w-full max-w-xs flex-col items-center justify-center gap-3 sm:max-w-none sm:flex-row sm:gap-4">
 			<ButtonLink
 				href="/about"
-				className="group border-none ring-1 ring-inset ring-slate-200/90 bg-white/95 text-slate-700 shadow-md backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5 hover:ring-primary/40 hover:text-primary hover:bg-white hover:shadow-md rounded-xl text-base"
+				className="group border border-slate-200/90 bg-white/95 text-slate-700 shadow-md backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/40 hover:text-primary hover:bg-white hover:shadow-md rounded-xl text-base"
 				width="w-full sm:w-auto"
 				nowrap
 				ariaLabel="Learn more about APAW"
