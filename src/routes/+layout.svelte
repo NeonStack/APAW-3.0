@@ -342,7 +342,7 @@
 				<div class="md:col-span-5 lg:col-span-4">
 					<h3 class="mb-4 text-base font-bold text-white">Public Advisory</h3>
 					<p class="text-sm leading-relaxed text-blue-100/90">
-						Predictions are AI estimates for flood awareness and preparedness. For official weather bulletins and emergency alerts, always rely on <strong>DOST-PAGASA</strong> and the <strong>NDRRMC</strong>.
+						Predictions are AI estimates intended for flood awareness and preparedness. For official weather bulletins, flood warnings, and emergency directives, always rely on <strong>DOST-PAGASA</strong>, the <strong>NDRRMC</strong>, and your local <strong>DRRMO</strong>.
 					</p>
 				</div>
 			</div>

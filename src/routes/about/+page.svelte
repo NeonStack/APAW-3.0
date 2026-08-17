@@ -474,7 +474,7 @@
 </section>
 
 <!-- Mission & Vision Dual Card -->
-<section class="bg-slate-50 py-20 pb-32">
+<section class="bg-slate-50 py-20">
 	<div class="container mx-auto max-w-6xl px-6">
 		<div
 			class="grid grid-cols-1 overflow-hidden rounded-[3rem] shadow-[0_30px_80px_rgba(12,49,67,0.12)] lg:grid-cols-2"
@@ -509,6 +509,80 @@
 					events, fostering a future where communities are better informed about data-driven risk
 					assessment within Metro Manila.
 				</p>
+			</div>
+		</div>
+	</div>
+</section>
+
+<!-- Public Advisory -->
+<section class="bg-slate-50 py-20">
+	<div class="container mx-auto max-w-7xl px-6">
+		<div class="mb-10 text-center">
+			<h2 class="mb-4 text-4xl font-extrabold tracking-tight text-slate-900 lg:text-5xl">
+				Public Advisory
+			</h2>
+			<p class="mx-auto max-w-2xl text-xl text-gray-500">
+				Predictions are AI estimates for early awareness and not a substitute for official emergency guidance.
+			</p>
+		</div>
+
+		<!-- Warning notice banner -->
+		<div class="bg-primary mb-10 flex items-start gap-5 rounded-[2rem] p-8 text-white md:items-center lg:p-10 opacity-90">
+			<Icon icon="mdi:alert-circle-outline" width="36" height="36" class="shrink-0 hidden md:block" />
+			<p class="text-base font-medium leading-relaxed md:text-lg">
+				<strong class="font-black"> Do not rely on APAW for emergency decisions.</strong>
+				APAW is an experimental student capstone project, not an official flood warning service. Do not make emergency or evacuation decisions based on this data. Always rely on official government agencies:
+			</p>
+		</div>
+
+		<!-- Agency cards — uniform -->
+		<div class="grid grid-cols-1 gap-6 md:grid-cols-3">
+			<!-- DOST-PAGASA -->
+			<div
+				class="group relative z-10 flex h-full flex-col overflow-hidden rounded-[2rem] border border-gray-100 bg-white p-8 shadow-xl transition-all duration-500 hover:-translate-y-2 hover:shadow-2xl"
+			>
+				<div class="pointer-events-none absolute -right-4 -bottom-4 z-[-1] select-none opacity-[0.05]">
+					<img src="/logo/pagasa.png" alt="" width="160" height="160" />
+				</div>
+
+				<h3 class="mb-3 text-2xl font-bold text-slate-800">DOST-PAGASA</h3>
+				<p class="flex-grow text-sm leading-relaxed text-gray-600">
+					Official government weather forecasts, tropical cyclone bulletins, rainfall advisories, and river basin flood warnings across the Philippines.
+				</p>
+
+				<div class="bg-primary-light mt-8 h-1 w-0 rounded-full transition-all duration-500 group-hover:w-full"></div>
+			</div>
+
+			<!-- NDRRMC -->
+			<div
+				class="group relative z-10 flex h-full flex-col overflow-hidden rounded-[2rem] border border-gray-100 bg-white p-8 shadow-xl transition-all duration-500 hover:-translate-y-2 hover:shadow-2xl"
+			>
+				<div class="pointer-events-none absolute -right-4 -bottom-4 z-[-1] select-none opacity-[0.05]">
+					<img src="/logo/ndrrmc.png" alt="" width="160" height="160" />
+				</div>
+
+				<h3 class="mb-3 text-2xl font-bold text-slate-800">NDRRMC</h3>
+				<p class="flex-grow text-sm leading-relaxed text-gray-600">
+					National lead agency for disaster risk reduction and coordinating emergency broadcasts, civil defense protocols, and nationwide disaster response.
+				</p>
+
+				<div class="bg-primary-light mt-8 h-1 w-0 rounded-full transition-all duration-500 group-hover:w-full"></div>
+			</div>
+
+			<!-- Local DRRMOs -->
+			<div
+				class="group relative z-10 flex h-full flex-col overflow-hidden rounded-[2rem] border border-gray-100 bg-white p-8 shadow-xl transition-all duration-500 hover:-translate-y-2 hover:shadow-2xl"
+			>
+				<div class="pointer-events-none absolute -right-4 -bottom-4 z-[-1] select-none">
+					<Icon icon="mdi:city-variant-outline" width="160" height="160" class="text-slate-100" />
+				</div>
+
+				<h3 class="mb-3 text-2xl font-bold text-slate-800">Local DRRMOs</h3>
+				<p class="flex-grow text-sm leading-relaxed text-gray-600">
+					Your city and municipal disaster offices for localized flood monitoring, mandatory evacuation orders, community rescue, and local emergency hotlines.
+				</p>
+
+				<div class="bg-primary-light mt-8 h-1 w-0 rounded-full transition-all duration-500 group-hover:w-full"></div>
 			</div>
 		</div>
 	</div>

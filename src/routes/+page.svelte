@@ -115,24 +115,8 @@
 		<!-- CTA Buttons (matching max-w-xs with subheading on mobile) -->
 		<div class="mt-6 flex w-full max-w-xs flex-col items-center justify-center gap-3 sm:max-w-none sm:flex-row sm:gap-4">
 			<ButtonLink
-				href="/predict"
-				className="group relative border-none bg-primary text-white shadow-md shadow-primary/30 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-primary/45 rounded-xl text-base"
-				width="w-full sm:w-auto"
-				nowrap
-			>
-				<div class="relative z-10 flex items-center justify-center gap-2 px-2 py-0.5 font-semibold">
-					<Icon icon="mdi:map-search-outline" class="text-lg" />
-					<span>Launch Application</span>
-					<Icon
-						icon="mdi:arrow-right"
-						class="text-lg transition-transform duration-200 group-hover:translate-x-1"
-					/>
-				</div>
-			</ButtonLink>
-
-			<ButtonLink
 				href="/about"
-				className="group border border-slate-200/90 bg-white/95 text-slate-700 backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/40 hover:text-primary hover:bg-white hover:shadow-md rounded-xl text-base"
+				className="group border border-slate-200/90 bg-white/95 text-slate-700 shadow-md backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/40 hover:text-primary hover:bg-white hover:shadow-md rounded-xl text-base"
 				width="w-full sm:w-auto"
 				nowrap
 				ariaLabel="Learn more about APAW"
@@ -140,7 +124,21 @@
 				<div class="flex items-center justify-center gap-2 px-2 py-0.5 font-medium">
 					<span>Learn How It Works</span>
 					<Icon
-						icon="mdi:chevron-right"
+						icon="mdi:arrow-right"
+						class="text-lg transition-transform duration-200 group-hover:translate-x-1"
+					/>
+				</div>
+			</ButtonLink>
+			<ButtonLink
+				href="/predict"
+				className="group relative border-none bg-primary text-white shadow-md shadow-primary/30 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-primary/45 rounded-xl text-base"
+				width="w-full sm:w-auto"
+				nowrap
+			>
+				<div class="relative z-10 flex items-center justify-center gap-2 px-2 py-0.5 font-semibold">
+					<span>Launch Application</span>
+					<Icon
+						icon="mdi:arrow-right"
 						class="text-lg transition-transform duration-200 group-hover:translate-x-1"
 					/>
 				</div>
