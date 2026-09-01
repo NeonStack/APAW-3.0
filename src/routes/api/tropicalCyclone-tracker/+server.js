@@ -299,8 +299,12 @@ async function doBackgroundFetch(currentDate, supabase) {
 		}
 		rowsToWrite.push(...activeStormRows);
 
-		console.log('BACKGROUND: New data successfully processed. Appending latest cache batch...');
+		console.log('BACKGROUND: New data successfully processed. Replacing stale cache with fresh batch...');
 		if (rowsToWrite.length > 0) {
+			// Delete ALL old rows first so stale entries (e.g., the same storm under a
+			// different name when it was outside vs. inside PAR) never survive into the
+			// next read. This is a clean replace, not an append.
+			await supabase.from('pagasa_active_bulletins').delete().neq('id', 0);
 			await supabase.from('pagasa_active_bulletins').insert(rowsToWrite);
 		}
 		console.log('BACKGROUND: Fetch complete. Database updated.');
