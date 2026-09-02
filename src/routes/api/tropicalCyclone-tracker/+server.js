@@ -10,8 +10,8 @@ import { getSupabaseServiceClient } from '$lib/server/supabaseClient.js';
 // Central place to easily adjust key parameters for the script.
 // ===================================================================
 const CONFIG = {
-	// AI Model to use for parsing. (Used in: callGeminiAIWithPDF)
-	AI_MODEL: 'gemini-flash-latest',
+	// AI Models to use for parsing, in priority order. Falls back to next on overload. (Used in: callGeminiAIWithPDF)
+	AI_MODELS: ['gemini-flash-latest', 'gemini-flash-lite-latest'],
 
 	// How old a PDF file can be before we ignore it completely. (Used in: getLatestBulletinsFromPAGASA)
 	PDF_CUTOFF_HOURS: 72, // 3 days
@@ -457,31 +457,55 @@ async function callGeminiAIWithPDF(pdfBase64, mimeType, currentDate) {
     Return ONLY the JSON.
   `;
 
-	try {
-		const response = await ai.models.generateContent({
-			model: CONFIG.AI_MODEL,
-			contents: [
-				{ text: prompt },
-				{
-					inlineData: {
-						data: pdfBase64,
-						mimeType: mimeType
+	let lastError;
+	for (const model of CONFIG.AI_MODELS) {
+		try {
+			console.log(`Attempting AI parse with model: ${model}`);
+			const response = await ai.models.generateContent({
+				model,
+				contents: [
+					{ text: prompt },
+					{
+						inlineData: {
+							data: pdfBase64,
+							mimeType: mimeType
+						}
 					}
+				],
+				config: {
+					responseMimeType: 'application/json',
+					responseSchema: bulletinSchema
 				}
-			],
-			config: {
-				responseMimeType: 'application/json',
-				responseSchema: bulletinSchema
+			});
+
+			console.log(`--- GEMINI RAW RESPONSE (${model}) ---`);
+			console.log(response.text);
+			console.log('---------------------------');
+
+			return JSON.parse(response.text);
+		} catch (e) {
+			lastError = e;
+			// Check if this is an overload/rate-limit error worth retrying with a backup
+			const msg = String(e?.message || e).toLowerCase();
+			const isOverloaded =
+				msg.includes('overloaded') ||
+				msg.includes('503') ||
+				msg.includes('resource_exhausted') ||
+				msg.includes('rate limit') ||
+				msg.includes('quota');
+
+			if (isOverloaded) {
+				console.warn(`Gemini model "${model}" is overloaded. Trying next backup model...`);
+				continue;
 			}
-		});
 
-		console.log('--- GEMINI RAW RESPONSE ---');
-		console.log(response.text);
-		console.log('---------------------------');
-
-		return JSON.parse(response.text);
-	} catch (e) {
-		console.error('Gemini AI Error:', e);
-		throw new Error('Failed to parse bulletin with AI.');
+			// Non-overload error — don't bother with backups
+			console.error(`Gemini AI Error (${model}):`, e);
+			throw new Error('Failed to parse bulletin with AI.');
+		}
 	}
+
+	// All models exhausted
+	console.error('All Gemini models are overloaded or exhausted:', lastError);
+	throw new Error('Failed to parse bulletin with AI — all models overloaded.');
 }
